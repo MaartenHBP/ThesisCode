@@ -36,6 +36,8 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 )
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
+from noise_robust_cobras.metric_learning.metriclearning_algorithms import EuclidianDistance
+
 
 class SplitResult(Enum):
     SUCCESS = 1
@@ -61,6 +63,7 @@ class COBRAS:
         correct_noise=True,
         logger=None,
         cobras_logger=None,
+        metric_algo = None
     ):
 
 
@@ -76,6 +79,10 @@ class COBRAS:
         # init cobras_cluster_algo
         self.cluster_algo = cluster_algo
         self.superinstance_builder = superinstance_builder
+
+        # metric learning
+        if metric_algo is None:
+            self.metric_algo = EuclidianDistance()
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -139,13 +146,15 @@ class COBRAS:
         """
         self.random_generator = np.random.default_rng(self.seed)
         self._cobras_log.log_start_clustering()
-        self.data = X
+        self.data = X # data = X, deze moeten we dan indien nodig transformere
         self.train_indices = (
             train_indices if train_indices is not None else range(len(X))
         )
         self.split_superinstance_selection_heur.set_clusterer(self)
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
+
+        self.metric_algo.addData(self.data)
 
         # initial clustering: all instances in one superinstance in one cluster
         initial_superinstance = self.create_superinstance(
@@ -210,6 +219,11 @@ class COBRAS:
             # after initialisation or after that the current clustering is fully merged
             if fully_merged or last_valid_clustering is None:
                 last_valid_clustering = copy.deepcopy(self.clustering)
+
+            # metric learning phase
+            self.metric_algo.learn(self)
+            self.data = self.metric_algo.transformData()
+
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()

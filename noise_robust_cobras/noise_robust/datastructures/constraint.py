@@ -1,5 +1,6 @@
 import functools
 import json
+import numpy as np
 
 
 def raw_constraints_to_constraints(raw_constraints):
@@ -98,6 +99,12 @@ class Constraint:
 
     def to_tuple(self):
         return (self.i1, self.i2, self.isML)
+
+    def to_tuple_b(self):
+        code = -1
+        if self.isML:
+            code = 1
+        return np.array([self.i1, self.i2, code])
 
     def __eq__(self, other):
         if other is None:

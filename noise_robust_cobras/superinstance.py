@@ -31,7 +31,7 @@ class SuperInstance:
             raise ValueError("Super instances without training instances")
 
     @abc.abstractmethod
-    def distance_to(self, other_superinstance):
+    def distance_to(self, other_superinstance): # hier moeten we aan foefelen
         return
 
     def get_leaves(self):
