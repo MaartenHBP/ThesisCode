@@ -63,7 +63,7 @@ class COBRAS:
         correct_noise=True,
         logger=None,
         cobras_logger=None,
-        metric_algo = None
+        metric_algo=None
     ):
 
 
@@ -83,6 +83,8 @@ class COBRAS:
         # metric learning
         if metric_algo is None:
             self.metric_algo = EuclidianDistance()
+        else:
+            self.metric_algo = metric_algo
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:

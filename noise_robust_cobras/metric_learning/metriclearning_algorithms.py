@@ -1,6 +1,9 @@
 from abc import abstractmethod
 import numpy as np
 from metric_learn import ITML
+from metric_learn import MMC
+from metric_learn import RCA
+from metric_learn import SDML
 
 # makkelijkste optie is al de data transformeren
 
@@ -18,14 +21,31 @@ class MetricLearningAlgorithm:
 
 class SemiSupervisedMetric(MetricLearningAlgorithm):
     def __init__(self):
-        self.algo = ITML(preprocessor=np.copy(X))
+        self.algo = None
+        self.count = 0
 
     def learn(self, cobras_cluster):
-        a = np.array(list(cobras_cluster.constraint_index.constraints))
-        np.zeros((a.shape[0], 2))
-        np.zeros(a.shape[0])
-        self.algo = ITML()
-        self.algo.fit()
+        if self.count < 10:
+            self.count+=1
+            return
+        constraints = np.array(list(cobras_cluster.constraint_index.constraints))
+        if (constraints.shape[0] < 2):
+            return
+        self.algo = ITML(preprocessor=np.copy(self.X))
+        tuples = np.zeros((constraints.shape[0], 2), dtype = int)
+        y = np.zeros(constraints.shape[0], dtype = int)
+        for i in range(constraints.shape[0]):
+            tup = constraints[i].to_tuple_b()
+            tuples[i] = tup[0:2]
+            y[i] = tup[2]
+
+        self.algo.fit(tuples, y)
+        self.count=0
+
+    def transformData(self):
+        if self.algo is None:
+            return self.X 
+        return self.algo.transform(np.copy(self.X))
     
 
 class EuclidianDistance(MetricLearningAlgorithm):
@@ -34,7 +54,6 @@ class EuclidianDistance(MetricLearningAlgorithm):
 
     def learn(self, cobras_cluster):
         constraints = np.array(list(cobras_cluster.constraint_index.constraints))
-        print(constraints)
         tuples = np.zeros((constraints.shape[0], 2), dtype = int)
         y = np.zeros(constraints.shape[0], dtype = int)
         for i in range(constraints.shape[0]):
@@ -42,10 +61,6 @@ class EuclidianDistance(MetricLearningAlgorithm):
             tuples[i] = tup[0:2]
             y[i] = tup[2]
 
-        print(tuples)
-        print(y)
-
-        print(constraints)
 
     def transformData(self):
         return self.X
