@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class Plotmaker:
     def __init__(self, name: str, path):
@@ -30,22 +31,12 @@ class Plotmaker:
 class IRAPlot(Plotmaker):
     def __init__(self, name: str, colors = None, path = None):
         super().__init__(name, path)
-        self.series = dict()
+        self.df = pd.DataFrame()
 
-    def addPoint(self, series_name: str, x, y):
-        samples = self.series.get(series_name, None)
-        if samples is None:
-            self.series[series_name] = ([],[])
-        self.series[series_name][0].append(x)
-        self.series[series_name][1].append(y)
+    def addPoint(self, series_name: str, points):
+        self.df[series_name] = points
 
     def viewPlot(self, xLabel = "ARI"):
-        for name,samples in self.series.items():
-            plt.plot(samples[0], samples[1], label=name)
-        plt.legend(loc='lower right')
-        plt.title(self.name)
-        plt.xlabel("Number of queries")
-        plt.ylabel(xLabel)
-        plt.show()
+        self.df.plot(title=self.name, xlabel="Number of queries", ylabel=xLabel)
 
     

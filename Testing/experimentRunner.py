@@ -68,57 +68,76 @@ class ExperimentRunner:
             if plot:
                 self.plotmakers["plot"] = IRAPlot("plot")
 
-            totalRuns = maxQ * runsPQ
-            maal = 1
 
-            if metric and normal:
-                totalRuns = totalRuns * 2
-                maal = 2
 
             for name,samples in self.datasets.items():
-                for i in range(maxQ):
-                    averageNormal = {"S1": 0, "S2": 0, "time": 0, "mu": 0}
-                    averageMetric = {"S1": 0, "S2": 0, "time": 0, "mu": 0}
-                    for j in range(runsPQ):
-                        if normal:
-                            querier = LabelQuerier(None, samples["target"], i + 1)
-                            clusterer = COBRAS(correct_noise=False)
-                            all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
-                            best_clustering = all_clusters[-1]
-                            runtime = runtimes[-1]
-                            averageNormal["S1"] += adjusted_rand_score(samples["target"], best_clustering)
-                            averageNormal["S2"] += adjusted_rand_score(samples["target"], best_clustering)**2
-                            averageNormal["time"] += (runtime - averageNormal["time"])/(j + 1)
-                            print(f"{((i*runsPQ + j) * maal + 1)/(totalRuns)*100:.1f} %", end="\r")
-                        if metric:
-                            querier = LabelQuerier(None, samples["target"], i + 1)
-                            clusterer = COBRAS(correct_noise=False, metric_algo=SemiSupervisedMetric())
-                            all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
-                            best_clustering = all_clusters[-1]
-                            runtime = runtimes[-1]
-                            averageMetric["S1"] += adjusted_rand_score(samples["target"], best_clustering)
-                            averageMetric["S2"] += adjusted_rand_score(samples["target"], best_clustering)**2
-                            averageMetric["time"] += (runtime - averageMetric["time"])/(j + 1)
-                            print(f"{((i*runsPQ + j) * maal + 2)/(totalRuns)*100:.1f} %", end="\r")
-                    averageNormal["mu"] = averageNormal["S1"]/runsPQ
-                    averageMetric["mu"] = averageMetric["S1"]/runsPQ
-                    seNormal = sqrt((runsPQ*averageNormal["S2"] - averageNormal["S1"]**2)/(runsPQ*(runsPQ-1)))
-                    seMetric = 0 # nog ff niet nodig
-                    if normal:
-                        self.plotmakers["ARI"].addPoint(name + " no metric learning", i, averageNormal["mu"])
-                        self.plotmakers["time"].addPoint(name + " no metric learning", i, averageNormal["time"])
-                    if metric:
-                        self.plotmakers["ARI"].addPoint(name + " metric learning", i, averageMetric["mu"])
-                        self.plotmakers["time"].addPoint(name + " metric learning", i, averageMetric["time"])
-                    tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
-                    hNormal = seNormal * tp
-                    self.plotmakers["ARI"].addPoint(name + " confidence upper", i, averageNormal["mu"] + hNormal)
-                    self.plotmakers["ARI"].addPoint(name + " confidence lowe", i, averageNormal["mu"] - hNormal)
+                average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "mu": np.zeros(maxQ)}
+                for j in range(runsPQ):
+                    querier = LabelQuerier(None, samples["target"], maxQ)
+                    clusterer = COBRAS(correct_noise=False)
+                    all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
+                    # best_clustering = all_clusters[-1]
+                    # runtime = runtimes[-1]
+                    IRA = np.array([adjusted_rand_score(samples["target"], clustering) for clustering in all_clusters])
+                    
+                    average["S1"] += IRA
+                    average["S2"] += IRA**2
+    
+                    print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
+
+                average["mu"] = average["S1"]/runsPQ
+                seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
+                tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
+                hNormal = seNormal * tp
+
+                self.plotmakers["ARI"].addPoint(name + " no metric learning", average["mu"])
+                self.plotmakers["ARI"].addPoint(name + " upper", average["mu"] + hNormal)
+                self.plotmakers["ARI"].addPoint(name + " lower", average["mu"] - hNormal)
+
+            # for name,samples in self.datasets.items():
+            #     for i in range(maxQ):
+            #         averageNormal = {"S1": 0, "S2": 0, "time": 0, "mu": 0}
+            #         averageMetric = {"S1": 0, "S2": 0, "time": 0, "mu": 0}
+            #         for j in range(runsPQ):
+            #             if normal:
+            #                 querier = LabelQuerier(None, samples["target"], i + 1)
+            #                 clusterer = COBRAS(correct_noise=False)
+            #                 all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
+            #                 best_clustering = all_clusters[-1]
+            #                 runtime = runtimes[-1]
+            #                 averageNormal["S1"] += adjusted_rand_score(samples["target"], best_clustering)
+            #                 averageNormal["S2"] += adjusted_rand_score(samples["target"], best_clustering)**2
+            #                 averageNormal["time"] += (runtime - averageNormal["time"])/(j + 1)
+            #                 print(f"{((i*runsPQ + j) * maal + 1)/(totalRuns)*100:.1f} %", end="\r")
+            #             if metric:
+            #                 querier = LabelQuerier(None, samples["target"], i + 1)
+            #                 clusterer = COBRAS(correct_noise=False, metric_algo=SemiSupervisedMetric())
+            #                 all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
+            #                 best_clustering = all_clusters[-1]
+            #                 runtime = runtimes[-1]
+            #                 averageMetric["S1"] += adjusted_rand_score(samples["target"], best_clustering)
+            #                 averageMetric["S2"] += adjusted_rand_score(samples["target"], best_clustering)**2
+            #                 averageMetric["time"] += (runtime - averageMetric["time"])/(j + 1)
+            #                 print(f"{((i*runsPQ + j) * maal + 2)/(totalRuns)*100:.1f} %", end="\r")
+            #         averageNormal["mu"] = averageNormal["S1"]/runsPQ
+            #         averageMetric["mu"] = averageMetric["S1"]/runsPQ
+            #         seNormal = sqrt((runsPQ*averageNormal["S2"] - averageNormal["S1"]**2)/(runsPQ*(runsPQ-1)))
+            #         seMetric = 0 # nog ff niet nodig
+            #         if normal:
+            #             self.plotmakers["ARI"].addPoint(name + " no metric learning", i, averageNormal["mu"])
+            #             self.plotmakers["time"].addPoint(name + " no metric learning", i, averageNormal["time"])
+            #         if metric:
+            #             self.plotmakers["ARI"].addPoint(name + " metric learning", i, averageMetric["mu"])
+            #             self.plotmakers["time"].addPoint(name + " metric learning", i, averageMetric["time"])
+            #         tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
+            #         hNormal = seNormal * tp
+            #         self.plotmakers["ARI"].addPoint(name + " confidence upper", i, averageNormal["mu"] + hNormal)
+            #         self.plotmakers["ARI"].addPoint(name + " confidence lowe", i, averageNormal["mu"] - hNormal)
             
             if ARI:
                 self.plotmakers["ARI"].viewPlot()
-            if time:
-                self.plotmakers["time"].viewPlot()
+            # if time:
+            #     self.plotmakers["time"].viewPlot()
     
     def saveResults(self): # Hier moet er pas een map gemaakt worden
         i = 0
