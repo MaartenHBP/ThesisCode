@@ -59,11 +59,11 @@ class COBRAS:
         minimum_approximation_order=2,
         maximum_approximation_order=3,
         certainty_threshold=0.95,
-        seed=None,
+        seed=None, # seed is bekijken
         correct_noise=True,
         logger=None,
         cobras_logger=None,
-        metric_algo=None,
+        metric_algo=None, # mss moet dat ergens anders staan
         end = False
     ):
 
