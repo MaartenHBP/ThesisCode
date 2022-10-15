@@ -6,15 +6,21 @@ from sklearn.metrics import adjusted_rand_score
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQuerier
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import SemiSupervisedMetric
+import noise_robust_cobras.metric_learning.metriclearning_algorithms 
 import numpy as np 
 import scipy
+from metric_learn import NCA
+
+all_algos = {0: {"metric algo": noise_robust_cobras.metric_learning.metriclearning_algorithms.EuclidianDistance, "description": "The plain old COBRAS"}, 
+        1: {"metric algo": noise_robust_cobras.metric_learning.metriclearning_algorithms.SemiSupervisedMetric, "description": "COBRAS with semi-supervised metric learning"},
+        2: {"metric algo": noise_robust_cobras.metric_learning.metriclearning_algorithms.SupervisedMetric, "description": "COBRAS with supervised metric learning"}}
 
 class ExperimentRunner:
     def __init__(self, name: str, path, day) -> None:
         self.name = name
         self.datasets = dict()
         self.plotmakers = dict()
+        self.algos = dict()
 
         # i = 0
         # while True:
@@ -31,9 +37,35 @@ class ExperimentRunner:
         #         i += 1
         #self.path = resulting_path
         self.day = day
+    def addAlgo(self, algos = None, all = False):
+        inp = None
+        signal = True
+        while True:
+            string = ""
+            for name,samples in all_algos.items():
+                string = string + str(name) + ": " + samples["description"] + " | " 
+            inp = input(string)
+            if not inp:
+                return signal
 
-    def loadDataSets(self, datasets = None):
-        signal = False
+            if not inp.isnumeric() or len(all_algos) < int(inp) or 0 > int(inp):
+                continue
+
+            self.algos[int(inp)] = all_algos[int(inp)]
+            signal = False
+
+    def loadDataSets(self, datasets = None, all = False, metricPreprocessing = False): # still ugly brow
+        if (all): 
+            path = Path('datasets/cobras-paper/').absolute()
+            dir_list = os.listdir(path)
+            for i in dir_list:
+                p = os.path.join(path, i)
+                dataset = np.loadtxt(p, delimiter=',')
+                data = dataset[:, 1:]
+                target = dataset[:, 0]
+            return False
+
+        signal = True
         if datasets is None:
             inp = None
             while True:
@@ -47,52 +79,60 @@ class ExperimentRunner:
                 if not inp:
                     return signal
                 dataset_path = Path('datasets/cobras-paper/' + inp + ".data").absolute() # brow er wordt nergens gecheched of die al bestaat
+                if (metricPreprocessing):
+                    inp = inp + " " + "metricPreprocessing"
+                print(inp)
                 samples = self.datasets.get(inp, None)
                 if samples is not None:
                     print("bestaat al kut")
                     continue
-                signal = True
+                signal = False
                 dataset = np.loadtxt(dataset_path, delimiter=',')
                 data = dataset[:, 1:]
                 target = dataset[:, 0]
+                if (metricPreprocessing):
+                    l = NCA(max_iter=1000)
+                    l.fit(np.copy(data), np.copy(target))
+                    data = l.transform(data)
+
+
                 self.datasets[inp] = {
                                         "data": data,
                                         "target": target,
                                         }
 
     def run(self, ARI = True, time = False, plot = False, 
-            maxQ = 100, runsPQ = 1, CI = False, metric = True, #nu nog true maar moet een lijst van algo's worden
-            normal = True): # returns de COBRAS indien een run
+            maxQ = 100, runsPQ = 1, CI = False): # returns de COBRAS indien een run
             self.plotmakers["ARI"] = IRAPlot("ARI plot")
-            self.plotmakers["time"] = IRAPlot("time plot")
-            if plot:
-                self.plotmakers["plot"] = IRAPlot("plot")
+            # self.plotmakers["time"] = IRAPlot("time plot")
 
+            k = 0
+            print(len(self.algos))
+            for name_algo,samples in self.algos.items():
+                k += 1
+                for name,samples in self.datasets.items():
+                    average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "mu": np.zeros(maxQ)}
+                    for j in range(runsPQ):
+                        querier = LabelQuerier(None, samples["target"], maxQ)
+                        clusterer = COBRAS(correct_noise=False)
+                        all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
+                        # best_clustering = all_clusters[-1]
+                        # runtime = runtimes[-1]
+                        IRA = np.array([adjusted_rand_score(samples["target"], clustering) for clustering in all_clusters])
+                        
+                        average["S1"] += IRA
+                        average["S2"] += IRA**2
+        
+                        print(f"{((k-1)* runsPQ + j + 1)/(runsPQ*len(self.algos))*100:.1f} %", end="\r")
 
+                    average["mu"] = average["S1"]/runsPQ
+                    seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
+                    tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
+                    hNormal = seNormal * tp
 
-            for name,samples in self.datasets.items():
-                average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "mu": np.zeros(maxQ)}
-                for j in range(runsPQ):
-                    querier = LabelQuerier(None, samples["target"], maxQ)
-                    clusterer = COBRAS(correct_noise=False)
-                    all_clusters, runtimes, *_ = clusterer.fit(samples["data"], -1, None, querier)
-                    # best_clustering = all_clusters[-1]
-                    # runtime = runtimes[-1]
-                    IRA = np.array([adjusted_rand_score(samples["target"], clustering) for clustering in all_clusters])
-                    
-                    average["S1"] += IRA
-                    average["S2"] += IRA**2
-    
-                    print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
-
-                average["mu"] = average["S1"]/runsPQ
-                seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
-                tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
-                hNormal = seNormal * tp
-
-                self.plotmakers["ARI"].addPoint(name + " no metric learning", average["mu"])
-                self.plotmakers["ARI"].addPoint(name + " upper", average["mu"] + hNormal)
-                self.plotmakers["ARI"].addPoint(name + " lower", average["mu"] - hNormal)
+                    self.plotmakers["ARI"].addPoint(str(name_algo) + " " + name + " no metric learning", average["mu"])
+                    # self.plotmakers["ARI"].addPoint(str(name_algo) + " " + name + " upper", average["mu"] + hNormal)
+                    # self.plotmakers["ARI"].addPoint(str(name_algo) + " " + name + " lower", average["mu"] - hNormal)
 
             # for name,samples in self.datasets.items():
             #     for i in range(maxQ):
@@ -162,6 +202,7 @@ class ExperimentRunner:
     def clear(self):
         self.datasets = dict()
         self.plotmakers = dict()
+        self.algos = dict()
 
 
                 

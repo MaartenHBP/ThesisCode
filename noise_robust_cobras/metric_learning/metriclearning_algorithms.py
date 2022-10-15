@@ -21,7 +21,7 @@ class MetricLearningAlgorithm:
     def addData(self, X):
         self.X = np.copy(X)
 
-class SupervisedMetric(MetricLearningAlgorithm):
+class SupervisedMetric(MetricLearningAlgorithm): # over alle mogelijke dingen loopen
     def __init__(self):
         self.algo = None
         self.count = 0
