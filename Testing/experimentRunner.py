@@ -72,10 +72,10 @@ class ExperimentRunner:
         totalDataset = len(self.datasets)
         totalAlgos = len(self.algos)
         nbdata = 0
-        for data in self.datasets:
+        for nameData in self.datasets:
             nbdata += 1
             # load the data
-            dataset_path = Path('datasets/cobras-paper/' + data + '.data').absolute()
+            dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
             dataset = np.loadtxt(dataset_path, delimiter=',')
             data = dataset[:, 1:]
             target = dataset[:, 0]
@@ -88,7 +88,7 @@ class ExperimentRunner:
             nbalg = 0
             for algo in self.algos:
                 nbalg += 1
-                batch = Batch(data, algo.getFileName(), maxQ, runsPQ, crossFold, metricPreprocessing)
+                batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold, metricPreprocessing)
                 if batch.chechIfRunned(): # batch wordt direct ingeladen
                     self.batches.append(batch)
                 else: # nu begin het echtere werk
@@ -115,6 +115,7 @@ class ExperimentRunner:
                         seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
                         tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
                         batch.results["hNormal"] = seNormal * tp
+                self.batches.append(batch)
 
     def makePLot(self): # dees moet nog beter worden uitgewerkt
         plot = pd.DataFrame()
