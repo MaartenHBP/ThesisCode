@@ -1,9 +1,9 @@
 from array import array
 from audioop import mul
 from math import sqrt
-from plots import IRAPlot
 from pathlib import Path
 import os
+from statistics import mean
 from sklearn.metrics import adjusted_rand_score
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQuerier
@@ -14,6 +14,7 @@ import scipy
 from metric_learn import NCA
 from batch import Batch
 import pandas as pd
+from sklearn.model_selection import StratifiedKFold, KFold
 
 class ExperimentRunner:
     def __init__(self, name: str, path, day) -> None:
@@ -21,6 +22,7 @@ class ExperimentRunner:
         self.datasets = []
         self.batches = []
         self.algos = []
+        self.runs = 0
 
         # i = 0
         # while True:
@@ -39,23 +41,24 @@ class ExperimentRunner:
         self.day = day
     def addAlgo(self, algos):
         if len(algos) == 0:
-            path = Path('datasets/cobras-paper/').absolute()
-            dir_list = os.listdir(path)
-            for i in dir_list:
-                self.algos.append(i[:len(i) - 5])
+            print("load all algo's")
         self.algos = algos
 
     def loadDataSets(self, datasets:array): 
         if len(datasets) == 0:
-            print("add all datasets")
-        path = Path('datasets/cobras-paper/').absolute()
-        for set in datasets:
-            data_path = os.path.join(path, set + ".data")
-            if not os.path.exists(data_path):
-                datasets.remove(set)
-                continue
+            path = Path('datasets/cobras-paper/').absolute()
+            dir_list = os.listdir(path)
+            for i in dir_list:
+                self.datasets.append(i[:len(i) - 5])
+        else:
+            path = Path('datasets/cobras-paper/').absolute()
+            for set in datasets:
+                data_path = os.path.join(path, set + ".data")
+                if not os.path.exists(data_path):
+                    datasets.remove(set)
+                    continue
 
-        self.datasets = datasets
+            self.datasets = datasets
 
     def clear(self):
         self.datasets = []
@@ -64,11 +67,12 @@ class ExperimentRunner:
 
     def SaveBatches(self):
         for batch in self.batches:
-            batch.saveResult()
+            batch.saveResults()
 
         self.batches = []
 
     def run(self, maxQ, runsPQ, crossFold = False, metricPreprocessing = False): # crossvalidation nog fixen
+        self.runs +=1
         totalDataset = len(self.datasets)
         totalAlgos = len(self.algos)
         nbdata = 0
@@ -94,7 +98,32 @@ class ExperimentRunner:
                 else: # nu begin het echtere werk
                     if crossFold:
                         # execute crossfold validation
-                        print("crossvalidation")
+                        average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
+                        for j in range(runsPQ):
+                            skf = StratifiedKFold(n_splits = 10, shuffle = True) # momenteel gewoon standaard op 10
+                            for fold_nb, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(target)), target)):
+                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices)
+                                IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
+                                average["S1"] += IRA
+                                average["S2"] += IRA**2
+                                average["times"] += np.array(runtimes)
+
+                                print("                                                                  ", end="\r" )
+                                print("Run " + str(self.runs), end = " ")
+                                # print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
+                                print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+                                print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                                print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
+                                print("fold: " + str(fold_nb + 1) + "/" + str(10), end="\r")
+                                # print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
+
+                        batch.results["mu"] = average["S1"]/(runsPQ*10)
+                        batch.results["times"] = average["times"]/(runsPQ*10)
+                        seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
+                        tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
+                        batch.results["hNormal"] = seNormal * tp
+
+                                
                     else:
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)} # algoritme mag echt niet eerder stoppen, ma kan gefixt worden, laatste clustering blijven gebruiken
                         for j in range(runsPQ):
@@ -104,10 +133,11 @@ class ExperimentRunner:
                             average["S2"] += IRA**2
                             average["times"] += np.array(runtimes)
 
-                            print("", end="\r" )
+                            print("                                                                  ", end="\r" )
+                            print("Run " + str(self.runs), end = " ")
                             print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
                             print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                            print("algo:: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                            print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
                             print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
 
                         batch.results["mu"] = average["S1"]/runsPQ
@@ -117,11 +147,25 @@ class ExperimentRunner:
                         batch.results["hNormal"] = seNormal * tp
                 self.batches.append(batch)
 
-    def makePLot(self): # dees moet nog beter worden uitgewerkt
+    def makePlot(self, maxQ): # dees moet nog beter worden uitgewerkt
         plot = pd.DataFrame()
-        for batch in self.batches:
-            string = batch.nameDataSet + " " +batch.nameAlgo + " " + str(batch.metricPreprocessing)
-            plot[string] = batch.results["mu"]
+        loop = ["Metric learning preprocessed", "Normal"]
+        for k in loop:
+            mean = np.zeros(maxQ)
+            i = 0
+            for batch in self.batches:
+                if batch.metricPreprocessing and k == "Metric learning preprocessed":
+                    mean += batch.results['mu']
+                    i += 1
+                if not batch.metricPreprocessing and k == "Normal": 
+                    mean += batch.results['mu']
+                    i += 1
+            mean = mean/i
+            plot[k] = mean
+
+
+        # print(d)
+
 
         plot.plot(title=self.name, xlabel="Number of queries", ylabel="Average ARI")
 

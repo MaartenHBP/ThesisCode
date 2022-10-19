@@ -25,10 +25,10 @@ class Cobras(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self,data, target, maxQ):
+    def fit(self,data, target, maxQ, trainingset = None):
         querier = LabelQuerier(None, target, maxQ)
         clusterer = COBRAS(correct_noise=False)
-        all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes
 
@@ -42,10 +42,10 @@ class SemiSupervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, data, target, maxQ):
+    def fit(self, data, target, maxQ, trainingset = None):
         querier = LabelQuerier(None, target, maxQ)
         clusterer = Cobras(correct_noise=False, metric_algo = SemiSupervised())
-        all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes
 
@@ -59,10 +59,10 @@ class Supervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, data, target, maxQ):
+    def fit(self, data, target, maxQ, trainingset = None):
         querier = LabelQuerier(None, target, maxQ)
         clusterer = COBRAS(correct_noise=False, metric_algo = Supervised())
-        all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes
 
@@ -70,5 +70,5 @@ class Supervised(Algorithm):
         return "COBRAS where after each iteration a metric is learned using the clustering labels so far"
 
     def getFileName(self):
-        return "Semi_Supervised_NCA"
+        return "Supervised_NCA"
 

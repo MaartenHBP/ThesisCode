@@ -64,7 +64,7 @@ class COBRAS:
         logger=None,
         cobras_logger=None,
         metric_algo=None, # mss moet dat ergens anders staan
-        end = False
+        end = False # is enkel voor de baseline
     ):
 
         self.end = end
