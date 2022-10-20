@@ -71,42 +71,56 @@ class ExperimentRunner:
 
         self.batches = []
 
-    def run(self, maxQ, runsPQ, crossFold = False, metricPreprocessing = False): # crossvalidation nog fixen
+    def run(self, maxQ, runsPQ, crossFold = False, metricPreprocessing = False, save = False): # crossvalidation nog fixen
         self.runs +=1
         totalDataset = len(self.datasets)
         totalAlgos = len(self.algos)
         nbdata = 0
-        for nameData in self.datasets:
+
+        # loop over the datasets
+        for nameData in self.datasets: # moet elk algo niet dezelfde folds hebben
             nbdata += 1
-            # load the data
+
+            # Load in the data
             dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
             dataset = np.loadtxt(dataset_path, delimiter=',')
             data = dataset[:, 1:]
             target = dataset[:, 0]
-            if (metricPreprocessing): # metricPreproccesing step
-                l = NCA(max_iter=1000)
-                l.fit(np.copy(data), np.copy(target))
-                data = l.transform(data)
+            preprocessed = False
 
-            # loop over al algos
+            # create the crossfolds
+            skf = []
+            if crossFold:
+                for j in range(runsPQ):
+                    skf.append(StratifiedKFold(n_splits = 10, shuffle = True)) 
+
+            # loop over the algorithms
             nbalg = 0
-            for algo in self.algos:
+            for algo in self.algos: # schrijf dit allemaal in functies
                 nbalg += 1
+
+                # create the batch
                 batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold, metricPreprocessing)
                 if batch.chechIfRunned(): # batch wordt direct ingeladen
                     self.batches.append(batch)
                 else: # nu begin het echtere werk
+                    if (metricPreprocessing and not preprocessed): # metricPreproccesing step
+                        print("metric learning: " + str(nbdata), end = "\r")
+                        l = NCA(max_iter=1000)
+                        l.fit(np.copy(data), np.copy(target))
+                        data = l.transform(data)
+                        preprocessed = True
                     if crossFold:
                         # execute crossfold validation
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
                         for j in range(runsPQ):
-                            skf = StratifiedKFold(n_splits = 10, shuffle = True) # momenteel gewoon standaard op 10
+                            skf = StratifiedKFold(n_splits = 10, shuffle = True) # momenteel gewoon standaard op 10, dit kan btw bij loaden van de dataset gebeuren (er al een paar maken)
                             for fold_nb, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(target)), target)):
                                 all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices)
                                 IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
                                 average["S1"] += IRA
                                 average["S2"] += IRA**2
-                                average["times"] += np.array(runtimes)
+                                average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
 
                                 print("                                                                  ", end="\r" )
                                 print("Run " + str(self.runs), end = " ")
@@ -122,6 +136,7 @@ class ExperimentRunner:
                         seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
                         tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
                         batch.results["hNormal"] = seNormal * tp
+                        
 
                                 
                     else:
@@ -145,23 +160,27 @@ class ExperimentRunner:
                         seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
                         tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
                         batch.results["hNormal"] = seNormal * tp
+                if save:
+                    batch.saveResults()
                 self.batches.append(batch)
+                
 
     def makePlot(self, maxQ): # dees moet nog beter worden uitgewerkt
         plot = pd.DataFrame()
         loop = ["Metric learning preprocessed", "Normal"]
-        for k in loop:
-            mean = np.zeros(maxQ)
-            i = 0
-            for batch in self.batches:
-                if batch.metricPreprocessing and k == "Metric learning preprocessed":
-                    mean += batch.results['mu']
-                    i += 1
-                if not batch.metricPreprocessing and k == "Normal": 
-                    mean += batch.results['mu']
-                    i += 1
-            mean = mean/i
-            plot[k] = mean
+        for alg in self.algos:
+            for k in loop:
+                mean = np.zeros(maxQ)
+                i = 0
+                for batch in self.batches:
+                    if batch.metricPreprocessing and k == "Metric learning preprocessed" and alg == batch.nameAlgo:
+                        mean += batch.results['mu']
+                        i += 1
+                    if not batch.metricPreprocessing and k == "Normal" and alg.getFileName() == batch.nameAlgo: 
+                        mean += batch.results['mu']
+                        i += 1
+                mean = mean/i
+                plot[alg.getFileName()] = mean
 
 
         # print(d)
