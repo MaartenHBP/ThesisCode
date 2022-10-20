@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
+from noise_robust_cobras.metric_learning.metriclearning_algorithms import * #TODO: deze class herschrijven, handiger maken om subclasses
 
 class Algorithm:
     @abstractmethod
@@ -44,7 +44,7 @@ class SemiSupervised(Algorithm):
 
     def fit(self, data, target, maxQ, trainingset = None):
         querier = LabelQuerier(None, target, maxQ)
-        clusterer = Cobras(correct_noise=False, metric_algo = SemiSupervised())
+        clusterer = COBRAS(correct_noise=False, metric_algo = SemiSupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes
@@ -61,7 +61,7 @@ class Supervised(Algorithm):
 
     def fit(self, data, target, maxQ, trainingset = None):
         querier = LabelQuerier(None, target, maxQ)
-        clusterer = COBRAS(correct_noise=False, metric_algo = Supervised())
+        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes

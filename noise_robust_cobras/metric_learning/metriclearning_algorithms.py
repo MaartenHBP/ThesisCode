@@ -30,7 +30,7 @@ class SupervisedMetric(MetricLearningAlgorithm): # over alle mogelijke dingen lo
         # if self.count < 10:
         #     self.count+=1
         #     return
-        self.algo = NCA(max_iter=1000)
+        self.algo = NCA(max_iter=100)
     
 
         self.algo.fit(np.copy(self.X), cobras_cluster.clustering.construct_cluster_labeling())
