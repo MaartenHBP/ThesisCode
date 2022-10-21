@@ -25,8 +25,8 @@ class Cobras(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self,data, target, maxQ, trainingset = None):
-        querier = LabelQuerier(None, target, maxQ)
+    def fit(self,data, target, maxQ, trainingset = None, prf = None):
+        querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False)
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
@@ -42,8 +42,8 @@ class SemiSupervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, data, target, maxQ, trainingset = None):
-        querier = LabelQuerier(None, target, maxQ)
+    def fit(self, data, target, maxQ, trainingset = None, prf = None):
+        querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False, metric_algo = SemiSupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
@@ -59,8 +59,8 @@ class Supervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, data, target, maxQ, trainingset = None):
-        querier = LabelQuerier(None, target, maxQ)
+    def fit(self, data, target, maxQ, trainingset = None, prf = None):
+        querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 

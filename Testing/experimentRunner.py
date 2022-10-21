@@ -15,6 +15,8 @@ from metric_learn import NCA
 from batch import Batch
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, KFold
+import sklearn as sk
+from experimentLogger import ExperimentLogger
 
 class ExperimentRunner:
     def __init__(self, name: str, path, day) -> None:
@@ -82,15 +84,34 @@ class ExperimentRunner:
             nbdata += 1
 
             # Load in the data
-            dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
-            dataset = np.loadtxt(dataset_path, delimiter=',')
+            dataset = None
+            preprocessed = False
+            print("                                                                      ", end = "\r")
+            print("Run " + str(self.runs), end = " ")
+            print("Loading data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
+            if (metricPreprocessing):
+                path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()  
+                if os.path.exists(path_pre):
+                    dataset = np.loadtxt(path_pre, delimiter=',')
+                    preprocessed = True
+
+                else:
+                    dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+                    dataset = np.loadtxt(dataset_path, delimiter=',')
+                    
+            else:
+                dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+                dataset = np.loadtxt(dataset_path, delimiter=',')
+                preprocessed = True 
             data = dataset[:, 1:]
             target = dataset[:, 0]
-            preprocessed = False
 
             # create the crossfolds
             skf = []
             if crossFold:
+                print("                                                                      ", end = "\r")
+                print("Run " + str(self.runs), end = " ")
+                print("Creating crossfolds: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
                 for j in range(runsPQ):
                     skf.append(StratifiedKFold(n_splits = 10, shuffle = True)) 
 
@@ -101,35 +122,53 @@ class ExperimentRunner:
 
                 # create the batch
                 batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold, metricPreprocessing)
-                if batch.chechIfRunned(): # batch wordt direct ingeladen
+
+                # see if you already have the results of the run
+                if batch.chechIfRunned():
                     self.batches.append(batch)
-                else: # nu begin het echtere werk
-                    if (metricPreprocessing and not preprocessed): # metricPreproccesing step
-                        print("metric learning: " + str(nbdata), end = "\r")
-                        l = NCA(max_iter=1000)
-                        l.fit(np.copy(data), np.copy(target))
-                        data = l.transform(data)
+                    continue
+                
+                # start the run
+                else: 
+
+                    # if not already preprocessed, do it
+                    if (not preprocessed):
+                        path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()    
+                        print("                                                                      ", end = "\r")
+                        print("Run " + str(self.runs), end = " ")
+                        print("Metric learning om full data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
+                        preprocessor = sk.base.clone(metricPreprocessing, safe=True) # need a new empty model
+                        preprocessor.fit(np.copy(data), np.copy(target))
+                        data = preprocessor.transform(data)
                         preprocessed = True
+                        # save the processed data for later use
+                        np.savetxt(path_pre, np.column_stack((target,data)), delimiter=',')
+
                     if crossFold:
                         # execute crossfold validation
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
                         for j in range(runsPQ):
-                            skf = StratifiedKFold(n_splits = 10, shuffle = True) # momenteel gewoon standaard op 10, dit kan btw bij loaden van de dataset gebeuren (er al een paar maken)
-                            for fold_nb, (train_indices, test_indices) in enumerate(skf.split(np.zeros(len(target)), target)):
-                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices)
+                            for fold_nb, (train_indices, test_indices) in enumerate(skf[j].split(np.zeros(len(target)), target)):
+                                # print the progress
+                                def prf():
+                                    print("                                                                                         ", end="\r" )
+                                    print("Run " + str(self.runs), end = " ")
+                                    print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+                                    print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                                    print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
+                                    print("fold: " + str(fold_nb + 1) + "/" + str(10), end=" ")
+
+                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = ExperimentLogger(prf))
+                                if len(all_clusters) < maxQ:
+                                    diff = maxQ - len(all_clusters)
+                                    for ex in range(diff):
+                                        all_clusters.append(all_clusters[-1])
+                                        runtimes.append(runtimes[-1])
+                                    
                                 IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
                                 average["S1"] += IRA
                                 average["S2"] += IRA**2
                                 average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
-
-                                print("                                                                  ", end="\r" )
-                                print("Run " + str(self.runs), end = " ")
-                                # print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
-                                print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                                print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                                print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
-                                print("fold: " + str(fold_nb + 1) + "/" + str(10), end="\r")
-                                # print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
 
                         batch.results["mu"] = average["S1"]/(runsPQ*10)
                         batch.results["times"] = average["times"]/(runsPQ*10)
@@ -140,21 +179,24 @@ class ExperimentRunner:
 
                                 
                     else:
-                        average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)} # algoritme mag echt niet eerder stoppen, ma kan gefixt worden, laatste clustering blijven gebruiken
+                        # no cross-fold validation
+                        average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
                         for j in range(runsPQ):
-                            all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ)
+
+                            # print the progress
+                            def prf():
+                                print("                                                                  ", end="\r" )
+                                print("Run " + str(self.runs), end = " ")
+                                print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
+                                print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+                                print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                                print(f"{(j + 1)/(runsPQ)*100:.1f} %", end=" ")
+
+                            all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, prf())
                             IRA = np.array([adjusted_rand_score(target, clustering) for clustering in all_clusters])
                             average["S1"] += IRA
                             average["S2"] += IRA**2
                             average["times"] += np.array(runtimes)
-
-                            print("                                                                  ", end="\r" )
-                            print("Run " + str(self.runs), end = " ")
-                            print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
-                            print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                            print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                            print(f"{(j + 1)/(runsPQ)*100:.1f} %", end="\r")
-
                         batch.results["mu"] = average["S1"]/runsPQ
                         batch.results["times"] = average["times"]/runsPQ
                         seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
@@ -165,22 +207,41 @@ class ExperimentRunner:
                 self.batches.append(batch)
                 
 
-    def makePlot(self, maxQ): # dees moet nog beter worden uitgewerkt
+    def makePlot(self, maxQ, sortByAlgo = True, sortByPreprocessing = False, sortByDataset = False):
         plot = pd.DataFrame()
-        loop = ["Metric learning preprocessed", "Normal"]
-        for alg in self.algos:
-            for k in loop:
-                mean = np.zeros(maxQ)
-                i = 0
-                for batch in self.batches:
-                    if batch.metricPreprocessing and k == "Metric learning preprocessed" and alg == batch.nameAlgo:
-                        mean += batch.results['mu']
-                        i += 1
-                    if not batch.metricPreprocessing and k == "Normal" and alg.getFileName() == batch.nameAlgo: 
-                        mean += batch.results['mu']
-                        i += 1
-                mean = mean/i
-                plot[alg.getFileName()] = mean
+        loop = []
+
+        # if more than one is true => order decides which is then the default
+        if sortByPreprocessing:
+            loop = ["Preprocessed with metric learning", "Not preprocessed"]
+        if sortByDataset:
+            loop = self.datasets
+            sortByPreprocessing = False
+        if sortByAlgo:
+            loop = [alg.getFileName() for alg in self.algos]
+            sortByPreprocessing = False
+            sortByDataset = False
+        # for alg in self.algos:
+        for k in loop:
+            mean = np.zeros(maxQ)
+            i = 0
+            for batch in self.batches:
+                batchValue =  None
+                if sortByPreprocessing:
+                    if batch.metricPreprocessing:
+                        batchValue = loop[0]
+                    else:
+                        batchValue = loop[1]
+                if sortByDataset:
+                    batchValue = batch.nameDataSet
+                if sortByAlgo:
+                    batchValue = batch.nameAlgo
+                
+                if batchValue == k:
+                    mean += batch.results['mu']
+                    i += 1
+            mean = mean/i
+            plot[k] = mean
 
 
         # print(d)
