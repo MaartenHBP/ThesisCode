@@ -2,6 +2,7 @@ from abc import abstractmethod
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import * #TODO: deze class herschrijven, handiger maken om subclasses
+from metric_learn import NCA
 
 class Algorithm:
     @abstractmethod
@@ -71,4 +72,44 @@ class Supervised(Algorithm):
 
     def getFileName(self):
         return "Supervised_NCA"
+
+class PortionPreprocessed(Algorithm):
+    def __init__(self):
+        pass
+
+    def fit(self, data, target, maxQ, trainingset = None, prf = None):
+        pre = NCA(max_iter=100)
+        pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
+        newData = pre.transform(np.copy(data))
+        querier = LabelQuerier(None, target, maxQ, prf)
+        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
+        all_clusters, runtimes, *_ = clusterer.fit(newData, -1, trainingset, querier)
+
+        return all_clusters, runtimes
+
+    def getDescription(self):
+        return "COBRAS where a metric was first trained using the trainingset"
+
+    def getFileName(self):
+        return "COBRAS_training_preprocessed"
+
+class PortionPreprocessed(Algorithm):
+    def __init__(self):
+        pass
+
+    def fit(self, data, target, maxQ, trainingset = None, prf = None):
+        pre = NCA(max_iter=100)
+        pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
+        newData = pre.transform(np.copy(data))
+        querier = LabelQuerier(None, target, maxQ, prf)
+        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
+        all_clusters, runtimes, *_ = clusterer.fit(newData, -1, trainingset, querier)
+
+        return all_clusters, runtimes
+
+    def getDescription(self):
+        return "COBRAS where a metric was first trained using all the data"
+
+    def getFileName(self):
+        return "COBRAS_preprocessed"
 

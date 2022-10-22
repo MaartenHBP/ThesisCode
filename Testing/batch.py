@@ -16,7 +16,9 @@ class Batch():
     def chechIfRunned(self): # if true than you have the results already
         path = Path('batches/' + self.getName()).absolute()
         if os.path.exists(path):
-            self.results = pd.read_csv(path) #TODO: als er een test is gedaan met meer maxQ dan deze ndig heeft kunnen de resultaten ook gebruikt worden
+            newPath = Path('batches/' + self.newName()).absolute()
+            os.rename(path, newPath)
+            # self.results = pd.read_csv(path) #TODO: als er een test is gedaan met meer maxQ dan deze ndig heeft kunnen de resultaten ook gebruikt worden
             return True
         return False
 
@@ -31,4 +33,13 @@ class Batch():
         if self.crossFold:
             string = string + "_" + "crossfold"
         return string
-        
+
+    def newName(self):
+        string = self.nameAlgo 
+        if self.metricPreprocessing:
+            string = string +  "_" + "preprocessed"
+        string = string + "_"  + self.nameDataSet
+        string = string + "_"  + str(self.maxQ) + "_" + str(self.runsPQ)
+        if self.crossFold:
+            string = string + "_" + "crossfold"
+        return string
