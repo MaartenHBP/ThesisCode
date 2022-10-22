@@ -150,15 +150,15 @@ class ExperimentRunner:
                         for j in range(runsPQ):
                             for fold_nb, (train_indices, test_indices) in enumerate(skf[j].split(np.zeros(len(target)), target)):
                                 # print the progress
-                                def prf():
-                                    print("                                                                                         ", end="\r" )
-                                    print("Run " + str(self.runs), end = " ")
-                                    print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                                    print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                                    print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
-                                    print("fold: " + str(fold_nb + 1) + "/" + str(10), end=" ")
+                                # def prf():
+                                print("                                                                                         ", end="\r" )
+                                print("Run " + str(self.runs), end = " ")
+                                print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+                                print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                                print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
+                                print("fold: " + str(fold_nb + 1) + "/" + str(10), end=" ")
 
-                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = ExperimentLogger(prf))
+                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = None)  #prf = ExperimentLogger(prf)
                                 if len(all_clusters) < maxQ:
                                     diff = maxQ - len(all_clusters)
                                     for ex in range(diff):

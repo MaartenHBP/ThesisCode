@@ -19,7 +19,8 @@ class LabelQuerier(Querier):
         if self.max_queries is not None and self.queries_asked >= self.max_queries:
             raise MaximumQueriesExceeded
         self.queries_asked += 1
-        self.prf.log(self.queries_asked, self.max_queries)
+        if (self.prf):
+            self.prf.log(self.queries_asked, self.max_queries)
         return self.labels[idx1] == self.labels[idx2]
 
     def query_limit_reached(self):
