@@ -11,7 +11,7 @@ from metric_learn import NCA
 
 class MetricLearningAlgorithm:
     @abstractmethod
-    def learn(self, cobras_cluster):
+    def learn(self, cobras_cluster): # dit nog aanpassen
         pass
     
     @abstractmethod
@@ -21,8 +21,8 @@ class MetricLearningAlgorithm:
     def addData(self, X):
         self.X = np.copy(X)
 
-class SupervisedMetric(MetricLearningAlgorithm): # over alle mogelijke dingen loopen
-    def __init__(self):
+class SupervisedMetric(MetricLearningAlgorithm):
+    def __init__(self, algo = None):
         self.algo = None
         self.count = 0
 
@@ -41,7 +41,7 @@ class SupervisedMetric(MetricLearningAlgorithm): # over alle mogelijke dingen lo
         return self.algo.transform(np.copy(self.X))
 
 class SemiSupervisedMetric(MetricLearningAlgorithm):
-    def __init__(self):
+    def __init__(self, algo = None):
         self.algo = None
         self.count = 0
 

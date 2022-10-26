@@ -4,11 +4,10 @@ import os
 from pathlib import Path
 
 class Batch():
-    def __init__(self, nameDataSet, nameAlgo, maxQ, runsPQ, crossFold: bool, metricPreprocessing: bool):
+    def __init__(self, nameDataSet, nameAlgo, maxQ, runsPQ, crossFold: bool):
         self.nameDataSet = nameDataSet
         self.nameAlgo = nameAlgo
         self.crossFold = crossFold
-        self.metricPreprocessing = metricPreprocessing
         self.maxQ = maxQ
         self.runsPQ = runsPQ
         self.results = pd.DataFrame()
@@ -36,10 +35,8 @@ class Batch():
 
     def getName(self):
         string = self.nameAlgo 
-        if self.metricPreprocessing:
-            string = string +  "_" + "preprocessed"
         string = string + "_"  + self.nameDataSet
         string = string + "_"  + str(self.maxQ) + "_" + str(self.runsPQ)
         if self.crossFold:
-            string = string + "_" + "crossfold"
+            string = string + "_" + "crossfold_" + str(self.crossFold)
         return string

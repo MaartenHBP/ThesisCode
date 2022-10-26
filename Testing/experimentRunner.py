@@ -1,6 +1,7 @@
 from array import array
 from audioop import mul
 from math import sqrt
+import math
 from pathlib import Path
 import os
 from statistics import mean
@@ -26,7 +27,7 @@ class ExperimentRunner:
         self.algos = []
         self.runs = 0
 
-        # i = 0
+        # i = 0 -> dit moet ik nog doen, dat de resultaten in die map terecht komen
         # while True:
         #     if i == 0:
         #         resulting_path = os.path.join(path, day + "_" + self.name)
@@ -40,7 +41,30 @@ class ExperimentRunner:
         #     else:
         #         i += 1
         #self.path = resulting_path
-        self.day = day
+
+    def createFold(self, runsPQ, dataname): # gaan ervan uit dat het altijd 10-fold crossvalidation is
+        dataset_path = Path('datasets/cobras-paper/' + dataname + '.data').absolute()
+        dataset = np.loadtxt(dataset_path, delimiter=',')
+        target = dataset[:, 0]
+        skf = []
+        for j in range(runsPQ):
+            fold = StratifiedKFold(n_splits = 10, shuffle = True)
+            for fold_nb, (train_indices, test_indices) in enumerate(fold.split(np.zeros(len(target)), target)):
+                f = train_indices.tolist()
+                f.extend(test_indices.tolist())
+                skf.append(f)
+        i = 1
+        while True:
+            resulting_path = Path('batches/' + dataname + "_crossfold_" + str(i)).absolute()
+            if os.path.exists(resulting_path):
+                i += 1
+                
+            else:
+                np.savetxt(resulting_path, np.array(skf), delimiter=',')
+                break
+
+        return i # returns what number the new crossfold has
+
     def addAlgo(self, algos):
         if len(algos) == 0:
             print("load all algo's")
@@ -73,7 +97,7 @@ class ExperimentRunner:
 
         self.batches = []
 
-    def run(self, maxQ, runsPQ, crossFold = False, metricPreprocessing = False, save = False): # crossvalidation nog fixen
+    def run(self, maxQ, runsPQ, crossFold = 0, save = False): # crossvalidation nog fixen
         self.runs +=1
         totalDataset = len(self.datasets)
         totalAlgos = len(self.algos)
@@ -89,31 +113,10 @@ class ExperimentRunner:
             print("                                                                      ", end = "\r")
             print("Run " + str(self.runs), end = " ")
             print("Loading data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
-            if (metricPreprocessing):
-                path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()  
-                if os.path.exists(path_pre):
-                    dataset = np.loadtxt(path_pre, delimiter=',')
-                    preprocessed = True
-
-                else:
-                    dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
-                    dataset = np.loadtxt(dataset_path, delimiter=',')
-                    
-            else:
-                dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
-                dataset = np.loadtxt(dataset_path, delimiter=',')
-                preprocessed = True 
+            dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+            dataset = np.loadtxt(dataset_path, delimiter=',')
             data = dataset[:, 1:]
             target = dataset[:, 0]
-
-            # create the crossfolds
-            skf = []
-            if crossFold:
-                print("                                                                      ", end = "\r")
-                print("Run " + str(self.runs), end = " ")
-                print("Creating crossfolds: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
-                for j in range(runsPQ):
-                    skf.append(StratifiedKFold(n_splits = 10, shuffle = True)) 
 
             # loop over the algorithms
             nbalg = 0
@@ -121,7 +124,7 @@ class ExperimentRunner:
                 nbalg += 1
 
                 # create the batch
-                batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold, metricPreprocessing)
+                batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold)
 
                 # see if you already have the results of the run
                 if batch.chechIfRunned():
@@ -132,43 +135,51 @@ class ExperimentRunner:
                 else: 
 
                     # if not already preprocessed, do it
-                    if (not preprocessed):
-                        path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()    
-                        print("                                                                      ", end = "\r")
-                        print("Run " + str(self.runs), end = " ")
-                        print("Metric learning om full data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
-                        preprocessor = sk.base.clone(metricPreprocessing, safe=True) # need a new empty model
-                        preprocessor.fit(np.copy(data), np.copy(target))
-                        data = preprocessor.transform(data)
-                        preprocessed = True
-                        # save the processed data for later use
-                        np.savetxt(path_pre, np.column_stack((target,data)), delimiter=',')
+                    # if (not preprocessed):
+                    #     path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()    
+                    #     print("                                                                      ", end = "\r")
+                    #     print("Run " + str(self.runs), end = " ")
+                    #     print("Metric learning om full data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
+                    #     preprocessor = sk.base.clone(metricPreprocessing, safe=True) # need a new empty model
+                    #     preprocessor.fit(np.copy(data), np.copy(target))
+                    #     data = preprocessor.transform(data)
+                    #     preprocessed = True
+                    #     # save the processed data for later use
+                    #     np.savetxt(path_pre, np.column_stack((target,data)), delimiter=',')
 
                     if crossFold:
                         # execute crossfold validation
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
-                        for j in range(runsPQ):
-                            for fold_nb, (train_indices, test_indices) in enumerate(skf[j].split(np.zeros(len(target)), target)):
-                                # print the progress
-                                # def prf():
-                                print("                                                                                         ", end="\r" )
-                                print("Run " + str(self.runs), end = " ")
-                                print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                                print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                                print("foldrun: " + str(j + 1) + "/" + str(runsPQ), end = " ")
-                                print("fold: " + str(fold_nb + 1) + "/" + str(10), end=" ")
+                        resulting_path = Path('batches/' + nameData + "_crossfold_" + str(crossFold)).absolute()
+                        folds = np.loadtxt(resulting_path, delimiter=',', dtype=int)
+                        
+                        for foldNb in range(len(folds)): # momenteel doet runsPQ hier niks
+                            # print the progress
+                            # def prf():
+                            fold = folds[foldNb]
+                            print("                                                                                         ", end="\r" )
+                            print("Run " + str(self.runs), end = " ")
+                            print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+                            print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+                            print("fold: " + str(foldNb + 1) + "/" + str(100), end=" ")
 
-                                all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = None)  #prf = ExperimentLogger(prf)
-                                if len(all_clusters) < maxQ:
-                                    diff = maxQ - len(all_clusters)
-                                    for ex in range(diff):
-                                        all_clusters.append(all_clusters[-1])
-                                        runtimes.append(runtimes[-1])
-                                    
-                                IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
-                                average["S1"] += IRA
-                                average["S2"] += IRA**2
-                                average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
+                            size = len(fold)
+                            amount = math.ceil(0.1 * size)
+
+                            train_indices = fold[0:-amount]
+                            test_indices = fold[-amount:]
+
+                            all_clusters, runtimes = algo.fit(nameData, np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = None)  #prf = ExperimentLogger(prf)
+                            if len(all_clusters) < maxQ:
+                                diff = maxQ - len(all_clusters)
+                                for ex in range(diff):
+                                    all_clusters.append(all_clusters[-1])
+                                    runtimes.append(runtimes[-1])
+                                
+                            IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
+                            average["S1"] += IRA
+                            average["S2"] += IRA**2
+                            average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
 
                         batch.results["mu"] = average["S1"]/(runsPQ*10)
                         batch.results["times"] = average["times"]/(runsPQ*10)
@@ -192,7 +203,7 @@ class ExperimentRunner:
                                 print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
                                 print(f"{(j + 1)/(runsPQ)*100:.1f} %", end=" ")
 
-                            all_clusters, runtimes = algo.fit(np.copy(data), np.copy(target), maxQ, prf())
+                            all_clusters, runtimes = algo.fit(nameData,np.copy(data), np.copy(target), maxQ, prf())
                             IRA = np.array([adjusted_rand_score(target, clustering) for clustering in all_clusters])
                             average["S1"] += IRA
                             average["S2"] += IRA**2
@@ -212,26 +223,16 @@ class ExperimentRunner:
         loop = []
 
         # if more than one is true => order decides which is then the default
-        if sortByPreprocessing:
-            loop = ["Preprocessed with metric learning", "Not preprocessed"]
         if sortByDataset:
             loop = self.datasets
-            sortByPreprocessing = False
         if sortByAlgo:
             loop = [alg.getFileName() for alg in self.algos]
-            sortByPreprocessing = False
             sortByDataset = False
         # for alg in self.algos:
         for k in loop:
             mean = np.zeros(maxQ)
             i = 0
             for batch in self.batches:
-                batchValue =  None
-                if sortByPreprocessing:
-                    if batch.metricPreprocessing:
-                        batchValue = loop[0]
-                    else:
-                        batchValue = loop[1]
                 if sortByDataset:
                     batchValue = batch.nameDataSet
                 if sortByAlgo:
