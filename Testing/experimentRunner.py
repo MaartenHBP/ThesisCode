@@ -189,7 +189,7 @@ class ExperimentRunner:
                         
 
                                 
-                    else:
+                    else: # dees moeten we nog is bekijken
                         # no cross-fold validation
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
                         for j in range(runsPQ):
