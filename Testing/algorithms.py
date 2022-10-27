@@ -125,7 +125,7 @@ class Preprocessed(Algorithm):
             newData = np.loadtxt(path_pre, delimiter=',')[:, 1:]
         else:
             pre = NCA(max_iter=100)
-            pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
+            pre.fit(np.copy(data), np.copy(target))
             newData = pre.transform(np.copy(data))
             np.savetxt(path_pre, np.column_stack((target,newData)), delimiter=',')
         querier = LabelQuerier(None, target, maxQ, prf)
@@ -156,9 +156,13 @@ class BaselineSemiSupervised(Algorithm):
         pass
 
     def fit(self,dataName, data, target, maxQ, trainingset = None, prf = None): # need to first use via parameter in run function and then clear all and then use this, so this is a token function (only user this first if you do not want to reuse the previous learned metric which has been saved)
-        querier = LabelQuerier(None, target, maxQ, prf)
-        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
+        querier = LabelQuerier(None, target, 100, prf)
+        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric(), end=True)
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
+
+        querier2 = LabelQuerier(None, target, maxQ, prf)
+        clusterer2 = COBRAS(correct_noise=False)
+        all_clusters, runtimes, *_ = clusterer2.fit(clusterer.data, -1, trainingset, querier2)
 
         return all_clusters, runtimes
 
