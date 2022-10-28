@@ -18,6 +18,8 @@ import pandas as pd
 from sklearn.model_selection import StratifiedKFold, KFold
 import sklearn as sk
 from experimentLogger import ExperimentLogger
+import matplotlib.pyplot as plt
+import shutil
 
 class ExperimentRunner:
     def __init__(self, name: str, path, day) -> None:
@@ -26,21 +28,22 @@ class ExperimentRunner:
         self.batches = []
         self.algos = []
         self.runs = 0
+        self.zippPath = path
 
-        # i = 0 -> dit moet ik nog doen, dat de resultaten in die map terecht komen
-        # while True:
-        #     if i == 0:
-        #         resulting_path = os.path.join(path, day + "_" + self.name)
-        #     else: 
-        #         resulting_path = os.path.join(path, day + "_" + self.name + '_' + str(i) )
-        #     CHECK_FOLDER = os.path.isdir(resulting_path)
-        #     if not CHECK_FOLDER:
-        #         os.makedirs(resulting_path)
-        #         break
+        i = 0
+        while True:
+            if i == 0:
+                resulting_path = os.path.join(path, day + "_" + self.name)
+            else: 
+                resulting_path = os.path.join(path, day + "_" + self.name + '_' + str(i) )
+            CHECK_FOLDER = os.path.isdir(resulting_path)
+            if not CHECK_FOLDER:
+                os.makedirs(resulting_path)
+                break
                 
-        #     else:
-        #         i += 1
-        #self.path = resulting_path
+            else:
+                i += 1
+        self.savepath = resulting_path
 
     def createFold(self, runsPQ, dataname): # gaan ervan uit dat het altijd 10-fold crossvalidation is
         dataset_path = Path('datasets/cobras-paper/' + dataname + '.data').absolute()
@@ -134,19 +137,6 @@ class ExperimentRunner:
                 # start the run
                 else: 
 
-                    # if not already preprocessed, do it
-                    # if (not preprocessed):
-                    #     path_pre = Path('batches/' + nameData + "_" + "preprocessed_" + type(metricPreprocessing).__name__).absolute()    
-                    #     print("                                                                      ", end = "\r")
-                    #     print("Run " + str(self.runs), end = " ")
-                    #     print("Metric learning om full data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
-                    #     preprocessor = sk.base.clone(metricPreprocessing, safe=True) # need a new empty model
-                    #     preprocessor.fit(np.copy(data), np.copy(target))
-                    #     data = preprocessor.transform(data)
-                    #     preprocessed = True
-                    #     # save the processed data for later use
-                    #     np.savetxt(path_pre, np.column_stack((target,data)), delimiter=',')
-
                     if crossFold:
                         # execute crossfold validation
                         average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
@@ -218,7 +208,23 @@ class ExperimentRunner:
                 self.batches.append(batch)
                 
 
-    def makePlot(self, maxQ, sortByAlgo = True, sortByPreprocessing = False, sortByDataset = False):
+    def makePlot(self, maxQ, sortByAlgo = True, sortByDataset = False, seperate = False): # return the dataframes of this, then you can do even more things afterwards
+        if seperate:
+            frames = [pd.DataFrame() for dataset in self.datasets]
+            plots = dict(zip(self.datasets, frames))
+            for batch in self.batches:
+                plots[batch.nameDataSet][batch.nameAlgo] = batch.results['mu']
+
+            differences = []
+            for key, value in plots.items():
+                value.plot(title=key, xlabel="Number of queries", ylabel="Average ARI")
+                plt.savefig(os.path.join(self.savepath, key))
+                differences.append(value.loc[199, "COBRAS_training_preprocessed_NCA"] - value.loc[199, "COBRAS"] )
+
+            # plt.hist(differences)
+            shutil.make_archive(os.path.join(self.zippPath, self.name), 'zip', self.savepath)
+            shutil.move(os.path.join(self.zippPath, self.name + ".zip"), os.path.join(self.savepath, self.name + ".zip"))
+            return 
         plot = pd.DataFrame()
         loop = []
 
