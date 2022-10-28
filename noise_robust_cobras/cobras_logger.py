@@ -44,6 +44,8 @@ class ClusteringLogger:
     #########################
     # information retrieval #
     #########################
+    
+    # mss hier dan ook iets teruggeven van alle tussenliggende metrics die gemaakt zijn
 
     def get_all_clusterings(self):
         return [cluster for cluster, _, _ in self.intermediate_results]

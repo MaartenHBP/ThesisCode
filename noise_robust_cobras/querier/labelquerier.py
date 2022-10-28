@@ -6,16 +6,21 @@ class LabelQuerier(Querier):
         A querier which answers each query correctly
     """
 
-    def __init__(self, logger, labels, maximum_number_of_queries):
+    def __init__(self, logger, labels, maximum_number_of_queries, prf = None):
         super(LabelQuerier, self).__init__(logger)
         self.labels = labels
         self.max_queries = maximum_number_of_queries
         self.queries_asked = 0
+        self.prf = None
+        if (prf):
+            self.prf = prf
 
     def _query_points(self, idx1, idx2):
         if self.max_queries is not None and self.queries_asked >= self.max_queries:
             raise MaximumQueriesExceeded
         self.queries_asked += 1
+        if (self.prf):
+            self.prf.log(self.queries_asked, self.max_queries)
         return self.labels[idx1] == self.labels[idx2]
 
     def query_limit_reached(self):

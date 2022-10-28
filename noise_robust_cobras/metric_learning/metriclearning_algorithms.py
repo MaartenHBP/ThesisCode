@@ -4,12 +4,14 @@ from metric_learn import ITML
 from metric_learn import MMC
 from metric_learn import RCA
 from metric_learn import SDML
+from metric_learn import LMNN
+from metric_learn import NCA
 
 # makkelijkste optie is al de data transformeren
 
 class MetricLearningAlgorithm:
     @abstractmethod
-    def learn(self, cobras_cluster):
+    def learn(self, cobras_cluster): # dit nog aanpassen
         pass
     
     @abstractmethod
@@ -19,15 +21,34 @@ class MetricLearningAlgorithm:
     def addData(self, X):
         self.X = np.copy(X)
 
-class SemiSupervisedMetric(MetricLearningAlgorithm):
-    def __init__(self):
+class SupervisedMetric(MetricLearningAlgorithm):
+    def __init__(self, algo = None):
         self.algo = None
         self.count = 0
 
     def learn(self, cobras_cluster):
-        if self.count < 10:
-            self.count+=1
-            return
+        # if self.count < 10:
+        #     self.count+=1
+        #     return
+        self.algo = NCA(max_iter=100)
+    
+
+        self.algo.fit(np.copy(self.X), cobras_cluster.clustering.construct_cluster_labeling())
+
+    def transformData(self):
+        if self.algo is None:
+            return self.X 
+        return self.algo.transform(np.copy(self.X))
+
+class SemiSupervisedMetric(MetricLearningAlgorithm):
+    def __init__(self, algo = None):
+        self.algo = None
+        self.count = 0
+
+    def learn(self, cobras_cluster):
+        # if self.count < 10:
+        #     self.count+=1
+        #     return
         constraints = np.array(list(cobras_cluster.constraint_index.constraints))
         if (constraints.shape[0] < 2):
             return

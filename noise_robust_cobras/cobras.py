@@ -59,14 +59,15 @@ class COBRAS:
         minimum_approximation_order=2,
         maximum_approximation_order=3,
         certainty_threshold=0.95,
-        seed=None,
+        seed=None, # seed is bekijken
         correct_noise=True,
         logger=None,
         cobras_logger=None,
-        metric_algo=None
+        metric_algo=None, # mss moet dat ergens anders staan
+        end = False # is enkel voor de baseline
     ):
 
-
+        self.end = end
         self.seed = seed
 
         # init data, querier, max_questions, train_indices and store_intermediate results
@@ -223,8 +224,9 @@ class COBRAS:
                 last_valid_clustering = copy.deepcopy(self.clustering)
 
             # metric learning phase
-            self.metric_algo.learn(self)
-            self.data = self.metric_algo.transformData()
+            if not self.end:
+                self.metric_algo.learn(self)
+                self.data = self.metric_algo.transformData()
 
 
         self.clustering = last_valid_clustering
@@ -234,6 +236,11 @@ class COBRAS:
         all_clusters = self._cobras_log.get_all_clusterings()
         runtimes = self._cobras_log.get_runtimes()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
+
+        if self.end:
+            self.metric_algo.learn(self)
+            self.data = self.metric_algo.transformData()
+
         return all_clusters, runtimes, ml, cl
 
     ###########################
