@@ -166,11 +166,11 @@ class ExperimentRunner:
                                 arguments.append(fold[0:-amount])
                                 test.append(fold[-amount:])
 
-                            newData = algo.preprocces(dataName= nameData, data = data, target = target)
+                            path_for_data = algo.preprocces(nameData, dataset_path)
 
-                            parallel_func = functools.partial(algo.fit, nameData, np.copy(newData), np.copy(target), maxQ)
+                            parallel_func = functools.partial(algo.fit, nameData, path_for_data, maxQ)
 
-                            print("yeet")
+                            print("Starting the run on dataset: " + nameData + " with algorithm: " + str(algo.getFileName()) , end = "\r")
 
                             futures = client.map(parallel_func, arguments)
 
@@ -179,11 +179,10 @@ class ExperimentRunner:
 
                             # futures = client.map(test, range(1000))
                             
-                            print("start the waiting")
 
                             results = client.gather(futures)
 
-                            print("done waiting")
+                            print("Done, total results = " + str(len(results)), end = "\r")
 
                             for i in range(len(results)):
                                 all_clusters, runtimes = results[i]
@@ -293,7 +292,7 @@ class ExperimentRunner:
         loop = []
 
         # if more than one is true => order decides which is then the default
-        if sortByDataset:
+        if sortByDataset: # dat gaat wss die seperate zijn
             loop = self.datasets
         if sortByAlgo:
             loop = [alg.getFileName() for alg in self.algos]

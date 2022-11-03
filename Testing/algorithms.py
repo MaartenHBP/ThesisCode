@@ -25,8 +25,8 @@ class Algorithm:
     def getFileName(self):
         pass
 
-    def preprocces(self, dataName, data, target):
-        return data
+    def preprocces(self, dataName, dataset_path):
+        return dataset_path
 
 ##########
 # Cobras #
@@ -35,7 +35,10 @@ class Cobras(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, dataName, data, target, maxQ, trainingset = None, prf = None):
+    def fit(self, dataName, path_for_data, maxQ, trainingset = None, prf = None):
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False)
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
@@ -55,7 +58,10 @@ class SemiSupervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, dataName, data, target, maxQ, trainingset = None, prf = None):
+    def fit(self, dataName, path_for_data, maxQ, trainingset, prf = None):
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False, metric_algo = SemiSupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
@@ -75,7 +81,10 @@ class Supervised(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, dataName, data, target, maxQ, trainingset, prf = None):
+    def fit(self, dataName, path_for_data, maxQ, trainingset, prf = None):
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric())
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
@@ -98,7 +107,10 @@ class PortionPreprocessed(Algorithm):
     def __init__(self):
         pass
 
-    def fit(self, dataName, data, target, maxQ, trainingset, prf = None): # logger nog uitbereiden
+    def fit(self, dataName, path_for_data, maxQ, trainingset, prf = None): # logger nog uitbereiden
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         pre = NCA(max_iter=100)
         pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
         newData = pre.transform(np.copy(data))
@@ -121,26 +133,30 @@ class Preprocessed(Algorithm): # maak een function preprocessed, want anders kan
     def __init__(self):
         pass
 
-    def fit(self, dataName, data, target, maxQ, trainingset, prf = None): # need to first use via parameter in run function and then clear all and then use this, so this is a token function (only user this first if you do not want to reuse the previous learned metric which has been saved)
-        
+    def fit(self, dataName, path_for_data, maxQ, trainingset, prf = None): 
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         querier = LabelQuerier(None, target, maxQ, prf)
         clusterer = COBRAS(correct_noise=False)    
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
 
         return all_clusters, runtimes
     
-    def preprocces(self, dataName, data, target):
+    def preprocces(self, dataName, dataset_path):
         path_pre = Path('batches/' + dataName + "_" + "preprocessed_NCA" ).absolute()    # + type(metricPreprocessing).__name__ voor later
-        newData = None
         if os.path.exists(path_pre):
-            newData = np.loadtxt(path_pre, delimiter=',')[:, 1:]
+            return path_pre
         else:
+            dataset = np.loadtxt(dataset_path, delimiter=',')
+            data = dataset[:, 1:]
+            target = dataset[:, 0]
             pre = NCA(max_iter=100)
             pre.fit(np.copy(data), np.copy(target))
             newData = pre.transform(np.copy(data))
             np.savetxt(path_pre, np.column_stack((target,newData)), delimiter=',')
 
-        return newData
+            return path_pre
 
     def getDescription(self):
         return "COBRAS where a metric was first trained using all the data"
@@ -163,7 +179,10 @@ class BaselineSemiSupervised(Algorithm):
         pass
     
     # return a function because it is parallel
-    def fit(self,dataName, data, target, maxQ, trainingset, prf = None): # need to first use via parameter in run function and then clear all and then use this, so this is a token function (only user this first if you do not want to reuse the previous learned metric which has been saved)
+    def fit(self,dataName, path_for_data, maxQ, trainingset, prf = None): # need to first use via parameter in run function and then clear all and then use this, so this is a token function (only user this first if you do not want to reuse the previous learned metric which has been saved)
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
         querier = LabelQuerier(None, target, 100, prf)
         clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric(), end=True)
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
