@@ -194,10 +194,10 @@ class BaselineSemiSupervised(Algorithm):
         return all_clusters, runtimes
 
     def getDescription(self):
-        return "COBRAS where a metric was first trained using all the data"
+        return "Two runs of COBRAS, the first gives constraints to learn a metric and this is used for the second run"
 
     def getFileName(self):
-        return "Baseline_NCA"
+        return "Baseline_ITML"
 
     def setMetric(self, ml):
         self.metric = SupervisedMetric() # algo meegeven
