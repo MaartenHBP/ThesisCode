@@ -1,13 +1,7 @@
 from abc import abstractmethod
 import numpy as np
-from metric_learn import ITML
-from metric_learn import MMC
-from metric_learn import RCA
-from metric_learn import SDML
-from metric_learn import LMNN
-from metric_learn import NCA
-
-# makkelijkste optie is al de data transformeren
+from metric_learn import *
+# Easy option is to transform the data and still work with euclidian distance (but does this suffice?)
 
 class MetricLearningAlgorithm:
     @abstractmethod
@@ -22,37 +16,47 @@ class MetricLearningAlgorithm:
         self.X = np.copy(X)
 
 class SupervisedMetric(MetricLearningAlgorithm):
-    def __init__(self, algo = None):
-        self.algo = None
+    def __init__(self, algo = None, steps = 0):
+        if algo:
+            self.algo = algo
+        else:
+            self.algo = NCA
         self.count = 0
+        self.steps = steps
+        self.current = None
 
     def learn(self, cobras_cluster):
-        # if self.count < 10:
-        #     self.count+=1
-        #     return
-        self.algo = NCA(max_iter=100)
-    
+        if self.count < self.steps:
+            self.count+=1
+            return
+        self.current = self.algo(max_iter=100)
+        self.current.fit(np.copy(self.X), cobras_cluster.clustering.construct_cluster_labeling())
 
-        self.algo.fit(np.copy(self.X), cobras_cluster.clustering.construct_cluster_labeling())
+        self.count = 0
 
     def transformData(self):
-        if self.algo is None:
+        if self.current is None:
             return self.X 
-        return self.algo.transform(np.copy(self.X))
+        return self.current.transform(np.copy(self.X))
 
 class SemiSupervisedMetric(MetricLearningAlgorithm):
-    def __init__(self, algo = None):
-        self.algo = None
+    def __init__(self, algo = None, steps = 0):
+        if algo:
+            self.algo = algo
+        else:
+            self.algo = ITML
         self.count = 0
+        self.steps = steps
+        self.current = None
 
     def learn(self, cobras_cluster):
-        # if self.count < 10:
-        #     self.count+=1
-        #     return
+        if self.count < self.steps:
+            self.count+=1
+            return
         constraints = np.array(list(cobras_cluster.constraint_index.constraints))
         if (constraints.shape[0] < 2):
             return
-        self.algo = ITML(preprocessor=np.copy(self.X))
+        self.current = self.algo(preprocessor=np.copy(self.X))
         tuples = np.zeros((constraints.shape[0], 2), dtype = int)
         y = np.zeros(constraints.shape[0], dtype = int)
         for i in range(constraints.shape[0]):
@@ -60,27 +64,23 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
             tuples[i] = tup[0:2]
             y[i] = tup[2]
 
-        self.algo.fit(tuples, y)
+        self.current.fit(tuples, y)
         self.count=0
 
     def transformData(self):
-        if self.algo is None:
+        if self.current is None:
             return self.X 
-        return self.algo.transform(np.copy(self.X))
+        return self.current.transform(np.copy(self.X))
     
 
 class EuclidianDistance(MetricLearningAlgorithm):
     def __init__(self):
         self.algo = None
+        self.current = None
 
     def learn(self, cobras_cluster):
-        constraints = np.array(list(cobras_cluster.constraint_index.constraints))
-        tuples = np.zeros((constraints.shape[0], 2), dtype = int)
-        y = np.zeros(constraints.shape[0], dtype = int)
-        for i in range(constraints.shape[0]):
-            tup = constraints[i].to_tuple_b()
-            tuples[i] = tup[0:2]
-            y[i] = tup[2]
+        # no point in learning
+        return
 
 
     def transformData(self):
