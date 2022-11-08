@@ -276,7 +276,7 @@ class ExperimentRunner:
             frames = [pd.DataFrame() for dataset in self.datasets]
             plots = dict(zip(self.datasets, frames))
             for batch in self.batches:
-                plots[batch.nameDataSet][batch.nameAlgo] = batch.results['mu']
+                plots[batch.nameDataSet][batch.nameAlgo] = batch.results['mu'][:maxQ]
 
             differences = []
             for key, value in plots.items():
@@ -308,7 +308,7 @@ class ExperimentRunner:
                     batchValue = batch.nameAlgo
                 
                 if batchValue == k:
-                    mean += batch.results['mu']
+                    mean += batch.results['mu'][:maxQ]
                     i += 1
             mean = mean/i
             plot[k] = mean
