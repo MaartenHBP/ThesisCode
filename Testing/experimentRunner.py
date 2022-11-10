@@ -271,7 +271,41 @@ class ExperimentRunner:
                     self.batches.append(batch)
                 
 
-    def makePlot(self, maxQ, sortByAlgo = True, sortByDataset = False, seperate = False): # return the dataframes of this, then you can do even more things afterwards
+    def makePlot(self, maxQ, sortByAlgo = True, sortByDataset = False, seperate = False, aligned = True): # return the dataframes of this, then you can do even more things afterwards
+        if aligned:
+            averageARI = pd.DataFrame()
+            loop = self.datasets
+            # for alg in self.algos:
+            for k in loop:
+                mean = np.zeros(maxQ)
+                i = 0
+                for batch in self.batches:  
+                    if batch.nameDataSet == k:
+                        mean += batch.results['mu'][:maxQ]
+                        i += 1
+                mean = mean/i
+                averageARI[k] = mean
+            sortedL = []
+            loop2 = [alg.getFileName() for alg in self.algos]
+            for k in loop2:
+                for batch in self.batches:
+                    if batch.nameAlgo == k:
+                        sortedL.append(averageARI[batch.nameDataSet] - batch.results['mu'][:maxQ])
+
+            indices = np.argsort(sortedL)
+            i = 0
+            lenData = len(self.datasets)
+            plot = pd.DataFrame()
+            for k in loop2:
+                print(np.average(indices[i:i + lenData], axis = 0))
+                plot[k] = np.average(indices[i:i + lenData], axis = 0) 
+                i += lenData
+
+            plot.plot(title="Aligned rank", xlabel="Number of queries", ylabel="Aligned rank")
+            if self.saveResults:
+                plt.savefig(os.path.join(self.savepath, self.name))
+
+
         if seperate:
             frames = [pd.DataFrame() for dataset in self.datasets]
             plots = dict(zip(self.datasets, frames))
@@ -298,7 +332,7 @@ class ExperimentRunner:
             loop = [alg.getFileName() for alg in self.algos]
             sortByDataset = False
         # for alg in self.algos:
-        for k in loop:
+        for k in loop: # amai dit kan veel efficienter (ge doet dubbel werk ofzo)
             mean = np.zeros(maxQ)
             i = 0
             for batch in self.batches:

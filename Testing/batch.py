@@ -14,7 +14,6 @@ class Batch():
 
     def chechIfRunned(self): # if true than you have the results already
         path = Path('batches/' + self.getName()).absolute()
-        print(path)
         if os.path.exists(path):
             # newPath = Path('batches/' + self.newName()).absolute() # if you ever need to rename existing paths
             # os.rename(path, newPath)

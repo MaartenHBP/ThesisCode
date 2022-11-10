@@ -56,7 +56,7 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
         constraints = np.array(list(cobras_cluster.constraint_index.constraints))
         if (constraints.shape[0] < 2):
             return
-        self.current = self.algo(preprocessor=np.copy(self.X))
+        self.current = self.algo(preprocessor=np.copy(self.X), max_iter=100)
         tuples = np.zeros((constraints.shape[0], 2), dtype = int)
         y = np.zeros(constraints.shape[0], dtype = int)
         for i in range(constraints.shape[0]):

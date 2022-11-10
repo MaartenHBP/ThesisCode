@@ -219,5 +219,33 @@ class BaselineSemiSupervised(MetricAlgo):
         return "Two runs of COBRAS, the first gives constraints to learn a metric and this is used for the second run"
 
     def getFileName(self):
-        return "Baseline_ITML"
+        return "Baseline_" + self.metricAlgo.__name__
+
+class BaselineSupervised(MetricAlgo):
+    def __init__(self, algo = None):
+        if algo:
+            self.metricAlgo = algo
+        else:
+            self.metricAlgo = NCA
+    
+    # return a function because it is parallel
+    def fit(self,dataName, path_for_data, maxQ, trainingset, prf = None): # need to first use via parameter in run function and then clear all and then use this, so this is a token function (only user this first if you do not want to reuse the previous learned metric which has been saved)
+        dataset = np.loadtxt(path_for_data, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
+        querier = LabelQuerier(None, target, 100, prf)
+        clusterer = COBRAS(correct_noise=False, metric_algo = SupervisedMetric(self.metricAlgo), end=True)
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
+
+        querier2 = LabelQuerier(None, target, maxQ, prf)
+        clusterer2 = COBRAS(correct_noise=False)
+        all_clusters, runtimes, *_ = clusterer2.fit(clusterer.data, -1, trainingset, querier2)
+
+        return all_clusters, runtimes
+
+    def getDescription(self):
+        return "Two runs of COBRAS, the first gives constraints to learn a metric and this is used for the second run"
+
+    def getFileName(self):
+        return "Baseline_NCA"
 
