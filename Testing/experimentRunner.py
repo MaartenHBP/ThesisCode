@@ -114,161 +114,170 @@ class ExperimentRunner:
         totalDataset = len(self.datasets)
         totalAlgos = len(self.algos)
         nbdata = 0
-        
 
-        with LocalCluster() as cluster, Client(cluster) as client:
+        for algo in self.algos: # schrijf dit allemaal in functies
+            df = pd.DataFrame()
+            for nameData in self.datasets:
+                path = Path(f'batches/{algo.getFileName()}_{nameData}_200_10_crossfold_{crossFold}').absolute()
+                df[nameData] = pd.read_csv(path)["mu"]    
+            path = Path(f'batches/ARI/{algo.getFileName()}_10_crossfold_{crossFold}').absolute()
+            df.to_csv(path)
 
-            # loop over the datasets
-            for nameData in self.datasets: # moet elk algo niet dezelfde folds hebben
-                nbdata += 1
+        return
 
-                # Load in the data
-                dataset = None
-                preprocessed = False
-                print("                                                                      ", end = "\r")
-                print("Run " + str(self.runs), end = " ")
-                print("Loading data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
-                dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
-                dataset = np.loadtxt(dataset_path, delimiter=',')
-                data = dataset[:, 1:]
-                target = dataset[:, 0]
+        # with LocalCluster() as cluster, Client(cluster) as client:
 
-                # loop over the algorithms
-                nbalg = 0
-                for algo in self.algos: # schrijf dit allemaal in functies
-                    nbalg += 1
+        #     # loop over the datasets
+        #     for nameData in self.datasets: # moet elk algo niet dezelfde folds hebben
+        #         nbdata += 1
 
-                    # create the batch
-                    batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold)
+        #         # Load in the data
+        #         dataset = None
+        #         preprocessed = False
+        #         print("                                                                      ", end = "\r")
+        #         print("Run " + str(self.runs), end = " ")
+        #         print("Loading data: " + str(nbdata) + "/" + str(totalDataset), end = "\r")
+        #         dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+        #         dataset = np.loadtxt(dataset_path, delimiter=',')
+        #         data = dataset[:, 1:]
+        #         target = dataset[:, 0]
 
-                    # see if you already have the results of the run
-                    if batch.chechIfRunned():
-                        self.batches.append(batch)
-                        continue
+        #         # loop over the algorithms
+        #         nbalg = 0
+        #             nbalg += 1
+
+        #             # create the batch
+        #             batch = Batch(nameData, algo.getFileName(), maxQ, runsPQ, crossFold)
+
+        #             # see if you already have the results of the run
+        #             if batch.chechIfRunned():
+        #                 self.batches.append(batch)
+        #                 df[]
+        #                 continue
                     
-                    # start the run
-                    else: 
+        #             # start the run
+        #             else: 
 
-                        if crossFold:
-                            # en vanaf hier moet het parallel worden
-                            # execute crossfold validation
-                            average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
-                            resulting_path = Path('batches/' + nameData + "_crossfold_" + str(crossFold)).absolute()
-                            folds = np.loadtxt(resulting_path, delimiter=',', dtype=int)
+        #                 if crossFold:
+        #                     # en vanaf hier moet het parallel worden
+        #                     # execute crossfold validation
+        #                     average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
+        #                     resulting_path = Path('batches/' + nameData + "_crossfold_" + str(crossFold)).absolute()
+        #                     folds = np.loadtxt(resulting_path, delimiter=',', dtype=int)
 
-                            arguments = []
-                            test = []
+        #                     arguments = []
+        #                     test = []
 
-                            size = len(folds[0])
-                            amount = math.ceil(0.1 * size)
+        #                     size = len(folds[0])
+        #                     amount = math.ceil(0.1 * size)
 
-                            for fold in folds:
-                                arguments.append(fold[0:-amount])
-                                test.append(fold[-amount:])
+        #                     for fold in folds:
+        #                         arguments.append(fold[0:-amount])
+        #                         test.append(fold[-amount:])
 
-                            path_for_data = algo.preprocces(nameData, dataset_path)
+        #                     path_for_data = algo.preprocces(nameData, dataset_path)
 
-                            parallel_func = functools.partial(algo.fit, nameData, path_for_data, maxQ)
+        #                     parallel_func = functools.partial(algo.fit, nameData, path_for_data, maxQ)
 
-                            print("Starting the run on dataset: " + nameData + " with algorithm: " + str(algo.getFileName()) , end = "\r")
+        #                     print("Starting the run on dataset: " + nameData + " with algorithm: " + str(algo.getFileName()) , end = "\r")
 
-                            futures = client.map(parallel_func, arguments)
+        #                     futures = client.map(parallel_func, arguments)
 
-                            # def test(x):
-                            #     return x + 1
+        #                     # def test(x):
+        #                     #     return x + 1
 
-                            # futures = client.map(test, range(1000))
+        #                     # futures = client.map(test, range(1000))
                             
 
-                            results = client.gather(futures)
+        #                     results = client.gather(futures)
 
-                            print("Done, total results = " + str(len(results)), end = "\r")
+        #                     print("Done, total results = " + str(len(results)), end = "\r")
 
-                            for i in range(len(results)):
-                                all_clusters, runtimes = results[i]
-                                if len(all_clusters) < maxQ:
-                                    diff = maxQ - len(all_clusters)
-                                    for ex in range(diff):
-                                        all_clusters.append(all_clusters[-1])
-                                        runtimes.append(runtimes[-1])
+        #                     for i in range(len(results)):
+        #                         all_clusters, runtimes = results[i]
+        #                         if len(all_clusters) < maxQ:
+        #                             diff = maxQ - len(all_clusters)
+        #                             for ex in range(diff):
+        #                                 all_clusters.append(all_clusters[-1])
+        #                                 runtimes.append(runtimes[-1])
                                     
-                                IRA = np.array([adjusted_rand_score(target[test[i]], np.array(clustering)[test[i]]) for clustering in all_clusters])
-                                average["S1"] += IRA
-                                average["S2"] += IRA**2
-                                average["times"] += np.array(runtimes)
+        #                         IRA = np.array([adjusted_rand_score(target[test[i]], np.array(clustering)[test[i]]) for clustering in all_clusters])
+        #                         average["S1"] += IRA
+        #                         average["S2"] += IRA**2
+        #                         average["times"] += np.array(runtimes)
 
-                            batch.results["mu"] = average["S1"]/(runsPQ*10)
-                            batch.results["times"] = average["times"]/(runsPQ*10)
-                            seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
-                            tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
-                            batch.results["hNormal"] = seNormal * tp
+        #                     batch.results["mu"] = average["S1"]/(runsPQ*10)
+        #                     batch.results["times"] = average["times"]/(runsPQ*10)
+        #                     seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
+        #                     tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
+        #                     batch.results["hNormal"] = seNormal * tp
 
 
                             
-                            # for foldNb in range(len(folds)): # momenteel doet runsPQ hier niks
-                            #     # print the progress
-                            #     # def prf():
-                            #     fold = folds[foldNb]
-                            #     print("                                                                                         ", end="\r" )
-                            #     print("Run " + str(self.runs), end = " ")
-                            #     print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                            #     print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                            #     print("fold: " + str(foldNb + 1) + "/" + str(100), end=" ")
+        #                     # for foldNb in range(len(folds)): # momenteel doet runsPQ hier niks
+        #                     #     # print the progress
+        #                     #     # def prf():
+        #                     #     fold = folds[foldNb]
+        #                     #     print("                                                                                         ", end="\r" )
+        #                     #     print("Run " + str(self.runs), end = " ")
+        #                     #     print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+        #                     #     print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+        #                     #     print("fold: " + str(foldNb + 1) + "/" + str(100), end=" ")
 
-                            #     size = len(fold)
-                            #     amount = math.ceil(0.1 * size)
+        #                     #     size = len(fold)
+        #                     #     amount = math.ceil(0.1 * size)
 
-                            #     train_indices = fold[0:-amount]
-                            #     test_indices = fold[-amount:]
+        #                     #     train_indices = fold[0:-amount]
+        #                     #     test_indices = fold[-amount:]
 
-                            #     all_clusters, runtimes = algo.fit(nameData, np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = None)  #prf = ExperimentLogger(prf)
-                            #     if len(all_clusters) < maxQ:
-                            #         diff = maxQ - len(all_clusters)
-                            #         for ex in range(diff):
-                            #             all_clusters.append(all_clusters[-1])
-                            #             runtimes.append(runtimes[-1])
+        #                     #     all_clusters, runtimes = algo.fit(nameData, np.copy(data), np.copy(target), maxQ, trainingset=train_indices, prf = None)  #prf = ExperimentLogger(prf)
+        #                     #     if len(all_clusters) < maxQ:
+        #                     #         diff = maxQ - len(all_clusters)
+        #                     #         for ex in range(diff):
+        #                     #             all_clusters.append(all_clusters[-1])
+        #                     #             runtimes.append(runtimes[-1])
                                     
-                            #     IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
-                            #     average["S1"] += IRA
-                            #     average["S2"] += IRA**2
-                            #     average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
+        #                     #     IRA = np.array([adjusted_rand_score(target[test_indices], np.array(clustering)[test_indices]) for clustering in all_clusters])
+        #                     #     average["S1"] += IRA
+        #                     #     average["S2"] += IRA**2
+        #                     #     average["times"] += np.array(runtimes) # TODO, omzetten naar f strings
 
-                            # batch.results["mu"] = average["S1"]/(runsPQ*10)
-                            # batch.results["times"] = average["times"]/(runsPQ*10)
-                            # seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
-                            # tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
-                            # batch.results["hNormal"] = seNormal * tp
+        #                     # batch.results["mu"] = average["S1"]/(runsPQ*10)
+        #                     # batch.results["times"] = average["times"]/(runsPQ*10)
+        #                     # seNormal = np.sqrt(((runsPQ*10)*average["S2"] - average["S1"]**2)/((runsPQ*10)*((runsPQ*10)-1)))
+        #                     # tp = scipy.stats.t.ppf((1 + 0.95) / 2., (runsPQ*10) - 1)
+        #                     # batch.results["hNormal"] = seNormal * tp
                             
 
                                     
-                        else: # dees moeten we nog is bekijken
-                            # no cross-fold validation
-                            average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
-                            for j in range(runsPQ):
+        #                 else: # dees moeten we nog is bekijken
+        #                     # no cross-fold validation
+        #                     average = {"S1": np.zeros(maxQ), "S2": np.zeros(maxQ), "times": np.zeros(maxQ)}
+        #                     for j in range(runsPQ):
 
-                                # print the progress
-                                def prf():
-                                    print("                                                                  ", end="\r" )
-                                    print("Run " + str(self.runs), end = " ")
-                                    print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
-                                    print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
-                                    print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
-                                    print(f"{(j + 1)/(runsPQ)*100:.1f} %", end=" ")
+        #                         # print the progress
+        #                         def prf():
+        #                             print("                                                                  ", end="\r" )
+        #                             print("Run " + str(self.runs), end = " ")
+        #                             print(f"{((nbdata - 1)*runsPQ*totalAlgos + runsPQ*(nbalg - 1) + j + 1)/(runsPQ*totalAlgos*totalDataset)*100:.1f} %", end=" ")
+        #                             print("dataset: " + str(nbdata) + "/" + str(totalDataset), end = " ")
+        #                             print("algo: " + str(nbalg) + "/" + str(totalAlgos), end = " ")
+        #                             print(f"{(j + 1)/(runsPQ)*100:.1f} %", end=" ")
 
-                                all_clusters, runtimes = algo.fit(nameData,np.copy(data), np.copy(target), maxQ, prf())
-                                IRA = np.array([adjusted_rand_score(target, clustering) for clustering in all_clusters])
-                                average["S1"] += IRA
-                                average["S2"] += IRA**2
-                                average["times"] += np.array(runtimes)
-                            batch.results["mu"] = average["S1"]/runsPQ
-                            batch.results["times"] = average["times"]/runsPQ
-                            seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
-                            tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
-                            batch.results["hNormal"] = seNormal * tp
+        #                         all_clusters, runtimes = algo.fit(nameData,np.copy(data), np.copy(target), maxQ, prf())
+        #                         IRA = np.array([adjusted_rand_score(target, clustering) for clustering in all_clusters])
+        #                         average["S1"] += IRA
+        #                         average["S2"] += IRA**2
+        #                         average["times"] += np.array(runtimes)
+        #                     batch.results["mu"] = average["S1"]/runsPQ
+        #                     batch.results["times"] = average["times"]/runsPQ
+        #                     seNormal = np.sqrt((runsPQ*average["S2"] - average["S1"]**2)/(runsPQ*(runsPQ-1)))
+        #                     tp = scipy.stats.t.ppf((1 + 0.95) / 2., runsPQ - 1)
+        #                     batch.results["hNormal"] = seNormal * tp
                         
-                    if save:
-                        batch.saveResults()
-                    self.batches.append(batch)
+        #             if save:
+        #                 batch.saveResults()
+        #             self.batches.append(batch)
                 
 
     def makePlot(self, maxQ, sortByAlgo = True, sortByDataset = False, seperate = False, aligned = True): # return the dataframes of this, then you can do even more things afterwards
@@ -281,10 +290,10 @@ class ExperimentRunner:
                 i = 0
                 for batch in self.batches:  
                     if batch.nameDataSet == k:
-                        mean += batch.results['mu'][:maxQ]
+                        mean += batch.results['mu'][:maxQ] # gaan alternatief nog maken, waar alles deftig in dataframes staat
                         i += 1
                 mean = mean/i
-                averageARI[k] = mean
+                averageARI[k] = mean 
             sortedL = []
             loop2 = [alg.getFileName() for alg in self.algos]
             for k in loop2:
@@ -292,7 +301,7 @@ class ExperimentRunner:
                     if batch.nameAlgo == k:
                         sortedL.append(averageARI[batch.nameDataSet] - batch.results['mu'][:maxQ])
 
-            indices = np.argsort(sortedL)
+            indices = np.argsort(sortedL, axis = 0)
             i = 0
             lenData = len(self.datasets)
             plot = pd.DataFrame()
