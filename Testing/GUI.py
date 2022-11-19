@@ -11,9 +11,8 @@ from algorithms import *
 from metricalgos import *
 
 st.set_page_config(page_title="Experiment Runner", page_icon=":bar_chart:")
-st.set_option('deprecation.showPyplotGlobalUse', False)\
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
-@st.cache
 def aligned(dfs, algos):
     df = (
     pd.concat(dfs)
@@ -25,14 +24,12 @@ def aligned(dfs, algos):
     for frames in df:   
         print("yeet")
 
-@st.cache
 def average(dfs, algos):
     plot = pd.DataFrame()
     for i in range(len(algos)):
         plot[algos[i]] = dfs[i].mean(axis=1)[0:amount]
 
-    return plot
-
+    st.session_state.plots = plot
 
 #  The datasets
 @st.cache
@@ -45,13 +42,29 @@ def getInitialValues():
 
     # The algos
     algos = Algorithm.getAlgos()
-    return algos, datasets
+    metrics = Algorithm.needsMetric(algos)
+    return algos, datasets, metrics
 
-algos, datasets = getInitialValues()
+algos, datasets, metrics = getInitialValues()
 
 # ge kunt werken met columns en states, maar is ff te advanced
 
+if 'options' not in st.session_state:
+    options = {}
+    for i in algos:
+        if (metrics[i]):
+            op = MetricAlgos.getAlg(metrics[i])
+            opN = [a.__name__ for a in op]
+            options[i] = [opN[0]]
+        else: options[i] = [""]
 
+    st.session_state.options = options
+
+if 'plots' not in st.session_state:
+    st.session_state.plots = pd.DataFrame({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
+
+if 'notRunned' not in st.session_state:
+    st.session_state.notRunned = []
 
 
 # ---- SIDEBAR ----
@@ -62,37 +75,19 @@ algo = st.sidebar.multiselect(
     default=algos
 )
 st.sidebar.markdown('---')
-edit = st.sidebar.checkbox("Options for algorithms (else the defaults)")
-metrics = Algorithm.needsMetric(algo)
-if 'options' not in st.session_state:
-    options = []
-    st.session_state.my_button = True
-    for i in range(len(algo)):
-        if (metrics[i]):
-            op = MetricAlgos.getAlg(metrics[i])
-            opN = [a.__name__ for a in op]
-            options.append(opN[0])
-        else:
-            options.append([])
-    st.session_state.options = options
+edit = st.sidebar.checkbox("Options for algorithms")
 
 if edit:
-    opt = []
-    for i in range(len(algo)):
+    for i in algo:
         if (metrics[i]):
             st.sidebar.markdown('---')
             op = MetricAlgos.getAlg(metrics[i])
             opN = [a.__name__ for a in op]
             options = st.sidebar.multiselect(
-                f"Select metric learn for {algo[i]}:",
+                f"Select metric learn for {i}:",
                 options=opN,
                 default = st.session_state.options[i])
-            opt.append(options)
-        else:
-            opt.append([])
-    st.session_state.options = opt
-
-
+            st.session_state.options[i] = options
 
 st.sidebar.markdown('---')
 plot_type = st.sidebar.multiselect(
@@ -144,7 +139,7 @@ allData = st.sidebar.checkbox("Add to next run when needed", value = False)
 st.sidebar.markdown('---')
 update = st.sidebar.checkbox("Update automatically", value = False)
 
-
+st.sidebar.markdown('---')
 
 # if st.sidebar.button('Show result'):
 if st.sidebar.button('Show result') or update:
@@ -152,17 +147,18 @@ if st.sidebar.button('Show result') or update:
     dfs = []
     available_algos = []
     for i in algo:
-        path = Path(f'batches/{plot_kind}/{i}_10_crossfold_{fold}').absolute()
-        if not os.path.exists(path):
-            st.text(f"Missing results of {i} in this setting")
-            continue
-        available_algos.append(i)
-        df = pd.read_csv(path)
-        dfs.append(df)
-        for d in data:
-            if not d in df:
-                not_availabe_data.append(d)
-                st.text(f"Missing results for {d} with algorithm {i} in this setting")
+        for metr in st.session_state.options[i]:
+            path = Path(f'batches/{plot_kind}/{i}{metr}_10_crossfold_{fold}').absolute()
+            if not os.path.exists(path):
+                st.text(f"Missing results of {i}{metr} in this setting")
+                continue
+            available_algos.append(i)
+            df = pd.read_csv(path)
+            dfs.append(df)
+            for d in data:
+                if not d in df:
+                    not_availabe_data.append(d)
+                    st.text(f"Missing results for {d} with algorithm {i}{metr} in this setting")
     available_data = []
     for d in data:
         if d not in not_availabe_data:
@@ -170,14 +166,21 @@ if st.sidebar.button('Show result') or update:
     dfs = [df[available_data] for df in dfs]
     
     if "Average" in plot_type:
-        plt = average(dfs, available_algos)
+        average(dfs, available_algos)
 
-        plt.plot(title="Average Aligned rank", xlabel="Number of queries", ylabel="Aligned rank")
-        st.pyplot()
+if "Average" in plot_type:
+    st.session_state.plots.plot(title="Average Aligned rank", xlabel="Number of queries", ylabel="Aligned rank")
+    st.pyplot()
 
 
 if st.button('Save figure'):
     print("figure saved")
+
+
+# import json
+# s = "{'muffin' : 'lolz', 'foo' : 'kitty'}"
+# json_acceptable_string = s.replace("'", "\"")
+# d = json.loads(json_acceptable_string)
 
     
 

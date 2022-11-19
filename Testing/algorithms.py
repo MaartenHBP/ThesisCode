@@ -26,7 +26,9 @@ class Algorithm:
     def needsMetric(names):
         path = Path('algorithms').absolute()
         algos = pd.read_csv(path)
-        return algos.loc[algos['name'].isin(names)]['metric'].values.tolist()
+        metrics = algos.loc[algos['name'].isin(names)]['metric'].values.tolist()
+        dic = dict(zip(algos['name'].values.tolist(), metrics))
+        return dic
 
 # print(Algorithm.needsMetric(["yes", "test"]))
 
