@@ -63,7 +63,7 @@ class ExperimentRunner:
                 skf.append(f)
         i = 1
         while True:
-            resulting_path = Path('batches/' + dataname + "_crossfold_" + str(i)).absolute()
+            resulting_path = Path('batches/folds/' + dataname + "_crossfold_" + str(i)).absolute()
             if os.path.exists(resulting_path):
                 i += 1
                 
