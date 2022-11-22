@@ -1,0 +1,113 @@
+{
+    "supervised": {
+        "NCA": {
+            "init": "auto",
+            "n_components": null,
+            "max_iter": 100,
+            "tol": null,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "LMNN": {
+            "init": "auto",
+            "k": 3,
+            "min_iter": 50,
+            "max_iter": 1000,
+            "learn_rate": 1e-07,
+            "regularization": 0.5,
+            "convergence_tol": 0.001,
+            "verbose": false,
+            "preprocessor": null,
+            "n_components": null,
+            "random_state": null
+        },
+        "LFDA": {
+            "n_components": null,
+            "k": null,
+            "embedding_type": "weighted",
+            "preprocessor": null
+        },
+        "MLKR": {
+            "n_components": null,
+            "init": "auto",
+            "tol": null,
+            "max_iter": 1000,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "MMC_Supervised": {
+            "max_iter": 100,
+            "max_proj": 10000,
+            "convergence_threshold": 1e-06,
+            "num_constraints": null,
+            "init": "identity",
+            "diagonal": false,
+            "diagonal_c": 1.0,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "ITML_Supervised": {
+            "gamma": 1.0,
+            "max_iter": 100,
+            "convergence_threshold": 0.001,
+            "num_constraints": null,
+            "prior": "identity",
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "SDML_Supervised": {
+            "balance_param": 0.5,
+            "sparsity_param": 0.01,
+            "prior": "identity",
+            "num_constraints": null,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "RCA_Supervised": {
+            "n_components": null,
+            "num_chunks": 100,
+            "chunk_size": 2,
+            "preprocessor": null,
+            "random_state": null
+        }
+    },
+    "semisupervised": {
+        "ITML": {
+            "gamma": 1.0,
+            "max_iter": 1000,
+            "convergence_threshold": 0.001,
+            "prior": "identity",
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "SDML": {
+            "balance_param": 0.5,
+            "sparsity_param": 0.01,
+            "prior": "identity",
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        },
+        "RCA": {
+            "n_components": null,
+            "preprocessor": null
+        },
+        "MMC": {
+            "max_iter": 100,
+            "max_proj": 10000,
+            "convergence_threshold": 0.001,
+            "init": "identity",
+            "diagonal": false,
+            "diagonal_c": 1.0,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": null
+        }
+    }
+}

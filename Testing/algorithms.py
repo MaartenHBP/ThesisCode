@@ -30,6 +30,34 @@ class Algorithm:
         dic = dict(zip(algos['name'].values.tolist(), metrics))
         return dic
 
+    @staticmethod
+    def fit(dataName, trainingset = None, preprocesser = None, preprocestraining = False, baseline = False, parameters = {}):
+        path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
+        if preprocesser and not preprocestraining: path = Path(f'batches/preprocessing/{dataName}_{preprocesser.__name__}').absolute()
+        dataset = np.loadtxt(path, delimiter=',')
+        data = dataset[:, 1:]
+        target = dataset[:, 0]
+        if preprocesser and preprocestraining:
+            pre = preprocesser(max_iter=100)
+            pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
+            data = pre.transform(np.copy(data))
+        querier = LabelQuerier(None, target, 200)
+        clusterer = COBRAS(correct_noise=False, end=baseline, **parameters)
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, trainingset, querier)
+
+        if baseline:
+            querier2 = LabelQuerier(None, target, 200)
+            clusterer2 = COBRAS(correct_noise=False, **parameters)
+            all_clusters, runtimes, *_ = clusterer2.fit(clusterer.data, -1, trainingset, querier2)
+
+        return all_clusters, runtimes
+
+    @staticmethod
+    def preprocess(dataName, preprocessor = None, preprocestraining = False, parameters = {}):
+        if preprocestraining:
+            return
+        pass
+
 # print(Algorithm.needsMetric(["yes", "test"]))
 
 

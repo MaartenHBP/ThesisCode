@@ -2,9 +2,8 @@ from metric_learn import *
 import inspect
 
 class MetricAlgos:
-
-    supervised = [NCA]
-    semisupervised = [ITML]
+    supervised = [NCA, LMNN, LFDA, MLKR, MMC_Supervised, ITML_Supervised, SDML_Supervised, RCA_Supervised]
+    semisupervised = [ITML, SDML, RCA, MMC]
     @staticmethod
     def getAlg(kind):
         if not kind:
@@ -15,9 +14,9 @@ class MetricAlgos:
         
     @staticmethod
     def getArguments(a):
-        keys, _, _, values = inspect.getargvalues(a)
-        kwargs = {}
-        for key in keys:
-            if key != 'self':
-                kwargs[key] = values[key]
-        return kwargs
+        dictio = {}
+        b = inspect.signature(a)
+        for k in b.parameters.values():
+            dictio[k.name] = k.default
+
+        return dictio

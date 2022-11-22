@@ -1,0 +1,67 @@
+{
+    "Cobras": {
+        "Description": "Standard Cobras algorithm",
+        "fitparam": {},
+        "cobrasparam": {}
+    },
+    "CobrasPreproccesed": {
+        "Description": "Cobras but with data preprocessed",
+        "fitparam": {
+            "preprocessor": {
+                "type": "supervised"
+            },
+            "preprocestraining": {
+                "type": "Boolean"
+            }
+        },
+        "cobrasparam": {}
+    },
+    "CobrasSupervised": {
+        "Description": "Cobras but with supervised clustering after each iteration",
+        "fitparam": {
+            "baseline": {
+                "type": "Boolean"
+            }
+        },
+        "cobrasparam": {
+            "metric_algo": {
+                "type": "class",
+                "value": "SupervisedMetric",
+                "parameters": {
+                    "algo": {
+                        "type": "supervised"
+                    },
+                    "steps": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100
+                    }
+                }
+            }
+        }
+    },
+    "CobrasSemiSupervised": {
+        "Description": "Cobras but with supervised clustering after each iteration",
+        "fitparam": {
+            "baseline": {
+                "type": "Boolean"
+            }
+        },
+        "cobrasparam": {
+            "metric_algo": {
+                "type": "class",
+                "value": "SupervisedMetric",
+                "parameters": {
+                    "algo": {
+                        "type": "semisupervised"
+                    },
+                    "steps": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100
+                    }
+                }
+            }
+        }
+    }
+}

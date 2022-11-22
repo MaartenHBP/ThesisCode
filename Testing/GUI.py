@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.express as px
 from algorithms import *
 from metricalgos import *
+import json
 
 st.set_page_config(page_title="Experiment Runner", page_icon=":bar_chart:")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -41,67 +42,116 @@ def getInitialValues():
         datasets.append(dir_list[i][:len(dir_list[i]) - 5])
 
     # The algos
-    algos = Algorithm.getAlgos()
-    metrics = Algorithm.needsMetric(algos)
-    return algos, datasets, metrics
+    with open('settings/algorithms.json') as json_file:
+        algos = json.load(json_file)
 
-algos, datasets, metrics = getInitialValues()
+    with open('settings/metricLearners.json') as json_file:
+        metrics = json.load(json_file)
+
+    ask = whatToAsk(algos)
+    return algos, datasets, metrics, ask
+
+@st.cache
+def whatToAsk(algos):
+    dictio = {}
+    for key,values in algos.items():
+        path, what = findAsk(values)
+        dictio[key] = {"path": path, "what": what}
+    return dictio
+
+def findAsk(dictio):
+    if "type" in dictio.keys():
+        if "parameters" in dictio.keys():
+            path, dicts = findAsk(dictio["parameters"])
+            for i in path:
+                i.insert(0, "parameters")
+            return path, dicts
+        else:
+            return [[]], [dictio] 
+
+    bigpath, bigdict = [], []
+    for key,value in dictio.items():
+        if type(value) is dict:
+            path, dicts = findAsk(value)
+            for i in path:
+                i.insert(0, key)
+            bigpath += path
+            bigdict += dicts
+    return bigpath, bigdict
+
+def get_nested(data, *args):
+    if args and data:
+        element  = args[0]
+        if element:
+            value = data.get(element)
+            return value if len(args) == 1 else get_nested(value, *args[1:])
+
+
+
+algos, datasets, metrics, ask = getInitialValues()
 
 # ge kunt werken met columns en states, maar is ff te advanced
 
-if 'options' not in st.session_state:
-    options = {}
-    for i in algos:
-        if (metrics[i]):
-            op = MetricAlgos.getAlg(metrics[i])
-            opN = [a.__name__ for a in op]
-            options[i] = [opN[0]]
-        else: options[i] = [""]
+# if 'options' not in st.session_state:
+#     options = {}
+#     for i in algos:
+#         if (metrics[i]):
+#             op = MetricAlgos.getAlg(metrics[i])
+#             opN = [a.__name__ for a in op]
+#             options[i] = [opN[0]]
+#         else: options[i] = [""]
 
-    st.session_state.options = options
+#     st.session_state.options = options
 
 if 'plots' not in st.session_state:
     st.session_state.plots = pd.DataFrame({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
 
-if 'notRunned' not in st.session_state:
-    st.session_state.notRunned = []
+if 'algorithms' not in st.session_state:
+    st.session_state.algorithms = {}
+
+if 'nbalgo' not in st.session_state:
+    st.session_state.nbalgo = 0
+
+if 'adding' not in st.session_state:
+    st.session_state.adding = False
 
 
 # ---- SIDEBAR ----
 st.sidebar.header("Please Filter Here:")
-algo = st.sidebar.multiselect(
-    "Select the algorithms:",
-    options=algos,
-    default=algos
-)
-st.sidebar.markdown('---')
-edit = st.sidebar.checkbox("Options for algorithms")
+# algo = st.sidebar.multiselect(
+#     "Select the algorithms:",
+#     options=algos.keys(),
+#     default=algos.keys()
+# )
+# edit = st.sidebar.checkbox("Options for algorithms")
 
-if edit:
-    for i in algo:
-        if (metrics[i]):
-            st.sidebar.markdown('---')
-            op = MetricAlgos.getAlg(metrics[i])
-            opN = [a.__name__ for a in op]
-            options = st.sidebar.multiselect(
-                f"Select metric learn for {i}:",
-                options=opN,
-                default = st.session_state.options[i])
-            st.session_state.options[i] = options
+# with st.sidebar.expander("Extra options for algorithms"):
+#     for i in algo:
+#         if (metrics[i]):
+#             op = MetricAlgos.getAlg(metrics[i])
+#             opN = [a.__name__ for a in op]
+#             options = st.multiselect(
+#                 f"Select metric learn for {i}:",
+#                 options=opN,
+#                 default = opN[0], key = i + "options")
 
-st.sidebar.markdown('---')
-plot_type = st.sidebar.multiselect(
-    "Kind of plot:",
-    options=["Average", "Aligned rank"],
-    default=["Average"]
-)
 
-plot_kind = st.sidebar.radio(
-    "What to plot", 
-    options = ["ARI", "Time"]
-)
 
-st.sidebar.markdown('---')
+
+
+# if edit:
+#     for i in algo:
+#         if (metrics[i]):
+#             st.sidebar.markdown('---')
+#             op = MetricAlgos.getAlg(metrics[i])
+#             opN = [a.__name__ for a in op]
+#             st.session_state.options[i] = st.sidebar.multiselect(
+#                 f"Select metric learn for {i}:",
+#                 options=opN,
+#                 default = st.session_state.options[i])
+#             st.write(st.session_state)
+
+
 amount = st.sidebar.slider(
     "Select number of queries:", 1, 200, value = 200
 )
@@ -134,47 +184,94 @@ if not allData:
 )
 
 st.sidebar.markdown('---')
-allData = st.sidebar.checkbox("Add to next run when needed", value = False)
-
-st.sidebar.markdown('---')
-update = st.sidebar.checkbox("Update automatically", value = False)
-
-st.sidebar.markdown('---')
 
 # if st.sidebar.button('Show result'):
-if st.sidebar.button('Show result') or update:
+if st.sidebar.button('Show result'):
     not_availabe_data = []
     dfs = []
     available_algos = []
-    for i in algo:
-        for metr in st.session_state.options[i]:
-            path = Path(f'batches/{plot_kind}/{i}{metr}_10_crossfold_{fold}').absolute()
-            if not os.path.exists(path):
-                st.text(f"Missing results of {i}{metr} in this setting")
-                continue
-            available_algos.append(i)
-            df = pd.read_csv(path)
-            dfs.append(df)
-            for d in data:
-                if not d in df:
-                    not_availabe_data.append(d)
-                    st.text(f"Missing results for {d} with algorithm {i}{metr} in this setting")
-    available_data = []
-    for d in data:
-        if d not in not_availabe_data:
-            available_data.append(d)
-    dfs = [df[available_data] for df in dfs]
+    # for i in algo:
+    #     for metr in st.session_state.options[i]:
+    #         path = Path(f'batches/{plot_kind}/{i}{metr}_10_crossfold_{fold}').absolute() # format gaat nog veranderen
+    #         if not os.path.exists(path):
+    #             st.text(f"Missing results of {i}{metr} in this setting")
+    #             continue
+    #         available_algos.append(i)
+    #         df = pd.read_csv(path)
+    #         dfs.append(df)
+    #         for d in data:
+    #             if not d in df:
+    #                 not_availabe_data.append(d)
+    #                 st.text(f"Missing results for {d} with algorithm {i}{metr} in this setting")
+    # available_data = []
+    # for d in data:
+    #     if d not in not_availabe_data:
+    #         available_data.append(d)
+    # dfs = [df[available_data] for df in dfs]
     
-    if "Average" in plot_type:
-        average(dfs, available_algos)
-
-if "Average" in plot_type:
-    st.session_state.plots.plot(title="Average Aligned rank", xlabel="Number of queries", ylabel="Aligned rank")
-    st.pyplot()
+    # if "Average" in plot_type:
+    #     average(dfs, available_algos)
 
 
-if st.button('Save figure'):
-    print("figure saved")
+tab1, tab2, tab3 = st.tabs(["Average ARI", "Aligned rank", "Time"])
+with tab1:
+   st.header("Average ARI")
+   st.line_chart(st.session_state.plots)
+
+with tab2:
+   st.header("Aligned rank")
+   st.image("https://static.streamlit.io/examples/dog.jpg", width=200)
+
+with tab3:
+   st.header("Time")
+   st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
+
+
+for key, value in st.session_state.algorithms.items():    
+    with st.expander(str(key),expanded = True):
+        if not value:
+            nameAlgo = st.selectbox(
+                "Choose an algorithm",
+                options = algos
+            )   
+            if st.button('Next'):
+                st.session_state.algorithms[key]["name algo"] = nameAlgo
+                st.session_state.adding = False
+                st.experimental_rerun()
+        else:
+            st.write(value["name algo"])
+            # now display all the qustions
+            for i in range(len(ask[value["name algo"]]["path"])):
+                what = ask[value["name algo"]]["what"][i]["type"]
+                string = str(ask[value["name algo"]]["path"][i])
+                if what == "supervised" or what == "semisupervised":
+                    data = st.multiselect(
+                    string,
+                    options=metrics[what],
+                    key = value["name algo"] + string + str(key)
+                )
+                if what == "int":
+                    st.slider(
+                    string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
+                    key = value["name algo"] + string + str(key)
+                    )
+
+
+
+
+if not st.session_state.adding:
+    if st.button('Add algorithm'):
+        st.session_state.algorithms[st.session_state.nbalgo] = {}
+        st.session_state.nbalgo += 1
+        st.session_state.adding = True
+        st.experimental_rerun()
+
+st.write(st.session_state)
+
+
+
+# if st.button('Save figure'):
+#     print("figure saved")
 
 
 # import json

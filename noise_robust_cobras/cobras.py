@@ -59,7 +59,7 @@ class COBRAS:
         minimum_approximation_order=2,
         maximum_approximation_order=3,
         certainty_threshold=0.95,
-        seed=None, # seed is bekijken
+        seed=None, # seed is bekijken (nog niet gedaan)
         correct_noise=True,
         logger=None,
         cobras_logger=None,
