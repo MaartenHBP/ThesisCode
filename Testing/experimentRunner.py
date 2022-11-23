@@ -23,12 +23,83 @@ import shutil
 import functools
 from dask.distributed import Client, LocalCluster
 from test_scripts import *
-from experimentRunner import ExperimentRunner
 from algorithms import *
 from pathlib import Path
 from metric_learn import *
 from operator import itemgetter
+import json
 
+def fixClass(dictio):
+    if "type" in dictio.keys():
+        if dictio["type"] == "class":
+            dictio["value"] = eval(dictio["value"])
+    for key,value in dictio.items():
+        if type(value) is dict:
+            fixClass(value)
+
+def run():
+    with LocalCluster() as cluster, Client(cluster) as client:
+        path_data = Path('queue').absolute()
+        dir_list = os.listdir(path_data)
+        for i in dir_list: # execute each file
+            with open(f'queue/{i}') as json_file:
+                experiment = json.load(json_file)
+                fixClass(experiment)
+                foldnb = experiment["foldnb"]
+                crossfold = experiment["crossfold"]
+                data = experiment["data"]
+                runsPQ = experiment["runsPQ"]
+                settings = experiment["settings"]
+                name = experiment["string"]
+                results = {}
+                # preprocess all the data here
+                for nameData in data: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen
+                    dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+                    dataset = np.loadtxt(dataset_path, delimiter=',')
+                    target = dataset[:, 0]
+                    average = {"S1": np.zeros(200), "S2": np.zeros(200), "times": np.zeros(200)}
+                    resulting_path = Path(f'batches/folds/{nameData}_crossfold_{foldnb}').absolute()
+                    folds = np.loadtxt(resulting_path, delimiter=',', dtype=int)
+
+
+                    arguments = []
+                    test = []
+
+                    size = len(folds[0])
+                    amount = math.ceil(0.1 * size)
+
+                    for fold in folds:
+                        arguments.append(fold[0:-amount])
+                        test.append(fold[-amount:])
+
+
+                    parallel_func = functools.partial(Algorithm.fit, dataName = nameData, **settings["fitparam"], parameters = settings["cobrasparam"])
+
+
+                    futures = client.map(parallel_func, arguments)
+                                
+
+                    results = client.gather(futures)
+
+                    print("Done, total results = " + str(len(results)), end = "\r")
+
+                    for i in range(len(results)):
+                        all_clusters, runtimes = results[i]
+                        if len(all_clusters) < 200:
+                            diff = 200 - len(all_clusters)
+                            for ex in range(diff):
+                                all_clusters.append(all_clusters[-1])
+                                runtimes.append(runtimes[-1])
+                            
+                        IRA = np.array([adjusted_rand_score(target[test[i]], np.array(clustering)[test[i]]) for clustering in all_clusters])
+                        average["S1"] += IRA
+                        average["S2"] += IRA**2
+                        average["times"] += np.array(runtimes)
+                    results[nameData] = average["S1"]
+                    print(results)
+    
+    
+    
 
 
 class ExperimentRunner:

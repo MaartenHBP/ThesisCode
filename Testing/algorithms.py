@@ -31,14 +31,14 @@ class Algorithm:
         return dic
 
     @staticmethod
-    def fit(dataName, trainingset = None, preprocesser = None, preprocestraining = False, baseline = False, parameters = {}):
+    def fit(trainingset, dataName, preprocessor = None, preprocestraining = False, baseline = False, parameters = {}): # function nog aanpassen naar de niewigheden van dicts
         path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
-        if preprocesser and not preprocestraining: path = Path(f'batches/preprocessing/{dataName}_{preprocesser.__name__}').absolute()
+        if preprocessor and not preprocestraining: path = Path(f'batches/preprocessing/{dataName}_{preprocessor.__name__}').absolute()
         dataset = np.loadtxt(path, delimiter=',')
         data = dataset[:, 1:]
         target = dataset[:, 0]
-        if preprocesser and preprocestraining:
-            pre = preprocesser(max_iter=100)
+        if preprocessor and preprocestraining:
+            pre = preprocessor(max_iter=100)
             pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
             data = pre.transform(np.copy(data))
         querier = LabelQuerier(None, target, 200)
@@ -53,7 +53,7 @@ class Algorithm:
         return all_clusters, runtimes
 
     @staticmethod
-    def preprocess(dataName, preprocessor = None, preprocestraining = False, parameters = {}):
+    def preprocess(dataName, preprocessor = None, preprocestraining = False, parameters = {}): # nog fixen, gaat ook parallel worden uitgevoerd
         if preprocestraining:
             return
         pass

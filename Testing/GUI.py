@@ -10,6 +10,7 @@ import plotly.express as px
 from algorithms import *
 from metricalgos import *
 import json
+import copy
 
 st.set_page_config(page_title="Experiment Runner", page_icon=":bar_chart:")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -31,6 +32,29 @@ def average(dfs, algos):
         plot[algos[i]] = dfs[i].mean(axis=1)[0:amount]
 
     st.session_state.plots = plot
+
+def addToTheQueueu(algo, settings, foldnb, crossfold, data, runsPQ, string):
+    # ask[value["name algo"]]["path"]
+    nal = st.session_state.algorithms[algo]
+    with open('settings/algorithms.json') as json_file:
+        sett = json.load(json_file)[nal["name algo"]]
+    print(sett)
+    for i in range(len(ask[nal["name algo"]]["path"])):
+        print(settings[i])
+        get_nested(sett, *ask[nal["name algo"]]["path"][i], sett = settings[i])
+    output = {
+        "foldnb": foldnb,
+        "crossfold": crossfold,
+        "runsPQ": runsPQ,
+        "data": data,
+        "settings": sett,
+        "string": string
+
+    }
+    with open(f"queue/{string}.json", "w") as outfile:
+        json.dump(output, outfile, indent=4)
+
+    
 
 #  The datasets
 @st.cache
@@ -79,12 +103,14 @@ def findAsk(dictio):
             bigdict += dicts
     return bigpath, bigdict
 
-def get_nested(data, *args):
+def get_nested(data, *args, sett):
     if args and data:
         element  = args[0]
         if element:
             value = data.get(element)
-            return value if len(args) == 1 else get_nested(value, *args[1:])
+            if len(args) == 1:
+                data[element] = sett 
+            else: get_nested(value, *args[1:], sett = sett)
 
 
 
@@ -114,7 +140,6 @@ if 'nbalgo' not in st.session_state:
 
 if 'adding' not in st.session_state:
     st.session_state.adding = False
-
 
 # ---- SIDEBAR ----
 st.sidebar.header("Please Filter Here:")
@@ -170,7 +195,7 @@ else:
     fold = st.sidebar.slider(
     "Which fold:", 1, 10
     )
-    crossStr = "crossfold"
+    crossStr = "crossfold_"
 
 st.sidebar.markdown('---')
 
@@ -185,11 +210,67 @@ if not allData:
 
 st.sidebar.markdown('---')
 
+addToQueue = st.sidebar.checkbox("Add runs to queue when needed", value = True)
+
+st.sidebar.markdown('---')
 # if st.sidebar.button('Show result'):
 if st.sidebar.button('Show result'):
     not_availabe_data = []
     dfs = []
     available_algos = []
+    for key, value in st.session_state.algorithms.items(): # momenteel alleen voor ARI en aligned rank
+        algs = [""]
+        settings = [[]]
+        # path = Path(f'batches/ARI/{value["name algo"]}{str}_10_crossfold_{fold}').absolute()
+        for i in range(len(ask[value["name algo"]]["path"])):
+            string = str(ask[value["name algo"]]["path"][i])
+            pl = st.session_state[value["name algo"] + string + str(key)]
+            what = ask[value["name algo"]]["what"][i]["type"]
+            extra = [pl]
+            extrasetting=[pl]
+            if hasattr(pl, "__len__"):
+                if len(pl) == 0:
+                    print("Wel iets invullen he")
+                    break
+                extra = [v for v in pl]
+                extrasetting = [v for v in pl]
+                if what == "supervised" or what == "semisupervised":
+                    extra = [v + "_" + str(metrics[what][v].values()) for v in pl]
+                    extrasetting = [{"type": "class", "value": v, "parameters": metrics[what][v]} for v in pl]
+                    print(extrasetting)
+            newalgs = []
+            newsettings = []
+            for i in range(len(algs)):
+                for j in range(len(extra)):
+                    newalgs.append(str(algs[i])+"_"+str(extra[j]))
+                    newS = settings[i].copy()
+                    newS.append(extrasetting[j])
+                    newsettings.append(newS)
+            settings = newsettings
+            algs = newalgs
+        for al in range(len(algs)):
+            a = algs[al].replace(" ", "").replace("[", "").replace("]","").replace(",", "_")
+            p = f'{value["name algo"]}{a}_{runsPQ}_{crossStr}{fold}'
+            path = Path(f'batches/ARI/{p}')
+            if not os.path.exists(path):
+                print(f"Missing results of {p} in this setting")
+                if (addToQueue):
+                    addToTheQueueu(key, settings[al], fold, crossfold, data, runsPQ, p)
+                continue
+            available_algos.append(a)
+            df = pd.read_csv(path)
+            dfs.append(df)
+            for d in data:
+                if not d in df:
+                    not_availabe_data.append(d)
+                    print(f"Missing results for {d} with algorithm {p} in this setting")
+    available_data = []
+    for d in data:
+        if d not in not_availabe_data:
+            available_data.append(d)
+    dfs = [df[available_data] for df in dfs]
+
+        # make the string of the data
     # for i in algo:
     #     for metr in st.session_state.options[i]:
     #         path = Path(f'batches/{plot_kind}/{i}{metr}_10_crossfold_{fold}').absolute() # format gaat nog veranderen
@@ -213,6 +294,7 @@ if st.sidebar.button('Show result'):
     #     average(dfs, available_algos)
 
 
+
 tab1, tab2, tab3 = st.tabs(["Average ARI", "Aligned rank", "Time"])
 with tab1:
    st.header("Average ARI")
@@ -226,34 +308,49 @@ with tab3:
    st.header("Time")
    st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
 
-
-for key, value in st.session_state.algorithms.items():    
-    with st.expander(str(key),expanded = True):
-        if not value:
-            nameAlgo = st.selectbox(
-                "Choose an algorithm",
-                options = algos
-            )   
-            if st.button('Next'):
-                st.session_state.algorithms[key]["name algo"] = nameAlgo
-                st.session_state.adding = False
-                st.experimental_rerun()
-        else:
-            st.write(value["name algo"])
-            # now display all the qustions
-            for i in range(len(ask[value["name algo"]]["path"])):
-                what = ask[value["name algo"]]["what"][i]["type"]
-                string = str(ask[value["name algo"]]["path"][i])
-                if what == "supervised" or what == "semisupervised":
-                    data = st.multiselect(
-                    string,
-                    options=metrics[what],
-                    key = value["name algo"] + string + str(key)
-                )
-                if what == "int":
-                    st.slider(
-                    string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
-                    key = value["name algo"] + string + str(key)
+if st.session_state.algorithms:
+    tabs = st.tabs([str(i) for i in st.session_state.algorithms.keys()])
+    for nbTab in range(len(tabs)): 
+        with tabs[nbTab]:
+            key = nbTab
+            value = st.session_state.algorithms[nbTab]
+            # with st.expander(str(key),expanded = True):
+            if not value:
+                nameAlgo = st.selectbox(
+                    "Choose an algorithm",
+                    options = algos
+                )   
+                if st.button('Next'):
+                    st.session_state.algorithms[key]["name algo"] = nameAlgo
+                    st.session_state.adding = False
+                    st.experimental_rerun()
+            else:
+                st.write(value["name algo"])
+                # now display all the qustions
+                for i in range(len(ask[value["name algo"]]["path"])):
+                    what = ask[value["name algo"]]["what"][i]["type"]
+                    string = str(ask[value["name algo"]]["path"][i])
+                    if what == "supervised" or what == "semisupervised":
+                        st.multiselect(
+                        string,
+                        options=metrics[what],
+                        default=metrics[what],
+                        key = value["name algo"] + string + str(key))
+                        with st.expander("metrics"):
+                            for metricOptions in st.session_state[value["name algo"] + string + str(key)]:
+                                st.write(metricOptions)
+                                st.write(metrics[what][metricOptions])
+                    if what == "int":
+                        st.slider(
+                        string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
+                        key = value["name algo"] + string + str(key)
+                    )
+                    if what == "Boolean":
+                        st.multiselect(
+                        string,
+                        options = [True, False],
+                        default=[True, False],
+                        key = value["name algo"] + string + str(key)
                     )
 
 
