@@ -38,7 +38,6 @@ def addToTheQueueu(algo, settings, foldnb, crossfold, data, runsPQ, string):
     nal = st.session_state.algorithms[algo]
     with open('settings/algorithms.json') as json_file:
         sett = json.load(json_file)[nal["name algo"]]
-    print(sett)
     for i in range(len(ask[nal["name algo"]]["path"])):
         print(settings[i])
         get_nested(sett, *ask[nal["name algo"]]["path"][i], sett = settings[i])
@@ -249,7 +248,7 @@ if st.sidebar.button('Show result'):
             settings = newsettings
             algs = newalgs
         for al in range(len(algs)):
-            a = algs[al].replace(" ", "").replace("[", "").replace("]","").replace(",", "_")
+            a = algs[al].replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
             p = f'{value["name algo"]}{a}_{runsPQ}_{crossStr}{fold}'
             path = Path(f'batches/ARI/{p}')
             if not os.path.exists(path):

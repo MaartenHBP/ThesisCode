@@ -1,7 +1,7 @@
 # Importing pandas package
 import json
-from metric_learn import *
-from metricalgos import *
+# from metric_learn import *
+# from metricalgos import *
 
 dictionary = {
     "Cobras" : {
@@ -134,14 +134,14 @@ def findAsk(dictio):
 # with open('settings/algorithms.json') as json_file:
 #     data = json.load(json_file)
 
-print(whatToAsk(dictionary))
+# print(whatToAsk(dictionary))
 #     print(type(data))
 # print(eval(dictionary["test"]))
 # def test_func(a = 4, b = 5):
 #     print("The value of a is : " + str(a))
 #     print("The value of b is : " + str(b))
 
-# test_dict = {'a' : 1}
+# test_dict = {'a' : 1, 'b': 8, 'c': 44}
   
 # # printing original dictionary
 # print("The original dictionary is : " + str(test_dict))
@@ -150,4 +150,15 @@ print(whatToAsk(dictionary))
 # print("The default function call yields : ")
 # test_func()
 
-# test_func(b = 3,**test_dict)
+# test_func(**test_dict)
+
+import numpy as np
+from metric_learn import LMNN
+from sklearn.datasets import load_iris
+
+iris_data = load_iris()
+X = iris_data['data']
+Y = iris_data['target']
+
+lmnn = LMNN(k=5, learn_rate=1e-6)
+lmnn.fit(X, Y, verbose=False)

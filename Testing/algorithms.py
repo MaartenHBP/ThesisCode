@@ -33,12 +33,14 @@ class Algorithm:
     @staticmethod
     def fit(trainingset, dataName, preprocessor = None, preprocestraining = False, baseline = False, parameters = {}): # function nog aanpassen naar de niewigheden van dicts
         path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
-        if preprocessor and not preprocestraining: path = Path(f'batches/preprocessing/{dataName}_{preprocessor.__name__}').absolute()
+        if preprocessor and not preprocestraining: 
+            paramstr = str(preprocessor["parameters"].values()).replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
+            path = Path(f'batches/preprocessing/{dataName}_{preprocessor["value"].__name__}_{paramstr}').absolute()
         dataset = np.loadtxt(path, delimiter=',')
         data = dataset[:, 1:]
         target = dataset[:, 0]
         if preprocessor and preprocestraining:
-            pre = preprocessor(max_iter=100)
+            pre = preprocessor["value"](**preprocessor["parameters"])
             pre.fit(np.copy(data[trainingset]), np.copy(target[trainingset]))
             data = pre.transform(np.copy(data))
         querier = LabelQuerier(None, target, 200)
@@ -53,10 +55,24 @@ class Algorithm:
         return all_clusters, runtimes
 
     @staticmethod
-    def preprocess(dataName, preprocessor = None, preprocestraining = False, parameters = {}): # nog fixen, gaat ook parallel worden uitgevoerd
-        if preprocestraining:
+    def preprocess(dataName, preprocessor = None, preprocestraining = False, **args): # nog fixen, gaat ook parallel worden uitgevoerd
+        if preprocestraining or not preprocessor:
             return
-        pass
+        paramstr = str(preprocessor["parameters"].values()).replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
+        path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
+        path_pre = Path(f'batches/preprocessing/{dataName}_{preprocessor["value"].__name__}_{paramstr}').absolute()    # + type(metricPreprocessing).__name__ voor later
+        if os.path.exists(path_pre):
+            return
+        else:
+            dataset = np.loadtxt(path, delimiter=',')
+            data = dataset[:, 1:]
+            target = dataset[:, 0]
+            pre = preprocessor["value"](**preprocessor["parameters"])
+            pre.fit(np.copy(data), np.copy(target))
+            newData = pre.transform(np.copy(data))
+            np.savetxt(path_pre, np.column_stack((target,newData)), delimiter=',')
+
+#             return path_pre
 
 # print(Algorithm.needsMetric(["yes", "test"]))
 

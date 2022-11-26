@@ -83,7 +83,6 @@
             "convergence_threshold": 0.001,
             "prior": "identity",
             "verbose": false,
-            "preprocessor": null,
             "random_state": null
         },
         "SDML": {
@@ -91,12 +90,10 @@
             "sparsity_param": 0.01,
             "prior": "identity",
             "verbose": false,
-            "preprocessor": null,
             "random_state": null
         },
         "RCA": {
-            "n_components": null,
-            "preprocessor": null
+            "n_components": null
         },
         "MMC": {
             "max_iter": 100,
@@ -106,7 +103,6 @@
             "diagonal": false,
             "diagonal_c": 1.0,
             "verbose": false,
-            "preprocessor": null,
             "random_state": null
         }
     }
