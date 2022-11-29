@@ -32,7 +32,7 @@
             "n_components": null,
             "init": "auto",
             "tol": null,
-            "max_iter": 1000,
+            "max_iter": 100,
             "verbose": false,
             "preprocessor": null,
             "random_state": null
@@ -79,7 +79,7 @@
     "semisupervised": {
         "ITML": {
             "gamma": 1.0,
-            "max_iter": 1000,
+            "max_iter": 100,
             "convergence_threshold": 0.001,
             "prior": "identity",
             "verbose": false,

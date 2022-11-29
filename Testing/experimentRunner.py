@@ -9,7 +9,7 @@ from sklearn.metrics import adjusted_rand_score
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQuerier
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
-import noise_robust_cobras.metric_learning.metriclearning_algorithms 
+import noise_robust_cobras.metric_learning.metriclearning_algorithms
 import numpy as np 
 import scipy
 from metric_learn import NCA
@@ -71,6 +71,10 @@ def run():
                 for nameData in data: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen
                     if nameData in S1:
                         continue
+                    if os.path.exists(pathS1):
+                        S1 = pd.read_csv(pathS1, index_col=0)
+                        S2 = pd.read_csv(pathS2, index_col=0)
+                        time = pd.read_csv(pathTime, index_col=0)
                     dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
                     dataset = np.loadtxt(dataset_path, delimiter=',')
                     target = dataset[:, 0]
@@ -88,12 +92,13 @@ def run():
                         arguments.append(fold[0:-amount])
                         test.append(fold[-amount:])
 
-                    print(data)
+                    print(nameData)
                     parallel_func = functools.partial(Algorithm.fit, dataName = nameData, **settings["fitparam"], parameters = settings["cobrasparam"])
 
                     futures = client.map(parallel_func, arguments)   
 
                     results = client.gather(futures)
+
 
                     print("Done, total results = " + str(len(results)), end = "\r")
 
@@ -112,9 +117,9 @@ def run():
                     S1[nameData] = average["S1"]
                     S2[nameData] = average["S2"]
                     time[nameData] = average["times"]
-                S1.to_csv(f'batches/ARI/{name}')
-                S2.to_csv(f'batches/S2/{name}')
-                time.to_csv(f'batches/Time/{name}')
+                    S1.to_csv(f'batches/ARI/{name}')
+                    S2.to_csv(f'batches/S2/{name}')
+                    time.to_csv(f'batches/Time/{name}')
             os.remove(Path(f'queue/{i}').absolute())    
 
 if __name__ == "__main__":
