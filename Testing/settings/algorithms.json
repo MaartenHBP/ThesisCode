@@ -50,7 +50,7 @@
         "cobrasparam": {
             "metric_algo": {
                 "type": "class",
-                "value": "SupervisedMetric",
+                "value": "SemiSupervisedMetric",
                 "parameters": {
                     "algo": {
                         "type": "semisupervised"

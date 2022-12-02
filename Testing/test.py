@@ -152,13 +152,13 @@ def findAsk(dictio):
 
 # test_func(**test_dict)
 
-import numpy as np
-from metric_learn import LMNN
-from sklearn.datasets import load_iris
+from metric_learn import RCA
 
-iris_data = load_iris()
-X = iris_data['data']
-Y = iris_data['target']
+X = [[1.2, 7.5], [1.3, 1.5],
+         [6.4, 2.6], [6.2, 9.7],
+         [1.3, 4.5], [3.2, 4.6],
+         [6.2, 5.5], [5.4, 5.4]]
+chunks = [0, 0, 1, 1, 2, 2, 3, 3]
 
-lmnn = LMNN(k=5, learn_rate=1e-6)
-lmnn.fit(X, Y, verbose=False)
+rca = RCA()
+rca.fit(X, chunks)

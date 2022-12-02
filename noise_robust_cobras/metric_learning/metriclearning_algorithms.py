@@ -18,7 +18,9 @@ class MetricLearningAlgorithm:
 class SupervisedMetric(MetricLearningAlgorithm):
     def __init__(self, algo, steps = 0):
         self.algo = algo
-        self.steps = 0
+        self.steps = steps
+        self.count = 0
+        self.current = None
 
     def learn(self, cobras_cluster):
         if self.count < self.steps:
@@ -37,7 +39,9 @@ class SupervisedMetric(MetricLearningAlgorithm):
 class SemiSupervisedMetric(MetricLearningAlgorithm):
     def __init__(self, algo, steps = 0):
         self.algo = algo
-        self.steps = 0
+        self.steps = steps
+        self.count = 0
+        self.current = None
 
     def learn(self, cobras_cluster):
         if self.count < self.steps:

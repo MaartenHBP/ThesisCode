@@ -85,7 +85,7 @@ class COBRAS:
         if metric_algo is None:
             self.metric_algo = EuclidianDistance()
         else:
-            self.metric_algo = metric_algo["value"](metric_algo["parameters"])
+            self.metric_algo = metric_algo["value"](**metric_algo["parameters"])
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
