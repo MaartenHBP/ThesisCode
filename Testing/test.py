@@ -152,13 +152,141 @@ def findAsk(dictio):
 
 # test_func(**test_dict)
 
-from metric_learn import RCA
+# from metric_learn import RCA
 
-X = [[1.2, 7.5], [1.3, 1.5],
-         [6.4, 2.6], [6.2, 9.7],
-         [1.3, 4.5], [3.2, 4.6],
-         [6.2, 5.5], [5.4, 5.4]]
-chunks = [0, 0, 1, 1, 2, 2, 3, 3]
+# X = [[1.2, 7.5], [1.3, 1.5],
+#          [6.4, 2.6], [6.2, 9.7],
+#          [1.3, 4.5], [3.2, 4.6],
+#          [6.2, 5.5], [5.4, 5.4]]
+# chunks = [0, 0, 1, 1, 2, 2, 3, 3]
 
-rca = RCA()
-rca.fit(X, chunks)
+# rca = RCA()
+# rca.fit(X, chunks)
+from threading import Thread, Lock
+
+from pylab import *
+import math
+class eventmanager:
+    pressed = False
+    colors = ['r', 'b']
+    cin = 0
+    pointsX = []
+    pointsY = []
+    classes = []
+    pts = []
+    drawncolors = []
+    link = None
+    erasing = False
+    lock = Lock()
+
+def eraser(event):
+    eventmanager.lock.acquire()
+    x,y = event.xdata,event.ydata
+    tob = []
+    print(len(eventmanager.pointsX))
+    a = len(eventmanager.pointsX)
+    for i in range(a):
+        x1, y1 = eventmanager.pointsX[i], eventmanager.pointsY[i]
+        if math.dist([x,y], [x1,y1]) < 0.01:
+            tob.append(i)
+    for d in tob:
+        if a != len(eventmanager.pointsX):
+            return
+        eventmanager.pointsX.pop(d)
+        eventmanager.pointsY.pop(d)
+        eventmanager.classes.pop(d)
+        eventmanager.drawncolors.pop(d)       
+    clf()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    scatter(eventmanager.pointsX, eventmanager.pointsY, color = eventmanager.drawncolors)
+    draw()
+    eventmanager.lock.release()
+
+
+
+def click(event):
+    """If the left mouse button is pressed: draw a little square. """
+    if event.button == 3:
+        eraser(event)
+        return
+    eventmanager.pressed = True
+    x,y = event.xdata,event.ydata
+    clf()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    eventmanager.pointsX.append(x)
+    eventmanager.pointsY.append(y)
+    eventmanager.classes.append(eventmanager.cin)
+    eventmanager.drawncolors.append(eventmanager.colors[eventmanager.cin])
+    scatter(eventmanager.pointsX, eventmanager.pointsY, color = eventmanager.drawncolors)
+    draw()
+
+def loop(event):
+    if event.button == 3:
+        if (eventmanager.erasing):
+            return
+        eventmanager.erasing = True
+        eraser(event)
+        eventmanager.erasing = False
+        return
+    if not eventmanager.pressed:
+        return
+    """If the left mouse button is pressed: draw a little square. """
+    x,y = event.xdata,event.ydata
+    clf()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    eventmanager.pointsX.append(x)
+    eventmanager.pointsY.append(y)
+    eventmanager.classes.append(eventmanager.cin)
+    eventmanager.drawncolors.append(eventmanager.colors[eventmanager.cin])
+    scatter(eventmanager.pointsX, eventmanager.pointsY, color = eventmanager.drawncolors)
+    draw()
+
+def on_release(event):
+    eventmanager.pressed = False
+
+def left(event):
+    eventmanager.cin = (eventmanager.cin + 1) % 2
+
+def delete(event):
+    eventmanager.pointsX.pop()
+    eventmanager.pointsY.pop()
+    eventmanager.drawncolors.pop()
+    clf()
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    scatter(eventmanager.pointsX, eventmanager.pointsY, color = eventmanager.drawncolors)
+    draw()
+
+
+
+plt.title('Create a new simple 2D dataset')
+
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+
+gca().set_autoscale_on(False)
+connect('button_press_event',click)
+connect('motion_notify_event',loop)
+connect('button_release_event',on_release)
+connect('scroll_event',left)
+connect('key_press_event',delete)
+annotate('Line Of Disadvantage', xy=(20, 1), xytext=(7, 3),
+            arrowprops=dict(facecolor='black', shrink=0.05))
+annotate('Most Disadvantaged',xy=(20, 1), xytext=(5, 5)),
+annotate('Least Disadvantaged',xy=(20, 1), xytext=(70, 1)),
+
+show()
+
+inp = input('Save file(y)?: ')
+
+if (inp == 'y'):
+    inp2 = input('Name of the data: ')
+    print(f"Saving the file {inp2}")
+    from pathlib import Path
+    data = np.column_stack((eventmanager.classes,eventmanager.pointsX,eventmanager.pointsY))
+    dataset_path = Path(f'datasets/drawn/{inp2}.data').absolute()
+    np.savetxt(dataset_path,data, delimiter=',')
+    print(f"Data saved in file {inp2}.data")
