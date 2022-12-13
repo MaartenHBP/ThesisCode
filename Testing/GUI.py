@@ -58,11 +58,14 @@ def addToTheQueueu(algo, settings, foldnb, crossfold, data, runsPQ, string):
 #  The datasets
 @st.cache
 def getInitialValues():
-    path_data = Path('datasets/cobras-paper/').absolute()
-    dir_list = os.listdir(path_data)
-    datasets = []
-    for i in range(len(dir_list)):
-        datasets.append(dir_list[i][:len(dir_list[i]) - 5])
+    data = {}
+    for j in ["cobras-paper/UCI","cobras-paper/CMU_faces", "cobras-paper/newsgroups" , "cobras-paper/UCI", "drawn" ]: # ff hardgecoded
+        path_data = Path(f'datasets/{j}').absolute()
+        dir_list = os.listdir(path_data)
+        datasets = []
+        for i in range(len(dir_list)):
+            datasets.append(dir_list[i][:len(dir_list[i]) - 5])
+        data[j] = datasets
 
     # The algos
     with open('settings/algorithms.json') as json_file:
@@ -72,7 +75,7 @@ def getInitialValues():
         metrics = json.load(json_file)
 
     ask = whatToAsk(algos)
-    return algos, datasets, metrics, ask
+    return algos, data, metrics, ask
 
 @st.cache
 def whatToAsk(algos):
@@ -134,11 +137,20 @@ if 'plots' not in st.session_state:
 if 'algorithms' not in st.session_state:
     st.session_state.algorithms = {}
 
+if 'metrics' not in st.session_state:
+    st.session_state.metrics = {"supervised" : [], "semisupervised" : []}
+
+if 'metricsoptions' not in st.session_state:
+    st.session_state.metricsoptions = {}    
+
 if 'nbalgo' not in st.session_state:
     st.session_state.nbalgo = 0
 
 if 'adding' not in st.session_state:
     st.session_state.adding = False
+
+if 'addingm' not in st.session_state:
+    st.session_state.addingm = False
 
 # ---- SIDEBAR ----
 st.sidebar.header("Please Filter Here:")
@@ -198,16 +210,25 @@ else:
 
 st.sidebar.markdown('---')
 
-allData = st.sidebar.checkbox("All the data", value = True)
-data = datasets
-if not allData:
-    data = st.sidebar.multiselect(
-    "Select the datasets:",
-    options=datasets,
-    default=datasets
-)
+# allData = st.sidebar.checkbox("All the data", value = True)
 
+st.sidebar.write("Choose datasets")
+optda = st.sidebar.multiselect(
+    "Choose datasets folders",
+    options=datasets.keys(),
+    default=list(datasets.keys())[0])
+data = {}
+for key in optda:
+    st.sidebar.markdown('---')
+    st.sidebar.write(key)
+    data[key] = []
+    options=datasets[key]
+    for i in options:
+        agree = st.sidebar.checkbox(i, value = True)
+        if agree:
+            data[key].append(i)
 st.sidebar.markdown('---')
+
 
 addToQueue = st.sidebar.checkbox("Add runs to queue when needed", value = True)
 
@@ -234,9 +255,23 @@ if st.sidebar.button('Show result'):
                 extra = [v for v in pl]
                 extrasetting = [v for v in pl]
                 if what == "supervised" or what == "semisupervised":
-                    extra = [v + "_" + str(metrics[what][v].values()) for v in pl]
-                    extrasetting = [{"type": "class", "value": v, "parameters": metrics[what][v]} for v in pl]
-                    print(extrasetting)
+                    extra = []
+                    extrasetting = []
+                    for k in pl:
+                        for option in st.session_state[value["name algo"] + string + str(key) + str(k) + "options"]:
+                            # extra = [v + "_" + str(metrics[what][v].values()) for v in pl]
+                            # extrasetting = [{"type": "class", "value": v, "parameters": copy.deepcopy(metrics[what][v])} for v in pl]
+                            dictPar = {"type": "class", "value": k, "parameters": copy.deepcopy(metrics[what][k])}
+
+                            for paramKey, paramValue in dictPar["parameters"].items():
+                                if type(paramValue) is dict: 
+                                    dictPar["parameters"][paramKey] = st.session_state[k + str(option) + paramKey]
+
+                            print(dictPar)
+                            extra.append(k + "_" + str(dictPar["parameters"].values()))
+                            extrasetting.append(dictPar)
+
+
             newalgs = []
             newsettings = []
             for i in range(len(algs)):
@@ -307,60 +342,189 @@ with tab3:
    st.header("Time")
    st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
 
-if st.session_state.algorithms:
-    tabs = st.tabs([str(i) for i in st.session_state.algorithms.keys()])
-    for nbTab in range(len(tabs)): 
-        with tabs[nbTab]:
-            key = nbTab
-            value = st.session_state.algorithms[nbTab]
-            # with st.expander(str(key),expanded = True):
-            if not value:
-                nameAlgo = st.selectbox(
-                    "Choose an algorithm",
-                    options = algos
-                )   
-                if st.button('Next'):
-                    st.session_state.algorithms[key]["name algo"] = nameAlgo
-                    st.session_state.adding = False
-                    st.experimental_rerun()
-            else:
-                st.write(value["name algo"])
-                # now display all the qustions
-                for i in range(len(ask[value["name algo"]]["path"])):
-                    what = ask[value["name algo"]]["what"][i]["type"]
-                    string = str(ask[value["name algo"]]["path"][i])
-                    if what == "supervised" or what == "semisupervised":
-                        st.multiselect(
-                        string,
-                        options=metrics[what],
-                        default=metrics[what],
-                        key = value["name algo"] + string + str(key))
-                        with st.expander("metrics"):
-                            for metricOptions in st.session_state[value["name algo"] + string + str(key)]:
-                                st.write(metricOptions)
-                                st.write(metrics[what][metricOptions])
-                    if what == "int":
-                        st.slider(
-                        string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
-                        key = value["name algo"] + string + str(key)
-                    )
-                    if what == "Boolean":
-                        st.multiselect(
-                        string,
-                        options = [True, False],
-                        default=[True, False],
-                        key = value["name algo"] + string + str(key)
-                    )
+col1, col2 = st.columns(2)
 
+with col1:
+    st.write("Algorithms")
+    if st.session_state.algorithms:
+        tabs = st.tabs([str(i) for i in st.session_state.algorithms.keys()])
+        for nbTab in range(len(tabs)): 
+            with tabs[nbTab]:
+                key = nbTab
+                value = st.session_state.algorithms[nbTab]
+                # with st.expander(str(key),expanded = True):
+                if not value:
+                    nameAlgo = st.selectbox(
+                        "Choose an algorithm",
+                        options = algos
+                    )   
+                    if st.button('Next'):
+                        st.session_state.algorithms[key]["name algo"] = nameAlgo
+                        st.session_state.adding = False
+                        st.experimental_rerun()
+                else:
+                    st.write(value["name algo"])
+                    # now display all the qustions
+                    for i in range(len(ask[value["name algo"]]["path"])):
+                        what = ask[value["name algo"]]["what"][i]["type"]
+                        string = str(ask[value["name algo"]]["path"][i])
+                        if what == "supervised" or what == "semisupervised":
+                            st.multiselect(
+                            string,
+                            options=st.session_state.metrics[what],
+                            key = value["name algo"] + string + str(key))
 
+                            for k in st.session_state[value["name algo"] + string + str(key)]:
+                                st.multiselect(
+                                f"Configurations for {k}",
+                                options=st.session_state.metricsoptions[k],
+                                key = value["name algo"] + string + str(key) + str(k) + "options")
+                            # with st.expander("metrics"):
+                            #     for metricOptions in st.session_state[value["name algo"] + string + str(key)]:
+                            #         st.write(metricOptions)
+                            #         # st.write(metrics[what][metricOptions])
+                            #         for keyd,valued in metrics[what][metricOptions].items():
+                            #             if type(valued) is dict:
+                            #                 if valued["type"] == "int":
+                            #                         st.slider(
+                            #                         str(keyd), valued["min"], valued["max"], value = valued["standard"],
+                            #                         key = value["name algo"] + string + str(key) + str(metricOptions) + str(keyd)
+                            #                         )
+                            #                 if valued["type"] == "number":
+                            #                     st.number_input(
+                            #                         str(keyd), value = -1,
+                            #                         key = value["name algo"] + string + str(key) + str(metricOptions) + str(keyd) 
+                            #                     )
 
+                        if what == "int":
+                            st.slider(
+                            string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
+                            key = value["name algo"] + string + str(key)
+                        )
+                        if what == "Boolean":
+                            st.multiselect(
+                            string,
+                            options = [True, False],
+                            default=[True, False],
+                            key = value["name algo"] + string + str(key)
+                        )
+    if not st.session_state.adding:
+        if st.button('Add algorithm'):
+            st.session_state.algorithms[st.session_state.nbalgo] = {}
+            st.session_state.nbalgo += 1
+            st.session_state.adding = True
+            st.experimental_rerun()
 
-if not st.session_state.adding:
-    if st.button('Add algorithm'):
-        st.session_state.algorithms[st.session_state.nbalgo] = {}
-        st.session_state.nbalgo += 1
-        st.session_state.adding = True
-        st.experimental_rerun()
+with col2:
+    st.write("Metric learners")
+    if st.session_state.addingm: 
+        what = st.selectbox(
+                        "Choose an algorithm",
+                        options = ["semisupervised", "supervised"],
+                    )  
+
+        name = st.selectbox(
+                        "Choose an algorithm",
+                        options = list(set(metrics[what].keys()) - set(st.session_state.metrics[what]))
+                    )   
+        if st.button('Next step'):
+            if not name is None:
+                st.session_state.metrics[what].append(name)
+                if name not in st.session_state.metricsoptions:
+                    st.session_state.metricsoptions[name] = []
+            st.session_state.addingm = False
+            st.experimental_rerun()
+    else:
+        op = ["semisupervised", "supervised"]
+        tbs = st.tabs(op)
+        for tb in range(len(tbs)):
+            with tbs[tb]:
+                opt = op[tb]
+                if st.session_state.metrics[opt]:
+                    tabs = st.tabs([str(i) for i in st.session_state.metrics[opt]])
+                    for nbTab in range(len(tabs)): 
+                        with tabs[nbTab]:
+                            nameMetric = st.session_state.metrics[opt][nbTab]
+                            for i in st.session_state.metricsoptions[nameMetric]:
+                                with st.expander(str(i)):
+                                    for key,value in metrics[opt][nameMetric].items():
+                                        if type(value) is dict: 
+                                            if value["type"] == "int":
+                                                st.slider(
+                                                    str(key), value["min"], value["max"], value = value["standard"],
+                                                    key = nameMetric + str(i) + key
+                                                    )
+                                            if value["type"] == "number":
+                                                st.number_input(
+                                                str(key), step = 1, value = 42,
+                                                    key = nameMetric + str(i) + key
+                                                )
+                            if st.button('Add configuration to ' + nameMetric):
+                                st.session_state.metricsoptions[st.session_state.metrics[opt][nbTab]].append(len(st.session_state.metricsoptions[st.session_state.metrics[opt][nbTab]]))
+                                st.experimental_rerun()
+                        
+
+    if not st.session_state.addingm:        
+        if st.button('Add metric algo'):
+            st.session_state.addingm = True
+            st.experimental_rerun()
+# if st.session_state.algorithms:
+#     tabs = st.tabs([str(i) for i in st.session_state.algorithms.keys()])
+#     for nbTab in range(len(tabs)): 
+#         with tabs[nbTab]:
+#             key = nbTab
+#             value = st.session_state.algorithms[nbTab]
+#             # with st.expander(str(key),expanded = True):
+#             if not value:
+#                 nameAlgo = st.selectbox(
+#                     "Choose an algorithm",
+#                     options = algos
+#                 )   
+#                 if st.button('Next'):
+#                     st.session_state.algorithms[key]["name algo"] = nameAlgo
+#                     st.session_state.adding = False
+#                     st.experimental_rerun()
+#             else:
+#                 st.write(value["name algo"])
+#                 # now display all the qustions
+#                 for i in range(len(ask[value["name algo"]]["path"])):
+#                     what = ask[value["name algo"]]["what"][i]["type"]
+#                     string = str(ask[value["name algo"]]["path"][i])
+#                     if what == "supervised" or what == "semisupervised":
+#                         st.multiselect(
+#                         string,
+#                         options=metrics[what],
+#                         default=metrics[what],
+#                         key = value["name algo"] + string + str(key))
+#                         with st.expander("metrics"):
+#                             for metricOptions in st.session_state[value["name algo"] + string + str(key)]:
+#                                 st.write(metricOptions)
+#                                 # st.write(metrics[what][metricOptions])
+#                                 for keyd,valued in metrics[what][metricOptions].items():
+#                                     if type(valued) is dict:
+#                                         if valued["type"] == "int":
+#                                              st.slider(
+#                                                 str(keyd), valued["min"], valued["max"], value = valued["standard"],
+#                                                 key = value["name algo"] + string + str(key) + str(metricOptions) + str(keyd)
+#                                                 )
+#                                         if valued["type"] == "number":
+#                                             st.number_input(
+#                                                str(keyd), value = -1,
+#                                                 key = value["name algo"] + string + str(key) + str(metricOptions) + str(keyd) 
+#                                             )
+
+#                     if what == "int":
+#                         st.slider(
+#                         string, ask[value["name algo"]]["what"][i]["min"], ask[value["name algo"]]["what"][i]["max"],
+#                         key = value["name algo"] + string + str(key)
+#                     )
+#                     if what == "Boolean":
+#                         st.multiselect(
+#                         string,
+#                         options = [True, False],
+#                         default=[True, False],
+#                         key = value["name algo"] + string + str(key)
+#                     )
 
 st.write(st.session_state)
 

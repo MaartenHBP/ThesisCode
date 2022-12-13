@@ -1,5 +1,6 @@
 from metric_learn import *
 import inspect
+from abc import abstractmethod
 
 class MetricAlgos:
     supervised = [NCA, LMNN, LFDA, MLKR, MMC_Supervised, ITML_Supervised, SDML_Supervised, RCA_Supervised]
@@ -20,3 +21,16 @@ class MetricAlgos:
             dictio[k.name] = k.default
 
         return dictio
+
+class MetricAlgo:
+    @abstractmethod
+    def __init__(self, preprocessor):
+        self.X = preprocessor
+
+    @abstractmethod
+    def fit(tuples, y):
+        pass
+
+    def transform(data):
+        return data
+
