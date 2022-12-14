@@ -5,36 +5,47 @@ from metric_learn import *
 
 class MetricLearningAlgorithm:
     @abstractmethod
-    def learn(self, cobras_cluster): # dit nog aanpassen
+    def learn(self, cobras_cluster, local = None): # local zijn al de datapoints die deeluitmaken van de metric learning
         pass
     
     @abstractmethod
-    def transformData(self) :
+    def transformData(self, data, local = None) :
         pass
 
     def addData(self, X):
         self.X = np.copy(X)
 
-class SupervisedMetric(MetricLearningAlgorithm):
+    def addTrainigIndices(self, indices):
+        self.trainigIndices = indices
+
+class SupervisedMetric(MetricLearningAlgorithm): 
     def __init__(self, algo, steps = 0):
         self.algo = algo
         self.steps = steps
         self.count = 0
         self.current = None
 
-    def learn(self, cobras_cluster):
+    def learn(self, cobras_cluster, local = None):
+        indices = np.array(self.trainigIndices)
+        if local:
+            indices = np.intersect1d(indices, np.array(local))
+
         if self.count < self.steps:
             self.count+=1
             return
         self.current = self.algo["value"](**self.algo["parameters"])
-        self.current.fit(np.copy(self.X), cobras_cluster.clustering.construct_cluster_labeling())
+        self.current.fit(np.copy(self.X[indices]), cobras_cluster.clustering.construct_cluster_labeling()[indices]) # ENKEL TRAININGSINDICES GEBRUIKEN
 
         self.count = 0
 
-    def transformData(self):
-        if self.current is None:
-            return self.X 
-        return self.current.transform(np.copy(self.X))
+    def transformData(self, data, local = None):
+        if self.current is None or not (self.count == 0): # if count is zero, you can safely transform data
+            return data
+        if local:
+            X = np.copy(data)
+            X[local] = self.current.transform(np.copy(data[local]))
+            return X
+        return self.current.transform(np.copy(data))
 
 class SemiSupervisedMetric(MetricLearningAlgorithm):
     def __init__(self, algo, steps = 0):
@@ -43,7 +54,7 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
         self.count = 0
         self.current = None
 
-    def learn(self, cobras_cluster):
+    def learn(self, cobras_cluster, local = None):
         if self.count < self.steps:
             self.count+=1
             return
@@ -53,18 +64,29 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
         self.current = self.algo["value"](preprocessor=np.copy(self.X),**self.algo["parameters"])
         tuples = np.zeros((constraints.shape[0], 2), dtype = int)
         y = np.zeros(constraints.shape[0], dtype = int)
+        indices = range(constraints.shape[0])
+        if (local):
+            local = np.array(local)
+            indices = []
         for i in range(constraints.shape[0]):
             tup = constraints[i].to_tuple_b()
             tuples[i] = tup[0:2]
             y[i] = tup[2]
+            if local:
+                if (tuples[i] in local):
+                    indices.append(i)
 
-        self.current.fit(tuples, y)
+        self.current.fit(tuples[indices], y[indices])
         self.count=0
 
-    def transformData(self):
-        if self.current is None:
-            return self.X 
-        return self.current.transform(np.copy(self.X))
+    def transformData(self, data, local = None):
+        if self.current is None or not (self.count == 0):
+            return data
+        if local:
+            X = np.copy(data)
+            X[local] = self.current.transform(np.copy(data[local]))
+            return X
+        return self.current.transform(np.copy(data))
     
 
 class EuclidianDistance(MetricLearningAlgorithm):
@@ -77,8 +99,8 @@ class EuclidianDistance(MetricLearningAlgorithm):
         return
 
 
-    def transformData(self):
-        return self.X
+    def transformData(self, data, local = None):
+        return data
 
     # def getDistanceFunction():   # dit kan een mooiere oplossing zijn maar wordt wat messy
 

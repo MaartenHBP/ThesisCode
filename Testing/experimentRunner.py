@@ -68,14 +68,14 @@ def run():
                 parallel_func = functools.partial(Algorithm.preprocess, **settings["fitparam"])
                 futures = client.map(parallel_func, data)
                 results = client.gather(futures)
-                for nameData in data: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen
+                for nameData in data["UCI"]: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen, datasets ff gehardode voor enkel UCI
                     if nameData in S1:
                         continue
                     if os.path.exists(pathS1):
                         S1 = pd.read_csv(pathS1, index_col=0)
                         S2 = pd.read_csv(pathS2, index_col=0)
                         time = pd.read_csv(pathTime, index_col=0)
-                    dataset_path = Path('datasets/cobras-paper/' + nameData + '.data').absolute()
+                    dataset_path = Path('datasets/cobras-paper/UCI' + nameData + '.data').absolute()
                     dataset = np.loadtxt(dataset_path, delimiter=',')
                     target = dataset[:, 0]
                     average = {"S1": np.zeros(200), "S2": np.zeros(200), "times": np.zeros(200)}
