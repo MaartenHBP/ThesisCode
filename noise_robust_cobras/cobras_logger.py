@@ -41,6 +41,12 @@ class ClusteringLogger:
         # execution time
         self.execution_time = None
 
+        ###################
+        # Metric learning #
+        ###################
+
+        self.transformations = []
+
     #########################
     # information retrieval #
     #########################
@@ -159,3 +165,13 @@ class ClusteringLogger:
         con_length = len(self.all_user_constraints)
         for con in constraints:
             self.detected_noisy_constraint_data.append((con_length, copy.copy(con)))
+
+    ###################
+    # Metric learning #
+    ###################
+
+    def addTransformation(self, data):
+        self.transformations.append(np.copy(data))
+
+    def getTransformation(self):
+        return self.transformations

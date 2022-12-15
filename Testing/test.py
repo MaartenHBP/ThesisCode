@@ -180,7 +180,6 @@ class eventmanager:
     lock = Lock()
 
 def eraser(event):
-    eventmanager.lock.acquire()
     x,y = event.xdata,event.ydata
     tob = []
     print(len(eventmanager.pointsX))
@@ -201,7 +200,6 @@ def eraser(event):
     plt.ylim([0, 1])
     scatter(eventmanager.pointsX, eventmanager.pointsY, color = eventmanager.drawncolors)
     draw()
-    eventmanager.lock.release()
 
 
 
@@ -224,11 +222,6 @@ def click(event):
 
 def loop(event):
     if event.button == 3:
-        if (eventmanager.erasing):
-            return
-        eventmanager.erasing = True
-        eraser(event)
-        eventmanager.erasing = False
         return
     if not eventmanager.pressed:
         return
@@ -269,7 +262,7 @@ plt.ylim([0, 1])
 
 gca().set_autoscale_on(False)
 connect('button_press_event',click)
-connect('motion_notify_event',loop)
+# connect('motion_notify_event',loop)
 connect('button_release_event',on_release)
 connect('scroll_event',left)
 connect('key_press_event',delete)

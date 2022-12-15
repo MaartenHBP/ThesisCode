@@ -19,27 +19,41 @@ class MetricLearningAlgorithm:
         self.trainigIndices = indices
 
 class SupervisedMetric(MetricLearningAlgorithm): 
-    def __init__(self, algo, steps = 0):
+    def __init__(self, algo, steps = 0, queriesNeeded = 0, once = False):
         self.algo = algo
         self.steps = steps
         self.count = 0
         self.current = None
+        self.canTransform = False
+        self.queriesNeeded = queriesNeeded
+        self.once = once
+        self.done = False
 
     def learn(self, cobras_cluster, local = None):
         indices = np.array(self.trainigIndices)
         if local:
             indices = np.intersect1d(indices, np.array(local))
 
+        if self.done:
+            self.canTransform = False
+            return
         if self.count < self.steps:
             self.count+=1
+            self.canTransform = False
             return
         self.current = self.algo["value"](**self.algo["parameters"])
         self.current.fit(np.copy(self.X[indices]), cobras_cluster.clustering.construct_cluster_labeling()[indices]) # ENKEL TRAININGSINDICES GEBRUIKEN
 
         self.count = 0
 
+        self.canTransform = True
+
+        if self.once:
+            self.done = True
+
+
     def transformData(self, data, local = None):
-        if self.current is None or not (self.count == 0): # if count is zero, you can safely transform data
+        if self.current is None or not (self.canTransform): # if count is zero, you can safely transform data
             return data
         if local:
             X = np.copy(data)
@@ -48,15 +62,22 @@ class SupervisedMetric(MetricLearningAlgorithm):
         return self.current.transform(np.copy(data))
 
 class SemiSupervisedMetric(MetricLearningAlgorithm):
-    def __init__(self, algo, steps = 0):
+    def __init__(self, algo, steps = 0, queriesNeeded = 0, once = False):
         self.algo = algo
         self.steps = steps
         self.count = 0
         self.current = None
+        self.canTransform = False
+        self.queriesNeeded = queriesNeeded
+        self.once = once
+        self.done = False
 
     def learn(self, cobras_cluster, local = None):
         if self.count < self.steps:
             self.count+=1
+            return
+        if self.done:
+            self.canTransform = False
             return
         constraints = np.array(list(cobras_cluster.constraint_index.constraints))
         if (constraints.shape[0] < 2):
@@ -66,21 +87,30 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
         y = np.zeros(constraints.shape[0], dtype = int)
         indices = range(constraints.shape[0])
         if (local):
-            local = np.array(local)
+            localCheck = np.array(local)
             indices = []
         for i in range(constraints.shape[0]):
             tup = constraints[i].to_tuple_b()
             tuples[i] = tup[0:2]
             y[i] = tup[2]
             if local:
-                if (tuples[i] in local):
+                a = np.isin(tuples[i],localCheck)
+                if (len(a[a == True]) == 2):
                     indices.append(i)
+        if len(indices) < 5:
+            self.canTransform = False
+            return
 
         self.current.fit(tuples[indices], y[indices])
         self.count=0
 
+        self.canTransform = True
+
+        if self.once:
+            self.done = True
+
     def transformData(self, data, local = None):
-        if self.current is None or not (self.count == 0):
+        if self.current is None or not (self.canTransform):
             return data
         if local:
             X = np.copy(data)

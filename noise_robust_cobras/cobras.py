@@ -75,7 +75,7 @@ class COBRAS:
         # when to do it
         beforeSplitting = False,
         afterSplitting = False,
-        eachIteration = True, # This is the base case
+        eachIteration = False, # Base case is no metric learning
         # iterative keep results
         iterative = False,
 
@@ -105,13 +105,13 @@ class COBRAS:
             self.metric_algo = EuclidianDistance()
         else:
             self.metric_algo = metric_algo["value"](**metric_algo["parameters"])
-        self.localLearning = localLearning,
-        self.localClusterLearning = localClusterLearning,
-        self.localTransformation = localTransformation,
-        self.localOnALl = localOnALl,
-        self.beforeSplitting = beforeSplitting,
-        self.afterSplitting = afterSplitting,
-        self.eachIteration = eachIteration,
+        self.localLearning = localLearning
+        self.localClusterLearning = localClusterLearning
+        self.localTransformation = localTransformation
+        self.localOnALl = localOnALl
+        self.beforeSplitting = beforeSplitting
+        self.afterSplitting = afterSplitting
+        self.eachIteration = eachIteration
         self.rebuildInstance = rebuildInstance
         self.iterative = iterative
 
@@ -171,8 +171,7 @@ class COBRAS:
         eachIteration = False,
         superinstance = None,
         cluster = None):
-
-        perfrom = False
+        perform = False
         if (end and self.end):
             perform = True
             # self.metric_algo.learn(self)
@@ -183,10 +182,12 @@ class COBRAS:
             perform = True
         if (eachIteration and self.eachIteration):
             perform = True
-
         if perform:
             if self.localOnALl:
-                pass
+                return # stil needs to be implementes
+                # for cluster in self.clustering.clusters:
+                #     for superinstance in cluster.super_instances:
+                #         pass
             else:
                 local = None
                 if (self.localLearning):
@@ -200,9 +201,13 @@ class COBRAS:
                 # Transform #
                 self.data = self.metric_algo.transformData(self.data, local)
 
-                # if needed redo some super instances
-                if (self.rebuildInstance): # cluster meegeven voor als ge het enkel daar wilt (op level van die class gedaan) en mss de boolean
-                    pass
+            # if needed redo some super instances
+            if (self.rebuildInstance): # cluster meegeven voor als ge het enkel daar wilt (op level van die class gedaan) en mss de boolean
+                pass
+            if (self.iterative):
+                self.metric_algo.addData(self.data)
+
+            
 
 
 
@@ -305,12 +310,16 @@ class COBRAS:
             ######################
             self.metricPhase(eachIteration = True)
 
+            # after each iteration, keep the current data, so afterwards you can see all the transformations
+            self._cobras_log.addTransformation(self.data)
+
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()
 
         # collect results and return
         all_clusters = self._cobras_log.get_all_clusterings()
         runtimes = self._cobras_log.get_runtimes()
+        transformations = self._cobras_log.getTransformation
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
 
         ######################
@@ -318,7 +327,7 @@ class COBRAS:
         ######################
         self.metricPhase(end = True)
 
-        return all_clusters, runtimes, ml, cl
+        return all_clusters, runtimes, transformations,  ml, cl
 
     ###########################
     #       SPLITTING         #

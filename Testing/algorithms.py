@@ -32,7 +32,7 @@ class Algorithm:
 
     @staticmethod
     def fit(trainingset, dataName, preprocessor = None, preprocestraining = False, baseline = False, parameters = {}): # function nog aanpassen naar de niewigheden van dicts
-        path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
+        path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute() # ff UCI gehardcode
         if preprocessor and not preprocestraining: 
             paramstr = str(preprocessor["parameters"].values()).replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
             path = Path(f'batches/preprocessing/{dataName}_{preprocessor["value"].__name__}_{paramstr}').absolute()
@@ -59,7 +59,7 @@ class Algorithm:
         if preprocestraining or not preprocessor:
             return
         paramstr = str(preprocessor["parameters"].values()).replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
-        path = Path(f'datasets/cobras-paper/{dataName}.data').absolute()
+        path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
         path_pre = Path(f'batches/preprocessing/{dataName}_{preprocessor["value"].__name__}_{paramstr}').absolute()    # + type(metricPreprocessing).__name__ voor later
         if os.path.exists(path_pre):
             return
