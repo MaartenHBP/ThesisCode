@@ -1,10 +1,4 @@
-"""
-Pythonic implementation of the paper:
-    Kedem, D., Tyree, S., Sha, F., Lanckriet, G. R., & Weinberger, K. Q. (2012).
-    Non-linear metric learning. In NIPS (pp. 2573-2581).
-"""
-__author__ = "Iago Suarez"
-__email__ = "iago.suarez.canosa@alumnos.upm.es"
+
 
 from copy import deepcopy
 from time import time
@@ -16,7 +10,48 @@ from sklearn.tree import DecisionTreeRegressor
 
 from noise_robust_cobras.metric_learning.knn import knn_error_score
 
+#########
+#gb_lmnn#
+######### -> is supervised metric learner
+"""
+This is a supervised metric learning algorithm
+Design from: https://github.com/iago-suarez/py-gb-lmnn
+"""
+class gb_lmnn_class:
+    def __init__(self, k = 3, L = None, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potential_impo=50, subsample_rate=1.0):
+            self.k = k
+            self.L = L
+            self.verbose = verbose
+            self.depth = depth
+            self.n_trees = n_trees
+            self.lr = lr
+            self.no_potential_impo = no_potential_impo # dit is een belangrijke parameter
+            self.subsample_rate = subsample_rate
+            self.xval = None
+            self.yval = None
+            # voor transform
+            self.ensemble = None
+    def fit(self, X,y):
+        self.ensemble = gb_lmnn(X, y, k = self.k, L = self.L, verbose=self.verbose, depth=self.depth, 
+        n_trees=self.n_trees, lr=self.lr, no_potential_impo=self.no_potential_impo, subsample_rate=self.subsample_rate,
+            xval=self.xval, yval=self.yval)
 
+    def transform(self, data):
+        return self.ensemble.transform(data)
+
+
+
+
+########################
+#gb_lmnn implementation#
+########################
+"""
+Pythonic implementation of the paper:
+    Kedem, D., Tyree, S., Sha, F., Lanckriet, G. R., & Weinberger, K. Q. (2012).
+    Non-linear metric learning. In NIPS (pp. 2573-2581).
+"""
+__author__ = "Iago Suarez"
+__email__ = "iago.suarez.canosa@alumnos.upm.es"
 class Ensemble:
     """Ensemble class that predicts based on the weighted sum of weak learners."""
 
@@ -215,6 +250,7 @@ def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potenti
     :param yval: The validation labels
     :return:
     """
+
     assert len(X) == len(y) and X.ndim == 2 and y.ndim == 1
     # assert len(xval) == 0 or (xval.ndim == 2 and yval.ndim == 1 and len(xval) == len(yval))
     # assert len(xval) == 0 or X.shape[1] == xval.shape[1]
@@ -297,6 +333,10 @@ def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potenti
                         print('--->\t\tBest validation error! :D')
     return ensemble
 
+
+########################
+#Semi spectral, #
+########################
 import numpy as np
 float_formatter = lambda x: "%.3f" % x
 np.set_printoptions(formatter={'float_kind':float_formatter})
@@ -351,7 +391,7 @@ import networkx as nx
 class LE:
     
     def __init__(self, X:np.ndarray, dim:int, k:int = 2, eps = None, graph:str = 'k-nearest', weights:str = 'heat kernel', 
-                 sigma:float = 0.1, laplacian:str = 'unnormalized', opt_eps_jumps:float = 1.5):
+                 sigma:float = 0.1, laplacian:str = 'unnormalized', opt_eps_jumps:float = 1.5, ml = None, cl = None):
         """
         LE object
         Parameters
@@ -410,6 +450,8 @@ class LE:
         self.opt_eps_jumps = opt_eps_jumps
         if self.eps is None and self.graph == 'eps':
             self.__optimum_epsilon()
+        self.ml = ml
+        self.cl = cl
     
     def __optimum_epsilon(self):
         """
@@ -468,6 +510,18 @@ class LE:
             np.put(w_aux, nn_matrix[i], similarities)
             self._W.append(w_aux[0])
         self._W = np.array(self._W)
+
+        if self.ml:
+            for i in range(len(self.ml)):
+                if (self._W[self.ml[i][0],self.ml[i][1]] == 0):
+                    print("ja")
+                self._W[self.ml[i][0],self.ml[i][1]] = 1
+                self._W[self.ml[i][1],self.ml[i][0]] = 1
+            for i in range(len(self.cl)):
+                if (self._W[self.ml[i][0],self.ml[i][1]] == 1):
+                    print("ja")
+                self._W[self.cl[i][0],self.cl[i][1]] = 0
+                self._W[self.cl[i][1],self.cl[i][0]] = 0
         # D matrix
         self._D = np.diag(self._W.sum(axis=1))
         # Check for connectivity
@@ -522,7 +576,7 @@ class LE:
         if self.dim < 2 and dim_2 <= self.dim and dim_1 <= self.dim:
             raise ValueError("There's not enough coordinates")
         
-        plt.style.use('seaborn-whitegrid')
+        # plt.style.use('seaborn-whitegrid')
         fig = plt.figure(figsize=size)
         plt.axhline(c = 'black', alpha = 0.2)
         plt.axvline(c = 'black', alpha = 0.2)
@@ -544,7 +598,7 @@ class LE:
         if self.dim < 3 and dim_2 <= self.dim and dim_1 <= self.dim and dim_3 <= self.dim:
             raise ValueError("There's not enough coordinates")
         
-        plt.style.use('seaborn-whitegrid')
+        # plt.style.use('seaborn-whitegrid')
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection="3d")
         if cmap is None:

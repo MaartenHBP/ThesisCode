@@ -14,87 +14,13 @@
             "preprocessor": null,
             "random_state": "int"
         },
-        "MMC_Supervised": {
-            "max_iter": {
-                "type": "int",
-                "min": 0,
-                "max": 500,
-                "standard": 100
-            },
-            "max_proj": {
-                "type": "int",
-                "min": 0,
-                "max": 10000,
-                "standard": 10000 
-            },
-            "convergence_threshold": 1e-06,
-            "num_constraints": {
-                "type": "int",
-                "min": 0,
-                "max": 200,
-                "standard": 50
-            },
-            "init": "identity",
-            "diagonal": false,
-            "diagonal_c": 1.0,
-            "verbose": false,
-            "preprocessor": null,
-            "random_state": {
-                "type": "number"
-            }
-        },
-        "ITML_Supervised": {
-            "gamma": 1.0,
-            "max_iter": {
-                "type": "int",
-                "min": 0,
-                "max": 500,
-                "standard": 100
-            },
-            "convergence_threshold": 0.001,
-            "num_constraints": {
-                "type": "int",
-                "min": 0,
-                "max": 200,
-                "standard": 50
-            },
-            "prior": "identity",
-            "verbose": false,
-            "preprocessor": null,
-            "random_state": {
-                "type": "number"
-            }
-        },
-        "SDML_Supervised": {
-            "balance_param": 0.5,
-            "sparsity_param": 0.01,
-            "prior": "identity",
-            "num_constraints": {
-                "type": "int",
-                "min": 0,
-                "max": 200,
-                "standard": 50
-            },
-            "verbose": false,
-            "preprocessor": null,
-            "random_state": {
-                "type": "number"
-            }
-        },
-        "RCA_Supervised": {
-            "n_components": null,
-            "num_chunks": {
-                "type": "int",
-                "min": 0,
-                "max": 200,
-                "standard": 50
-                
-            },
-            "chunk_size": 2,
-            "preprocessor": null,
-            "random_state": {
-                "type": "number"
-            }
+        "gb_lmnn_class":{
+            "k": 3, 
+            "L": null, 
+            "verbose":false, "depth":4, 
+            "n_trees":200, "lr":1e-3, 
+            "no_potential_impo":50, 
+            "subsample_rate":1.0
         }
     },
     "semisupervised": {
@@ -108,40 +34,6 @@
             },
             "convergence_threshold": 0.001,
             "prior": "identity",
-            "verbose": false,
-            "random_state": {
-                "type": "number"
-            }
-        },
-        "SDML": {
-            "balance_param": 0.5,
-            "sparsity_param": 0.01,
-            "prior": "identity",
-            "verbose": false,
-            "random_state": {
-                "type": "number"
-            }
-        },
-        "RCA": {
-            "n_components": null
-        },
-        "MMC": {
-            "max_iter": {
-                "type": "int",
-                "min": 0,
-                "max": 500,
-                "standard": 100
-            },
-            "max_proj": {
-                "type": "int",
-                "min": 0,
-                "max": 10000,
-                "standard": 10000 
-            },
-            "convergence_threshold": 0.001,
-            "init": "identity",
-            "diagonal": false,
-            "diagonal_c": 1.0,
             "verbose": false,
             "random_state": {
                 "type": "number"

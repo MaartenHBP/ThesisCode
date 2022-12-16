@@ -80,7 +80,13 @@ class COBRAS:
         iterative = False,
 
         # what to do with the instances after learning it
-        rebuildInstance = None # A class that can remake the instances at any time, but it is used to do it after metric learning
+        rebuildInstance = None, # A class that can remake the instances at any time, but it is used to do it after metric learning
+
+        ###########
+        # Logging #
+        ###########
+
+        logExtraInfo = False
 
 
     ):
@@ -114,6 +120,8 @@ class COBRAS:
         self.eachIteration = eachIteration
         self.rebuildInstance = rebuildInstance
         self.iterative = iterative
+
+        self.logExtraInfo = logExtraInfo
 
 
         # init split superinstance selection heuristic
@@ -316,11 +324,12 @@ class COBRAS:
             ######################
             self.metricPhase(eachIteration = True)
 
+            if self.logExtraInfo:
             # after each iteration, keep the current data, so afterwards you can see all the transformations
-            self._cobras_log.addTransformation(self.data)
-            ### SUPERINSTANCES ###
-            self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-            self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+                self._cobras_log.addTransformation(self.data)
+                ### SUPERINSTANCES ###
+                self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+                self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
             # with an if statement
             # self.data = np.copy(self.dataPrevious)
@@ -341,7 +350,7 @@ class COBRAS:
         ######################
         self.metricPhase(end = True)
 
-        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl
+        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
 
     ###########################
     #       SPLITTING         #

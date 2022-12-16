@@ -22,14 +22,48 @@ from sklearn.manifold import SpectralEmbedding
 from sklearn.cluster import SpectralClustering
 
 
-path = Path(f'testing/datasets/drawn/spectral.data').absolute()
+plt.style.use("default")
+# path = Path(f'testing/datasets/cobras-paper/UCI/iris.data').absolute()
+path = Path(f'testing/datasets/drawn/simple.data').absolute()
 dataset = np.loadtxt(path, delimiter=',')
 data = dataset[:, 1:]
 target = dataset[:, 0]
 
-le = LE(data, dim = 2, k = 3, graph = 'k-nearest', weights = 'heat kernel', 
-        sigma = 5, laplacian = 'symmetrized')
-Y = le.transform()
+embedding = SpectralEmbedding(n_components=2)
+data = embedding.fit_transform(data)
+
+cov = Covariance().fit(data)
+x = cov.transform(data)
+
+# fig = plt.figure(figsize=(12, 12))
+# ax = fig.add_subplot(projection='3d')
+
+# embed = gb_lmnn(data, target, k =  3, L = None, n_trees=200, verbose=True, xval =None, yval = None)
+# newdata = embed.transform(np.copy(data))
+
+# import numpy as np
+# from metric_learn import LMNN
+
+# lmnn = ITML_Supervised()
+# lmnn.fit(data, target)
+# data = lmnn.transform(data)
+# ax.scatter(data[:,0], data[:,1], data[:,2], c = target)
+# plt.show()
+
+plt.scatter(data[:,0], data[:,1], c = target)
+plt.show()
+
+# querier = LabelQuerier(None, target, 200)
+# clusterer = COBRAS(correct_noise=False)
+# all_clusters, runtimes, superinstances, clusterIteration, transformations, ml, cl = clusterer.fit(data, -1, None, querier)
+
+# le = LE(data, dim = 2, k = 3, graph = 'k-nearest', weights = 'heat kernel', 
+#         sigma = 5, laplacian = 'symmetrized')
+# Y = le.transform()
+
+# le.plot_embedding_2d(colors = target)
+
+# print(le._W)
 
 # querier = LabelQuerier(None, target, 200)
 # clusterer = COBRAS(correct_noise=False)
@@ -37,8 +71,8 @@ Y = le.transform()
 
 # embedding = SpectralEmbedding(n_components=2)
 # X_transformed = embedding.fit_transform(data)
-plt.scatter(Y[:,0], Y[:,1], c = target)
-plt.show()
+# plt.scatter(Y[:,0], Y[:,1], c = target)
+# plt.show()
 
 # from sklearn.neighbors import radius_neighbors_graph
 # W = radius_neighbors_graph(data,0.4,mode='connectivity', metric='minkowski', p=2, metric_params=None, include_self=False).todense()
