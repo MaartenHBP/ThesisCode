@@ -280,6 +280,6 @@ if (inp == 'y'):
     print(f"Saving the file {inp2}")
     from pathlib import Path
     data = np.column_stack((eventmanager.classes,eventmanager.pointsX,eventmanager.pointsY))
-    dataset_path = Path(f'datasets/drawn/{inp2}.data').absolute()
+    dataset_path = Path(f'testing/datasets/drawn/{inp2}.data').absolute()
     np.savetxt(dataset_path,data, delimiter=',')
     print(f"Data saved in file {inp2}.data")

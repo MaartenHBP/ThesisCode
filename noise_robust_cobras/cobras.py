@@ -235,6 +235,8 @@ class COBRAS:
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
 
+        self.dataPrevious = np.copy(X)
+
         ###############################
         # Metric initialisation phase #
         ###############################
@@ -247,6 +249,10 @@ class COBRAS:
         )
         initial_clustering = Clustering([Cluster([initial_superinstance])])
         self.clustering = initial_clustering
+
+        ### SUPERINSTANCES ###
+        self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+        self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
         # last valid clustering keeps the last completely merged clustering
         last_valid_clustering = None
@@ -312,6 +318,12 @@ class COBRAS:
 
             # after each iteration, keep the current data, so afterwards you can see all the transformations
             self._cobras_log.addTransformation(self.data)
+            ### SUPERINSTANCES ###
+            self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+            self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+
+            # with an if statement
+            # self.data = np.copy(self.dataPrevious)
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()
@@ -320,6 +332,8 @@ class COBRAS:
         all_clusters = self._cobras_log.get_all_clusterings()
         runtimes = self._cobras_log.get_runtimes()
         transformations = self._cobras_log.getTransformation
+        superinstances = self._cobras_log.getSuperinstances()
+        clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
 
         ######################
@@ -327,7 +341,7 @@ class COBRAS:
         ######################
         self.metricPhase(end = True)
 
-        return all_clusters, runtimes, transformations,  ml, cl
+        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl
 
     ###########################
     #       SPLITTING         #
@@ -357,6 +371,7 @@ class COBRAS:
         ######################
         # Metric learn phase #
         ######################
+        self.dataPrevious = np.copy(self.data)
         self.metricPhase(beforeSplitting = True, superinstance = to_split, cluster = originating_cluster)
         
         new_super_instances = self.split_superinstance(to_split, split_level)

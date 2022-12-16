@@ -95,9 +95,9 @@ class SemiSupervisedMetric(MetricLearningAlgorithm):
             y[i] = tup[2]
             if local:
                 a = np.isin(tuples[i],localCheck)
-                if (len(a[a == True]) == 2):
+                if (len(a[a == True]) > 0):
                     indices.append(i)
-        if len(indices) < 5:
+        if len(indices) < 2:
             self.canTransform = False
             return
 

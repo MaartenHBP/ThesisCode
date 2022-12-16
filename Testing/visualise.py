@@ -14,8 +14,12 @@ from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQue
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import SemiSupervisedMetric
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import SupervisedMetric
+from noise_robust_cobras.metric_learning.metricLearners import *
 from matplotlib.animation import FuncAnimation
-
+from scipy import interpolate
+from scipy.spatial import ConvexHull
+from sklearn.manifold import SpectralEmbedding
+from sklearn.cluster import SpectralClustering
 
 
 path = Path(f'testing/datasets/drawn/spectral.data').absolute()
@@ -23,47 +27,156 @@ dataset = np.loadtxt(path, delimiter=',')
 data = dataset[:, 1:]
 target = dataset[:, 0]
 
-querier = LabelQuerier(None, target, 200)
+le = LE(data, dim = 2, k = 3, graph = 'k-nearest', weights = 'heat kernel', 
+        sigma = 5, laplacian = 'symmetrized')
+Y = le.transform()
 
-metric_algo = {
-                "type": "class",
-                "value": SemiSupervisedMetric,
-                "parameters": {
-                    "algo": {
-                        "value": ITML,
-                        "parameters": {
-                            "gamma": 1.0,
-                            "max_iter": 100,
-                            "convergence_threshold": 0.001,
-                            "prior": "identity",
-                            "verbose": False,
-                            "random_state": 42
-                        }
-                    },
-                    "steps": 0
-                }
-            }
+# querier = LabelQuerier(None, target, 200)
+# clusterer = COBRAS(correct_noise=False)
+# all_clusters, runtimes, superinstances, clusterIteration, transformations, ml, cl = clusterer.fit(data, -1, None, querier)
 
-# make new COBRAS
-clusterer = COBRAS(correct_noise=False, metric_algo=metric_algo, beforeSplitting=True, localLearning=True)
-all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
-print(all_clusters)
-best_clustering = all_clusters[-1]
-print(np.unique(best_clustering))
-runtime = runtimes[-1]
-# plt.scatter(data[:,0], data[:,1], c = best_clustering)
-
-ARI_score = adjusted_rand_score(target, best_clustering)
-print(f"Clustering took {runtime:0.3f}, ARI = {ARI_score:0.3f}")
-fig = plt.figure()
-def anim(i):
-    cluster = i%len(all_clusters)
-    fig.clear()
-    plt.text(0.15,0.3,str(cluster), fontsize = 22)
-    plt.scatter(data[:,0], data[:,1], c = all_clusters[cluster])
-
-animation = FuncAnimation(fig, anim, interval = 500)
+# embedding = SpectralEmbedding(n_components=2)
+# X_transformed = embedding.fit_transform(data)
+plt.scatter(Y[:,0], Y[:,1], c = target)
 plt.show()
+
+# from sklearn.neighbors import radius_neighbors_graph
+# W = radius_neighbors_graph(data,0.4,mode='connectivity', metric='minkowski', p=2, metric_params=None, include_self=False).todense()
+
+# print(W)
+
+# # max = W.max()
+# # vectorizer = np.vectorize(lambda x: 1 if x/max < 0.2 else 0)
+# # W = np.vectorize(vectorizer)(W)
+
+# W_reserve = np.copy(W)
+
+# for i in range(len(ml)):
+#         W[ml[i][0],ml[i][1]] = 1
+#         W[ml[i][1],ml[i][0]] = 1
+# for i in range(len(cl)):
+#         W[cl[i][0],cl[i][1]] = 0
+#         W[cl[i][1],cl[i][0]] = 0
+
+
+# # degree matrix
+# from scipy.sparse import csgraph
+# L = csgraph.laplacian(W, normed=False)
+# L_without = csgraph.laplacian(W_reserve, normed=False)
+
+# print('laplacian matrix:')
+# print(L)
+
+# e, v = np.linalg.eig(L)
+# print(v.shape)
+# print(len(target))
+# ew, vw = np.linalg.eig(L_without)
+
+# plt.scatter(v[:,0], v[:,1], c = target)
+# plt.show()
+# plt.scatter(vw[:,0], vw[:,1], c = target)
+# plt.show()
+# # embed = gb_lmnn(data, target, k =  3, L = None, n_trees=200, verbose=True, xval =None, yval = None)
+
+# embedding = SpectralEmbedding(n_components=2)
+# X_transformed = embedding.fit_transform(data)
+# plt.scatter(X_transformed[:,0], X_transformed[:,1], c = target)
+# plt.show()
+# newData = data# embed.transform(data)
+
+# clustering = SpectralClustering(n_clusters=2,
+# assign_labels='discretize',
+# random_state=0).fit(data).labels_
+# # mmc = LMNN()
+# # mmc.fit(data, target)
+# # newData = mmc.transform(np.copy(data))
+# X_transformed = embedding.fit_transform(data)
+# plt.scatter(X_transformed[:,0], X_transformed[:,1], c = target)
+# plt.show()
+# embedding = SpectralEmbedding(n_components=2)
+# X_transformed = embedding.fit_transform(X_transformed)
+# plt.scatter(X_transformed[:,0], X_transformed[:,1], c = target)
+# plt.show()
+# embedding = SpectralEmbedding(n_components=2)
+# X_transformed = embedding.fit_transform(X_transformed)
+# plt.scatter(X_transformed[:,0], X_transformed[:,1], c = target)
+# plt.show()
+# kmeans = KMeans(n_clusters=2, random_state=0).fit(X_transformed).labels_
+# plt.scatter(X_transformed[:,0], X_transformed[:,1], c = target)
+# plt.show()
+# plt.scatter(data[:,0], data[:,1], c = kmeans)
+# plt.show()
+# plt.scatter(data[:,0], data[:,1], c = clustering)
+# plt.show()
+# plt.scatter(data[:,0], data[:,1], c = kmeans)
+# plt.show()
+# plt.scatter(newData[:,0], newData[:,1], c = target)
+
+
+# plt.show()
+
+# querier = LabelQuerier(None, target, 200)
+
+# metric_algo = {
+#                 "type": "class",
+#                 "value": SemiSupervisedMetric,
+#                 "parameters": {
+#                     "algo": {
+#                         "value": ITML,
+#                         "parameters": {
+#                             "gamma": 1.0,
+#                             "max_iter": 100,
+#                             "convergence_threshold": 0.001,
+#                             "prior": "identity",
+#                             "verbose": False,
+#                             "random_state": 42
+#                         }
+#                     },
+#                     "steps": 0
+#                 }
+#             }
+
+# # make new COBRAS
+# clusterer = COBRAS(correct_noise=False)
+# all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(data, -1, None, querier)
+# print(len(superinstances))
+# print(len(clusterIteration))
+# best_clustering = all_clusters[-1]
+# runtime = runtimes[-1]
+# # plt.scatter(data[:,0], data[:,1], c = best_clustering)
+
+# ARI_score = adjusted_rand_score(target, best_clustering)
+# print(f"Clustering took {runtime:0.3f}, ARI = {ARI_score:0.3f}")
+# fig = plt.figure()
+# def anim(i):
+#     cluster = i%len(superinstances)
+#     fig.clear()
+#     plt.text(0.15,0.3,str(cluster), fontsize = 22)
+#     plt.scatter(data[:,0], data[:,1], c = clusterIteration[cluster])
+
+#     for j in np.unique(superinstances[cluster]):
+#     # get the convex hull
+#         points = data[superinstances[cluster] == j]
+#         if len(points) < 3:
+#             continue
+#         hull = ConvexHull(points)
+#         x_hull = np.append(points[hull.vertices,0],
+#                         points[hull.vertices,0][0])
+#         y_hull = np.append(points[hull.vertices,1],
+#                         points[hull.vertices,1][0])
+        
+#         # interpolate
+#         # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
+#         # dist_along = np.concatenate(([0], dist.cumsum()))
+#         # spline, u = interpolate.splprep([x_hull, y_hull], 
+#         #                                 u=dist_along, s=0, per=1)
+#         # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
+#         # interp_x, interp_y = interpolate.splev(interp_d, spline)
+#         # plot shape
+#         plt.fill(x_hull, y_hull, '--', alpha=0.2)
+
+# animation = FuncAnimation(fig, anim, interval = 1000)
+# plt.show()
 # dataset = np.loadtxt(path, delimiter=',')
 # data = dataset[:, 1:]
 # target = dataset[:, 0]
