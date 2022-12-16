@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 from metric_learn import *
+from noise_robust_cobras.metric_learning.metricLearners import *
 # Easy option is to transform the data and still work with euclidian distance (but does this suffice?)
 
 class MetricLearningAlgorithm:

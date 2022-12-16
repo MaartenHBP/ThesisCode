@@ -22,12 +22,12 @@ import matplotlib.pyplot as plt
 import shutil
 import functools
 from dask.distributed import Client, LocalCluster
-from test_scripts import *
 from algorithms import *
 from pathlib import Path
 from metric_learn import *
 from operator import itemgetter
 import json
+from noise_robust_cobras.metric_learning.metricLearners import *
 
 def fixClass(dictio):
     if "type" in dictio.keys():
@@ -66,9 +66,9 @@ def run():
                 # preprocess the data
                 print("preprocessing")
                 parallel_func = functools.partial(Algorithm.preprocess, **settings["fitparam"])
-                futures = client.map(parallel_func, data)
+                futures = client.map(parallel_func, data["cobras-paper/UCI"])
                 results = client.gather(futures)
-                for nameData in data["UCI"]: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen, datasets ff gehardode voor enkel UCI
+                for nameData in data["cobras-paper/UCI"]: # voor niet crossfold moet ge gewoon de argumenten anders opbouwen, datasets ff gehardode voor enkel UCI
                     if nameData in S1:
                         continue
                     if os.path.exists(pathS1):
@@ -114,9 +114,9 @@ def run():
                         average["S1"] += IRA
                         average["S2"] += IRA**2
                         average["times"] += np.array(runtimes)
-                    S1[nameData] = average["S1"]
-                    S2[nameData] = average["S2"]
-                    time[nameData] = average["times"]
+                    S1[nameData] = average["S1"]/100
+                    S2[nameData] = average["S2"]/100 # ff niet van belang
+                    time[nameData] = average["times"]/100 # ff niet van belang
                     S1.to_csv(f'batches/ARI/{name}')
                     S2.to_csv(f'batches/S2/{name}')
                     time.to_csv(f'batches/Time/{name}')
