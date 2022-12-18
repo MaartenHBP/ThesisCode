@@ -23,17 +23,16 @@ from sklearn.cluster import SpectralClustering
 
 
 plt.style.use("default")
-# path = Path(f'testing/datasets/cobras-paper/UCI/iris.data').absolute()
-path = Path(f'testing/datasets/drawn/simple.data').absolute()
+path = Path(f'testing/datasets/cobras-paper/UCI/hepatitis.data').absolute()
+# path = Path(f'testing/datasets/drawn/simple.data').absolute()
 dataset = np.loadtxt(path, delimiter=',')
 data = dataset[:, 1:]
 target = dataset[:, 0]
 
-embedding = SpectralEmbedding(n_components=2)
-data = embedding.fit_transform(data)
+data = gb_lmnn_class().fit(data,target).transform(data)
 
-cov = Covariance().fit(data)
-x = cov.transform(data)
+# cov = Covariance().fit(data)
+# x = cov.transform(data)
 
 # fig = plt.figure(figsize=(12, 12))
 # ax = fig.add_subplot(projection='3d')

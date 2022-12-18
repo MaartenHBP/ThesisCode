@@ -12,7 +12,9 @@
             "tol": null,
             "verbose": false,
             "preprocessor": null,
-            "random_state": "int"
+            "random_state": {
+                "type": "number"
+            }
         },
         "gb_lmnn_class":{
             "k": 3, 

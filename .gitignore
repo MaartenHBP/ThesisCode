@@ -131,3 +131,4 @@ dmypy.json
 # Results of experiments -> only batches need to be synced
 Testing/experimenten
 Testing/queue
+Testing/dask-worker-space

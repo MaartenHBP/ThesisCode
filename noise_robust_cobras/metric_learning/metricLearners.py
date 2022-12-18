@@ -18,7 +18,7 @@ This is a supervised metric learning algorithm
 Design from: https://github.com/iago-suarez/py-gb-lmnn
 """
 class gb_lmnn_class:
-    def __init__(self, k = 3, L = None, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potential_impo=50, subsample_rate=1.0):
+    def __init__(self, k = 3, L = None, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potential_impo=10, subsample_rate=1.0):
             self.k = k
             self.L = L
             self.verbose = verbose
@@ -35,6 +35,7 @@ class gb_lmnn_class:
         self.ensemble = gb_lmnn(X, y, k = self.k, L = self.L, verbose=self.verbose, depth=self.depth, 
         n_trees=self.n_trees, lr=self.lr, no_potential_impo=self.no_potential_impo, subsample_rate=self.subsample_rate,
             xval=self.xval, yval=self.yval)
+        return self
 
     def transform(self, data):
         return self.ensemble.transform(data)
@@ -232,7 +233,7 @@ def find_best_alpha(pred, wl_pred, target_ind, impostor_ind, loss_f=hinge_loss):
     return alpha
 
 
-def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potential_impo=50, subsample_rate=1.0,
+def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potential_impo=10, subsample_rate=1.0,
             xval=np.array([]), yval=np.array([])) -> Ensemble:
     """
     Nonlinear metric learning using gradient boosting regression trees.
@@ -255,7 +256,12 @@ def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potenti
     # assert len(xval) == 0 or (xval.ndim == 2 and yval.ndim == 1 and len(xval) == len(yval))
     # assert len(xval) == 0 or X.shape[1] == xval.shape[1]
 
-    un, labels = np.unique(y), y
+    un, labels = np.unique(y), np.copy(y)
+    if not np.alltrue(un == np.arange(len(un))):
+        un2 = np.arange(len(un))
+        for i in un2:
+            labels[labels == un[i]] = i
+        un = un2
     assert np.alltrue(un == np.arange(len(un))), "Error: labels should have format [1, 2, ..., C]"
     n_classes = len(un)
 

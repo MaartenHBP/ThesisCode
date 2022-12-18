@@ -75,7 +75,7 @@ def run():
                         S1 = pd.read_csv(pathS1, index_col=0)
                         S2 = pd.read_csv(pathS2, index_col=0)
                         time = pd.read_csv(pathTime, index_col=0)
-                    dataset_path = Path('datasets/cobras-paper/UCI' + nameData + '.data').absolute()
+                    dataset_path = Path('datasets/cobras-paper/UCI/' + nameData + '.data').absolute()
                     dataset = np.loadtxt(dataset_path, delimiter=',')
                     target = dataset[:, 0]
                     average = {"S1": np.zeros(200), "S2": np.zeros(200), "times": np.zeros(200)}
@@ -122,6 +122,37 @@ def run():
                     time.to_csv(f'batches/Time/{name}')
             os.remove(Path(f'queue/{i}').absolute())    
 
+def createFold(runsPQ = 10): # gaan ervan uit dat het altijd 10-fold crossvalidation is
+    datasets = []
+    path_data = Path('datasets/cobras-paper/UCI').absolute()
+    dir_list = os.listdir(path_data)
+    for i in range(len(dir_list)):
+        datasets.append(dir_list[i][:len(dir_list[i]) - 5])
+
+    for dataname in datasets:
+        dataset_path = Path('datasets/cobras-paper/UCI/' + dataname + '.data').absolute()
+        dataset = np.loadtxt(dataset_path, delimiter=',')
+        target = dataset[:, 0]
+        skf = []
+        for j in range(runsPQ):
+            fold = StratifiedKFold(n_splits = 10, shuffle = True)
+            for fold_nb, (train_indices, test_indices) in enumerate(fold.split(np.zeros(len(target)), target)):
+                f = train_indices.tolist()
+                f.extend(test_indices.tolist())
+                skf.append(f)
+        i = 1
+        while True:
+            resulting_path = Path('batches/folds/' + dataname + "_crossfold_" + str(i)).absolute()
+            if os.path.exists(resulting_path):
+                i += 1
+                if i > 10:
+                    break
+                
+            else:
+                np.savetxt(resulting_path, np.array(skf), delimiter=',')
+                break
+
+
 if __name__ == "__main__":
     def ignore_warnings():
         import warnings
@@ -130,3 +161,5 @@ if __name__ == "__main__":
 
     ignore_warnings() # moet meegegeven worden met de workers tho
     run()
+    # for i in range(10):
+    #     createFold()
