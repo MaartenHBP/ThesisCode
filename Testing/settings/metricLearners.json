@@ -21,7 +21,7 @@
             "L": null, 
             "verbose":false, "depth":4, 
             "n_trees":200, "lr":1e-3, 
-            "no_potential_impo":50, 
+            "no_potential_impo":10, 
             "subsample_rate":1.0
         }
     },

@@ -23,13 +23,13 @@ from sklearn.cluster import SpectralClustering
 
 
 plt.style.use("default")
-path = Path(f'testing/datasets/cobras-paper/UCI/hepatitis.data').absolute()
+path = Path(f'testing/datasets/drawn/spectral.data').absolute()
 # path = Path(f'testing/datasets/drawn/simple.data').absolute()
 dataset = np.loadtxt(path, delimiter=',')
 data = dataset[:, 1:]
 target = dataset[:, 0]
 
-data = gb_lmnn_class().fit(data,target).transform(data)
+# data = gb_lmnn_class().fit(data,target).transform(data)
 
 # cov = Covariance().fit(data)
 # x = cov.transform(data)
@@ -49,8 +49,7 @@ data = gb_lmnn_class().fit(data,target).transform(data)
 # ax.scatter(data[:,0], data[:,1], data[:,2], c = target)
 # plt.show()
 
-plt.scatter(data[:,0], data[:,1], c = target)
-plt.show()
+
 
 # querier = LabelQuerier(None, target, 200)
 # clusterer = COBRAS(correct_noise=False)
@@ -148,68 +147,71 @@ plt.show()
 
 # plt.show()
 
-# querier = LabelQuerier(None, target, 200)
+querier = LabelQuerier(None, target, 20)
 
-# metric_algo = {
-#                 "type": "class",
-#                 "value": SemiSupervisedMetric,
-#                 "parameters": {
-#                     "algo": {
-#                         "value": ITML,
-#                         "parameters": {
-#                             "gamma": 1.0,
-#                             "max_iter": 100,
-#                             "convergence_threshold": 0.001,
-#                             "prior": "identity",
-#                             "verbose": False,
-#                             "random_state": 42
-#                         }
-#                     },
-#                     "steps": 0
-#                 }
-#             }
+metric_algo = {
+                "type": "class",
+                "value": SemiSupervisedMetric,
+                "parameters": {
+                    "algo": {
+                        "value": ITML,
+                        "parameters": {
+                            "gamma": 1.0,
+                            "max_iter": 100,
+                            "convergence_threshold": 0.001,
+                            "prior": "identity",
+                            "verbose": False,
+                            "random_state": 42
+                        }
+                    },
+                    "steps": 0
+                }
+            }
 
-# # make new COBRAS
-# clusterer = COBRAS(correct_noise=False)
-# all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(data, -1, None, querier)
-# print(len(superinstances))
-# print(len(clusterIteration))
-# best_clustering = all_clusters[-1]
-# runtime = runtimes[-1]
-# # plt.scatter(data[:,0], data[:,1], c = best_clustering)
+# make new COBRAS
+clusterer2 = COBRAS(correct_noise=False, end = True, metric_algo=metric_algo)
+all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer2.fit(data, -1, None, querier)
+plt.scatter(clusterer2.data[:,0], clusterer2.data[:,1], c = target)
+plt.show()
+querier2 = LabelQuerier(None, target, 200)
+clusterer = COBRAS(correct_noise=False, end = True, metric_algo=metric_algo, logExtraInfo=True)
+all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(clusterer2.data, -1, None, querier2)
+best_clustering = all_clusters[-1]
+runtime = runtimes[-1]
+# plt.scatter(data[:,0], data[:,1], c = best_clustering)
 
-# ARI_score = adjusted_rand_score(target, best_clustering)
-# print(f"Clustering took {runtime:0.3f}, ARI = {ARI_score:0.3f}")
-# fig = plt.figure()
-# def anim(i):
-#     cluster = i%len(superinstances)
-#     fig.clear()
-#     plt.text(0.15,0.3,str(cluster), fontsize = 22)
-#     plt.scatter(data[:,0], data[:,1], c = clusterIteration[cluster])
+ARI_score = adjusted_rand_score(target, best_clustering)
+print(f"Clustering took {runtime:0.3f}, ARI = {ARI_score:0.3f}")
+fig = plt.figure()
+def anim(i):
+    cluster = i%len(superinstances)
+    fig.clear()
+    plt.text(0.15,0.3,str(cluster), fontsize = 22)
+    plt.scatter(data[:,0], data[:,1], c = clusterIteration[cluster])
 
-#     for j in np.unique(superinstances[cluster]):
-#     # get the convex hull
-#         points = data[superinstances[cluster] == j]
-#         if len(points) < 3:
-#             continue
-#         hull = ConvexHull(points)
-#         x_hull = np.append(points[hull.vertices,0],
-#                         points[hull.vertices,0][0])
-#         y_hull = np.append(points[hull.vertices,1],
-#                         points[hull.vertices,1][0])
+    for j in np.unique(superinstances[cluster]):
+    # get the convex hull
+        points = data[superinstances[cluster] == j]
+        if len(points) < 3:
+            continue
+        hull = ConvexHull(points)
+        x_hull = np.append(points[hull.vertices,0],
+                        points[hull.vertices,0][0])
+        y_hull = np.append(points[hull.vertices,1],
+                        points[hull.vertices,1][0])
         
-#         # interpolate
-#         # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
-#         # dist_along = np.concatenate(([0], dist.cumsum()))
-#         # spline, u = interpolate.splprep([x_hull, y_hull], 
-#         #                                 u=dist_along, s=0, per=1)
-#         # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
-#         # interp_x, interp_y = interpolate.splev(interp_d, spline)
-#         # plot shape
-#         plt.fill(x_hull, y_hull, '--', alpha=0.2)
+        # interpolate
+        # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
+        # dist_along = np.concatenate(([0], dist.cumsum()))
+        # spline, u = interpolate.splprep([x_hull, y_hull], 
+        #                                 u=dist_along, s=0, per=1)
+        # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
+        # interp_x, interp_y = interpolate.splev(interp_d, spline)
+        # plot shape
+        plt.fill(x_hull, y_hull, '--', alpha=0.2)
 
-# animation = FuncAnimation(fig, anim, interval = 1000)
-# plt.show()
+animation = FuncAnimation(fig, anim, interval = 1000)
+plt.show()
 # dataset = np.loadtxt(path, delimiter=',')
 # data = dataset[:, 1:]
 # target = dataset[:, 0]

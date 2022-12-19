@@ -86,7 +86,9 @@ class COBRAS:
         # Logging #
         ###########
 
-        logExtraInfo = False
+        logExtraInfo = False,
+
+        reset = True
 
 
     ):
@@ -119,7 +121,8 @@ class COBRAS:
         self.afterSplitting = afterSplitting
         self.eachIteration = eachIteration
         self.rebuildInstance = rebuildInstance
-        self.iterative = iterative
+        self.iterative = iterative,
+        self.reset = reset
 
         self.logExtraInfo = logExtraInfo
 
@@ -331,8 +334,10 @@ class COBRAS:
                 self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
                 self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
+            if self.reset:
+                self.data = np.copy(self.dataPrevious)
             # with an if statement
-            # self.data = np.copy(self.dataPrevious)
+            # 
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()

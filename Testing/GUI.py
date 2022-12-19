@@ -11,6 +11,7 @@ from algorithms import *
 from metricalgos import *
 import json
 import copy
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Experiment Runner", page_icon=":bar_chart:")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -26,11 +27,25 @@ def aligned(dfs, algos):
     for frames in df:   
         print("yeet")
 
-def average(dfs, algos):
+def average(dfs, algos, names):
+    NAME = "ITMLbaseline"
     plot = pd.DataFrame()
+    individual = pd.DataFrame()
     for i in range(len(algos)):
-        plot[algos[i]] = dfs[i].mean(axis=1)[0:amount]
+        plot[names[i]] = dfs[i].mean(axis=1)[0:amount]
+        # for key in dfs[i]:
+        #     individual[names[i]] = dfs[i][key]
+        #     individual[names[0]] = dfs[0][key]
+        #     individual.plot()
+        #     plt.title(key)
+        #     plt.xlabel("#queries")
+        #     plt.ylabel("ARI")
+        #     plt.savefig(f'figures/{NAME}{key}')
 
+    plot.plot()
+    plt.xlabel("#queries")
+    plt.ylabel("ARI")
+    plt.savefig(f'figures/{NAME}')
     st.session_state.plots = plot
 
 def addToTheQueueu(algo, settings, foldnb, crossfold, data, runsPQ, string):
@@ -238,7 +253,9 @@ if st.sidebar.button('Show result'):
     not_availabe_data = []
     dfs = []
     available_algos = []
+    nameAlgos = []
     for key, value in st.session_state.algorithms.items(): # momenteel alleen voor ARI en aligned rank
+        names = [str(value["name algo"])]
         algs = [""]
         settings = [[]]
         # path = Path(f'batches/ARI/{value["name algo"]}{str}_10_crossfold_{fold}').absolute()
@@ -248,20 +265,25 @@ if st.sidebar.button('Show result'):
             what = ask[value["name algo"]]["what"][i]["type"]
             extra = [pl]
             extrasetting=[pl]
+            extraNames = [""]*len(extra)
             if hasattr(pl, "__len__"):
                 if len(pl) == 0:
                     print("Wel iets invullen he")
                     break
                 extra = [v for v in pl]
                 extrasetting = [v for v in pl]
+                extraNames = [""]*len(extra)
                 if what == "supervised" or what == "semisupervised":
                     extra = []
                     extrasetting = []
+                    extraNames = []
                     for k in pl:
                         for option in st.session_state[value["name algo"] + string + str(key) + str(k) + "options"]:
                             # extra = [v + "_" + str(metrics[what][v].values()) for v in pl]
                             # extrasetting = [{"type": "class", "value": v, "parameters": copy.deepcopy(metrics[what][v])} for v in pl]
                             dictPar = {"type": "class", "value": k, "parameters": copy.deepcopy(metrics[what][k])}
+
+                            extraNames.append(" " + str(k))
 
                             for paramKey, paramValue in dictPar["parameters"].items():
                                 if type(paramValue) is dict: 
@@ -274,14 +296,17 @@ if st.sidebar.button('Show result'):
 
             newalgs = []
             newsettings = []
+            newNames = []
             for i in range(len(algs)):
                 for j in range(len(extra)):
                     newalgs.append(str(algs[i])+"_"+str(extra[j]))
                     newS = settings[i].copy()
                     newS.append(extrasetting[j])
                     newsettings.append(newS)
+                    newNames.append(names[i] + extraNames[j])
             settings = newsettings
             algs = newalgs
+            names = newNames
         for al in range(len(algs)):
             a = algs[al].replace(" ", "").replace("[", "").replace("]","").replace(",", "_").replace("'","")
             p = f'{value["name algo"]}{a}_{runsPQ}_{crossStr}{fold}'
@@ -292,6 +317,7 @@ if st.sidebar.button('Show result'):
                     addToTheQueueu(key, settings[al], fold, crossfold, data, runsPQ, p)
                 continue
             available_algos.append(a)
+            nameAlgos.append(names[al])
             df = pd.read_csv(path)
             dfs.append(df)
             for d in data:
@@ -299,10 +325,11 @@ if st.sidebar.button('Show result'):
                     not_availabe_data.append(d)
                     print(f"Missing results for {d} with algorithm {p} in this setting")
     available_data = []
-    for d in data:
+    for d in data["cobras-paper/UCI"]:
         if d not in not_availabe_data:
             available_data.append(d)
     dfs = [df[available_data] for df in dfs]
+    average(dfs, available_algos, nameAlgos)
 
         # make the string of the data
     # for i in algo:

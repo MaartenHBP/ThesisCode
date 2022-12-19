@@ -1,5 +1,5 @@
 {
-    "Cobras": {
+"Cobras": {
         "Description": "Standard Cobras algorithm",
         "fitparam": {},
         "cobrasparam": {}
@@ -16,7 +16,7 @@
         },
         "cobrasparam": {}
     },
-    "CobrasSupervised": {
+"CobrasSupervised": {
         "Description": "Cobras but with supervised clustering after each iteration",
         "fitparam": {
             "baseline": {
@@ -40,7 +40,7 @@
             }
         }
     },
-    "CobrasSemiSupervised": {
+"CobrasSemiSupervised": {
         "Description": "Cobras but with supervised clustering after each iteration",
         "fitparam": {
             "baseline": {
@@ -59,8 +59,62 @@
                         "type": "int",
                         "min": 0,
                         "max": 100
+                    },
+                    "queriesNeeded" : {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100
+                    }, 
+                    "once" : {
+                        "type": "Boolean"
                     }
                 }
+            },
+            "eachIteration": true,
+            "localClusterLearning": {
+                "type": "Boolean"
+            },
+            "reset":{
+                "type": "Boolean"
+            }
+        }
+    },
+"CobrasSemiSupervisedBeforeSplitting": {
+        "Description": "Cobras but with supervised clustering after each iteration",
+        "fitparam": {
+            "baseline": {
+                "type": "Boolean"
+            }
+        },
+        "cobrasparam": {
+            "metric_algo": {
+                "type": "class",
+                "value": "SemiSupervisedMetric",
+                "parameters": {
+                    "algo": {
+                        "type": "semisupervised"
+                    },
+                    "steps": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100
+                    },
+                    "queriesNeeded" : {
+                        "type": "int",
+                        "min": 0,
+                        "max": 100
+                    }, 
+                    "once" : {
+                        "type": "Boolean"
+                    }
+                }
+            },
+            "beforeSplitting": true,
+            "localClusterLearning": {
+                "type": "Boolean"
+            },
+            "reset":{
+                "type": "Boolean"
             }
         }
     }
