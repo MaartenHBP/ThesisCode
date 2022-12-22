@@ -88,7 +88,7 @@ class COBRAS:
 
         logExtraInfo = False,
 
-        reset = True
+        reset = False
 
 
     ):
@@ -210,7 +210,10 @@ class COBRAS:
                 if (not self.localTransformation):
                     local = None
                 # Transform #
-                self.data = self.metric_algo.transformData(self.data, local)
+                if self.iterative:
+                    self.data = self.metric_algo.transformData(self.data, local)
+                else:
+                    self.data = self.metric_algo.transformData(self.initialData, local)
 
             # if needed redo some super instances
             if (self.rebuildInstance): # cluster meegeven voor als ge het enkel daar wilt (op level van die class gedaan) en mss de boolean
@@ -246,7 +249,7 @@ class COBRAS:
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
 
-        self.dataPrevious = np.copy(X)
+        self.initialData = np.copy(X)
 
         ###############################
         # Metric initialisation phase #
@@ -335,7 +338,7 @@ class COBRAS:
                 self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
             if self.reset:
-                self.data = np.copy(self.dataPrevious)
+                self.data = np.copy(self.initialData)
             # with an if statement
             # 
 
