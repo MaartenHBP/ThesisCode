@@ -348,7 +348,7 @@ class COBRAS:
         # collect results and return
         all_clusters = self._cobras_log.get_all_clusterings()
         runtimes = self._cobras_log.get_runtimes()
-        transformations = self._cobras_log.getTransformation
+        transformations = self._cobras_log.getTransformation()
         superinstances = self._cobras_log.getSuperinstances()
         clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()

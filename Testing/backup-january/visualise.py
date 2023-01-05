@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 import streamlit as st
 import pandas as pd
-import plotly_express as px
 from sklearn.cluster import KMeans
 from sklearn.metrics import adjusted_rand_score
 from noise_robust_cobras.cobras import COBRAS

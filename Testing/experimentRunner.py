@@ -13,11 +13,9 @@ import noise_robust_cobras.metric_learning.metriclearning_algorithms
 import numpy as np 
 import scipy
 from metric_learn import NCA
-from batch import Batch
 import pandas as pd
 from sklearn.model_selection import StratifiedKFold, KFold
 import sklearn as sk
-from experimentLogger import ExperimentLogger
 import matplotlib.pyplot as plt
 import shutil
 import functools

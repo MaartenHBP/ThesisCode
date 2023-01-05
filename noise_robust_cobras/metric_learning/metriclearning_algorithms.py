@@ -3,7 +3,6 @@ import numpy as np
 from metric_learn import *
 from noise_robust_cobras.metric_learning.metricLearners import *
 # Easy option is to transform the data and still work with euclidian distance (but does this suffice?)
-
 class MetricLearningAlgorithm:
     @abstractmethod
     def learn(self, cobras_cluster, local = None): # local zijn al de datapoints die deeluitmaken van de metric learning
