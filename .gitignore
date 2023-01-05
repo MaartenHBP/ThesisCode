@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Results of experiments -> only batches need to be synced
+Testing/experimenten
+Testing/queue
+Testing/dask-worker-space

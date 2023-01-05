@@ -1,0 +1,45 @@
+{
+    "supervised": {
+        "NCA": {
+            "init": "auto",
+            "n_components": null,
+            "max_iter": {
+                "type": "int",
+                "min": 0,
+                "max": 500,
+                "standard": 100
+            },
+            "tol": null,
+            "verbose": false,
+            "preprocessor": null,
+            "random_state": {
+                "type": "number"
+            }
+        },
+        "gb_lmnn_class":{
+            "k": 3, 
+            "L": null, 
+            "verbose":false, "depth":4, 
+            "n_trees":200, "lr":1e-3, 
+            "no_potential_impo":10, 
+            "subsample_rate":1.0
+        }
+    },
+    "semisupervised": {
+        "ITML": {
+            "gamma": 1.0,
+            "max_iter": {
+                "type": "int",
+                "min": 0,
+                "max": 500,
+                "standard": 100
+            },
+            "convergence_threshold": 0.001,
+            "prior": "identity",
+            "verbose": false,
+            "random_state": {
+                "type": "number"
+            }
+        }
+    }
+}

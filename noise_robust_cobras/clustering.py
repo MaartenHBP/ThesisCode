@@ -17,6 +17,21 @@ class Clustering:
 
         return pred
 
+    def construct_superinstance_labeling(self):
+
+        pts_per_cluster = []
+
+        for cluster in self.clusters:
+            pts_per_cluster.extend(cluster.get_all_points_per_superinstance())
+
+        pred = [-1] * sum([len(x) for x in pts_per_cluster])
+
+        for i, pts in enumerate(pts_per_cluster):
+            for pt in pts:
+                pred[pt] = i
+
+        return pred
+
     def get_si_representatives(self):
         """
             Returns the indices of all the instances that are a super-instance representative in the current clustering
