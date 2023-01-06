@@ -8,6 +8,7 @@ import plotly.express as px
 import json
 import copy
 import matplotlib.pyplot as plt
+from dataSetTester import *
 
 DATA_PATH = f"datasets"
 DATASETS_PATH = [f"cobras-paper/UCI", f"cobras-paper/CMU_faces", 
@@ -41,6 +42,10 @@ metrics = getMetricLearners()
 if 'results' not in st.session_state:
     st.session_state.results = []
 
+if 'count' not in st.session_state:
+    st.session_state.count = {}
+
+
 def newMetric():
     st.session_state.metric = dict(metrics[typeMetric][st.session_state.selectedMetric])
 
@@ -60,16 +65,52 @@ st.sidebar.selectbox(
     on_change=newMetric)
 st.sidebar.markdown('---')
 
-# The chosen metric
+if st.sidebar.button('Remember results'):
+    learnMetric(None, None, None)
+
+st.sidebar.markdown('---')
+
+st.sidebar.selectbox(
+    'Saved results',
+    [],
+    key = "savedResult",
+    on_change=newMetric)
+
+
+# The chosen metric -> dit principe doen voor de gehele setting
 if 'metric' not in st.session_state:
     st.session_state.metric = dict(metrics[typeMetric][st.session_state.selectedMetric])
 
+
 # ---- Main ----
+# slider for COBRAS animation and option for animation
 # Container for the results
 with st.container():
-    st.write("Hier komen de resultaten")
-    st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
-
+    col1, col2= st.columns(2)
+    with col1:
+        st.write("Hier komen de resultaten")
+        st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
+    with col2:
+        st.write("Hier komt de transformed dataset")
+        st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
+st.markdown("""---""")
+with st.container():
+    cola, colb, colc, cold = st.columns(4)
+    with cola:
+        if st.button('Learn metric on original'):
+                learnMetric(None, None, None)
+    with colb:
+        if typeMetric == "semisupervised":
+                if st.button('Generate new constraints'):
+                    getConstraints()
+    with colc:
+        if st.checkbox('Execture Cobras'):
+            executeCobras()
+            # execute the plot function once
+    with cold:
+        if st.button('Learn metric on the transformed dataset'):
+                learnMetric(None, None, None)
+st.markdown("""---""")
 # Container for the selection of the metric learner
 with st.container():
     col1, col2 = st.columns(2)
@@ -109,3 +150,6 @@ with st.container():
         if st.button('Change parameter'):
             st.session_state.metric[st.session_state.parameterToChange] = newParameter
             st.experimental_rerun()
+
+
+st.write(st.session_state)

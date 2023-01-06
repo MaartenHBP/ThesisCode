@@ -7,18 +7,26 @@ def createDataset():
     """
     print("dataset created")
 
-def learnMetric(data, metricLearner):
+def learnMetric(constraints, metricLearner, data):
     """
     metricLearner is of the form:
     {metric: <the class>, parameters: <the parameters>}
 
-    retruns the metriclearner fitted on the data
+    retruns the transformed data
     """
     print("metric learned")
 
 def executeCobras(preprocessor = None, baseline = False, parameters = {}):
     "executes COBRAS and returns what COBRAS would return"
     print("Executing COBRAS")
+
+def getConstraints(type, data):
+    "Create constraints"
+    if (type == "supervised"):
+        print("supervised constraints")
+
+    else:
+        print("semisupervised cosntraints")
 
 
 
