@@ -330,7 +330,7 @@ class COBRAS:
             ######################
             self.metricPhase(eachIteration = True)
 
-            if self.logExtraInfo:
+            if self.logExtraInfo: #TODO: log superinstances after each queir asked
             # after each iteration, keep the current data, so afterwards you can see all the transformations
                 self._cobras_log.addTransformation(self.data)
                 ### SUPERINSTANCES ###
