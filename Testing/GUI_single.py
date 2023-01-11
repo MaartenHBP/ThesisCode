@@ -43,6 +43,34 @@ def getMetricLearners():
     with open('settings/metricLearners.json') as json_file:
         return json.load(json_file)
 
+def anim(i, superinstances, clusterIteration, data):
+    cluster = i%len(superinstances)
+    fig.clear()
+    plt.text(0.15,0.3,str(cluster), fontsize = 22)
+    plt.scatter(data[:,0], data[:,1], c = clusterIteration[cluster])
+
+    for j in np.unique(superinstances[cluster]):
+    # get the convex hull
+        points = data[superinstances[cluster] == j]
+        if len(points) < 3:
+            continue
+        hull = ConvexHull(points)
+        x_hull = np.append(points[hull.vertices,0],
+                        points[hull.vertices,0][0])
+        y_hull = np.append(points[hull.vertices,1],
+                        points[hull.vertices,1][0])
+        
+        # interpolate
+        # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
+        # dist_along = np.concatenate(([0], dist.cumsum()))
+        # spline, u = interpolate.splprep([x_hull, y_hull], 
+        #                                 u=dist_along, s=0, per=1)
+        # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
+        # interp_x, interp_y = interpolate.splev(interp_d, spline)
+        # plot shape
+        plt.fill(x_hull, y_hull, '--', alpha=0.2)
+
+
 datasets = getDatasets()
 metrics = getMetricLearners()
 
@@ -58,7 +86,11 @@ if 'newM' not in st.session_state:
 if 'newS' not in st.session_state:
     st.session_state.newS = 0
 
+if 'animation' not in st.session_state:
+    st.session_state.animation = False
 
+if 'animationI' not in st.session_state:
+    st.session_state.animationI = 0
 
 st.session_state.Rerun = False
 
@@ -127,8 +159,6 @@ if st.session_state.changedType:
     newMetric()
     st.session_state.changedType = False
 
-# Hier nog voor de k-means
-
 
 st.sidebar.markdown('---')
 new = st.text_input("Name of this setting", value = "0", on_change=newName, key = "selectedName")
@@ -163,25 +193,77 @@ if st.sidebar.button("New/copy"):
 # Container for the results
 st.markdown("""---""")
 with st.container():
-    col1, col2= st.columns(2)
-    with col1:
-        st.checkbox('Show constraints', key = "showConstraints")
+    col1, col2, col3, col4= st.columns(4)
     with col2:
-        st.checkbox('Show clustering', key = "showSuper")
-with st.container():
-    col1, col2= st.columns(2)
+        st.checkbox('Show constraints', key = "showConstraints")
+    with col3:
+        st.checkbox('Show superinstances', key = "showSuper")
+    with col4:
+        if st.button("Start/stop animation"):
+            st.session_state.animation = not st.session_state.animation
     with col1:
+        st.slider('Iteration of Cobras', 0, 200, key = "i")
+    st.markdown("""---""")
+with st.container():
+    # col1, col2= st.columns(2)
+    # with col1:
         st.write("Original")
         fig, ax = plt.subplots()
 
         ### THE CONVEX HULL PROCEDURE ###
-        ax.scatter(x = st.session_state.original[:, 1], y = st.session_state.original[:, 2], c = st.session_state.original[:, 0])
-        st.pyplot(fig)
+        if st.session_state.showSuper and st.session_state.settings[st.session_state.current].cobrasOriginal:
+            # i = st.session_state.i if not st.session_state.animation else st.session_state.animationI
+            superinstances = np.copy(st.session_state.settings[st.session_state.current].cobrasOriginal)[0]
+            # cluster = i%len(superinstances)
+            # fig.clear()
+            # ax.text(0.15,0.3,str(cluster), fontsize = 22)
+            data = np.copy(st.session_state.original[:, 1:])
 
-    with col2:
-        st.write("Transformed")
-        if st.session_state.settings[st.session_state.current].transformed:
-            st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
+            clusterIteration = np.copy(st.session_state.settings[st.session_state.current].cobrasOriginal)[1]
+
+            test = functools.partial(anim, superinstances=superinstances, clusterIteration=clusterIteration,
+            data = data)
+            animation = FuncAnimation(fig, test, interval = 1000)
+            components.html(animation.to_jshtml(), height = 1000)
+            # animation.save(r'Animation.mp4')
+
+            # with open("myvideo.html","w") as f:
+            #     print(line_ani.to_html5_video(), file=f)
+
+            # HtmlFile = open("myvideo.html", "r")
+            # #HtmlFile="myvideo.html"
+            # source_code = HtmlFile.read() 
+            # components.html(source_code, height = 900,width=900)
+            # ax.scatter(data[:,0], data[:,1], c = np.copy(st.session_state.settings[st.session_state.current].cobrasOriginal)[1][cluster])
+
+            # for j in np.unique(superinstances[cluster]):
+            # # get the convex hull
+            #     points = data[superinstances[cluster] == j]
+            #     if len(points) < 3:
+            #         continue
+            #     hull = ConvexHull(points)
+            #     x_hull = np.append(points[hull.vertices,0],
+            #                     points[hull.vertices,0][0])
+            #     y_hull = np.append(points[hull.vertices,1],
+            #                     points[hull.vertices,1][0])
+                
+            #     # interpolate
+            #     # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
+            #     # dist_along = np.concatenate(([0], dist.cumsum()))
+            #     # spline, u = interpolate.splprep([x_hull, y_hull], 
+            #     #                                 u=dist_along, s=0, per=1)
+            #     # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
+            #     # interp_x, interp_y = interpolate.splev(interp_d, spline)
+            #     # plot shape
+            #     ax.fill(x_hull, y_hull, '--', alpha=0.2)
+        else:
+            ax.scatter(x = st.session_state.original[:, 1], y = st.session_state.original[:, 2], c = st.session_state.original[:, 0])
+            st.pyplot(fig)
+
+    # with col2:
+    #     st.write("Transformed")
+    #     if st.session_state.settings[st.session_state.current].transformed:
+    #         st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
 st.markdown("""---""")
 with st.container():
     cola, colb, colc, cold = st.columns(4)
@@ -192,7 +274,7 @@ with st.container():
         if st.button('Generate new constraints'):
             st.session_state.settings[st.session_state.current].newConstraints()
     with colc:
-        if st.button('Exectute k-means'):
+        if st.button('Execture Cobras'):
             st.session_state.settings[st.session_state.current].executeCOBRAS(st.session_state.original)
             # execute the plot function once
     with cold:
@@ -235,6 +317,25 @@ with st.container():
         except:
             newParameter = None
 
+        
+        # if typeParameter == float:
+        #     newParameter = st.number_input("Change to", value = parameter)
+        # elif typeParameter == int:
+        #     newParameter = st.number_input("Change to", value = parameter)
+        # elif typeParameter == str:
+        #     newParameter = st.text_input("Change to", value = parameter)
+        # elif typeParameter == bool:
+        #     newParameter = st.checkbox(st.session_state.parameterToChange, value = parameter)
+        # elif parameter == None:
+        #     new = st.text_input("Change to", value = parameter)
+        #     if not new == "None" and new:
+        #         ntype = st.selectbox(
+        #         'Choose type to convert to',
+        #         (int, float, str, bool))
+        #         newParameter = ntype(new)
+        # else:
+        #     st.write("Can't handle this")
+
         if st.button('Change parameter'):
             st.session_state.settings[st.session_state.current].parameters[st.session_state.parameterToChange] = newParameter
             st.experimental_rerun()
@@ -245,3 +346,10 @@ with st.container():
             st.experimental_rerun()
 
 st.write(st.session_state)
+
+# if (st.session_state.animation):
+#     if st.session_state.animationI == 10:
+#         st.session_state.animation = False
+#     st.session_state.animationI += 1
+#     time.sleep(1)
+#     st.experimental_rerun()
