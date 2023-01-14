@@ -26,6 +26,16 @@
             "prior": "identity",
             "verbose": false,
             "random_state": 42
+        },
+        "laplacian_semi": {
+            "dim": 2
+        },
+        "SpectralEmbedding_class": {
+            "nb_neigh": 10
+        },
+        "ssSpectralClust": {
+            "nb_neigh": 10
         }
     }
+    
 }

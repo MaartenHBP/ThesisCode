@@ -7,8 +7,52 @@ import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.neighbors._ball_tree import BallTree
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.manifold import SpectralEmbedding
 
 from noise_robust_cobras.metric_learning.knn import knn_error_score
+
+#####################
+# Spectralembedding #
+#####################
+class SpectralEmbedding_class:
+    def __init__(self, preprocessor = None, nb_neigh = 10):
+        self.ensemble = None
+        self.preprocessor = preprocessor
+        self.nb_neigh = nb_neigh
+    def fit(self, pairs ,y):
+        sp = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= self.nb_neigh).fit(self.preprocessor)
+        aff = sp.affinity_matrix_
+        # test.coonstruct_nearest_graph()
+        # T = test._W
+        self.ensemble = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed').fit_transform(aff)
+        return self
+
+    def transform(self, data):
+        return self.ensemble
+
+
+###############################
+# Adapted spectral clustering #
+###############################
+# SpectralClustering(n_clusters=2,
+        # eigen_solver="arpack", affinity='nearest_neighbors').fit(data)
+class ssSpectralClust:
+    def __init__(self, preprocessor = None, nb_neigh = 10):
+        self.ensemble = None
+        self.preprocessor = preprocessor
+        self.nb_neigh = nb_neigh
+    def fit(self, pairs ,y):
+        sp = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= self.nb_neigh).fit(self.preprocessor)
+        aff = sp.affinity_matrix_
+        yc = np.copy(y)
+        yc[yc==-1] = 0
+        aff[pairs[:,0], pairs[:,1]] = yc
+        aff[pairs[:,1], pairs[:,0]] = yc
+        self.ensemble = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed').fit_transform(aff)
+        return self
+
+    def transform(self, data):
+        return self.ensemble
 
 #########
 #gb_lmnn#
@@ -39,6 +83,32 @@ class gb_lmnn_class:
 
     def transform(self, data):
         return self.ensemble.transform(data)
+
+########################
+# Laplacian Eigenmaps  #
+########################
+class laplacian_semi:
+    def __init__(self, dim:int = 2, k:int = 2, eps = None, graph:str = 'k-nearest', weights:str = 'heat kernel', 
+                 sigma:float = 0.1, laplacian:str = 'unnormalized', opt_eps_jumps:float = 1.5, preprocessor = None):
+            self.dim = dim
+            self.k = k
+            self.eps = eps
+            self.graph = graph
+            self.weights = weights
+            self.sigma = sigma
+            self.laplacian = laplacian
+            self.opt_eps_jumps = opt_eps_jumps
+            self.preprocessor = preprocessor
+
+            self.ensemble = None
+    def fit(self, pairs,y):
+        self.ensemble = LE(self.preprocessor, self.dim, self.k, self.eps, self.graph, 
+        self.weights, self.sigma, 
+        self.laplacian, self.opt_eps_jumps, ml = pairs[y == 1], cl = pairs[y == -1]).transform()
+        return self
+
+    def transform(self, data):
+        return self.ensemble
 
 
 
@@ -341,7 +411,7 @@ def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potenti
 
 
 ########################
-#Semi spectral, #
+#    Semi spectral     #
 ########################
 import numpy as np
 float_formatter = lambda x: "%.3f" % x
@@ -399,6 +469,7 @@ class LE:
     def __init__(self, X:np.ndarray, dim:int, k:int = 2, eps = None, graph:str = 'k-nearest', weights:str = 'heat kernel', 
                  sigma:float = 0.1, laplacian:str = 'unnormalized', opt_eps_jumps:float = 1.5, ml = None, cl = None):
         """
+        https://github.com/JAVI897/Laplacian-Eigenmaps
         LE object
         Parameters
         ----------
@@ -517,15 +588,17 @@ class LE:
             self._W.append(w_aux[0])
         self._W = np.array(self._W)
 
-        if self.ml:
+        # print(self._W)
+
+        if not self.ml is None:
             for i in range(len(self.ml)):
-                if (self._W[self.ml[i][0],self.ml[i][1]] == 0):
-                    print("ja")
+            #     if (self._W[self.ml[i][0],self.ml[i][1]] == 0):
+            #         print("ja")
                 self._W[self.ml[i][0],self.ml[i][1]] = 1
                 self._W[self.ml[i][1],self.ml[i][0]] = 1
             for i in range(len(self.cl)):
-                if (self._W[self.ml[i][0],self.ml[i][1]] == 1):
-                    print("ja")
+                # if (self._W[self.ml[i][0],self.ml[i][1]] == 1):
+                #     print("ja")
                 self._W[self.cl[i][0],self.cl[i][1]] = 0
                 self._W[self.cl[i][1],self.cl[i][0]] = 0
         # D matrix
@@ -622,4 +695,48 @@ class LE:
         ax.set_zlabel('Coordinate {}'.format(dim_3))
         plt.show()
 
+    def coonstruct_nearest_graph(self):
+        """
+        Compute weighted graph G
+        """
+        similarities_dic = {'heat kernel': self.__heat_kernel,
+                            'simple':self.__simple,
+                            'rbf':self.__rbf}
+        
+        dist_matrix = pairwise_distances(self.X)
+        if self.graph == 'k-nearest':
+            nn_matrix = np.argsort(dist_matrix, axis = 1)[:, 1 : self.k + 1]
+        elif self.graph == 'eps':
+            nn_matrix = np.array([ [index for index, d in enumerate(dist_matrix[i,:]) if d < self.eps and index != i] for i in range(self.n) ])
+        # Weight matrix
+        self._W = []
+        for i in range(self.n):
+            w_aux = np.zeros((1, self.n))
+            similarities = np.array([ similarities_dic[self.weights](dist_matrix[i,v]) for v in nn_matrix[i]] )
+            np.put(w_aux, nn_matrix[i], similarities)
+            self._W.append(w_aux[0])
+        self._W = np.array(self._W)
+
+        # print(self._W)
+
+        if not self.ml is None:
+            for i in range(len(self.ml)):
+            #     if (self._W[self.ml[i][0],self.ml[i][1]] == 0):
+            #         print("ja")
+                self._W[self.ml[i][0],self.ml[i][1]] = 1
+                self._W[self.ml[i][1],self.ml[i][0]] = 1
+            for i in range(len(self.cl)):
+                # if (self._W[self.ml[i][0],self.ml[i][1]] == 1):
+                #     print("ja")
+                self._W[self.cl[i][0],self.cl[i][1]] = 0
+                self._W[self.cl[i][1],self.cl[i][0]] = 0
+        # D matrix
+        self._D = np.diag(self._W.sum(axis=1))
+        # Check for connectivity
+        self._G = self._W.copy() # Adjacency matrix
+        self._G[self._G > 0] = 1
+        G = nx.from_numpy_matrix(self._G)
+        self.cc = nx.number_connected_components(G) # Multiplicity of lambda = 0
+        if self.cc != 1:
+            warnings.warn("Graph is not fully connected, Laplacian Eigenmaps may not work as expected")
 

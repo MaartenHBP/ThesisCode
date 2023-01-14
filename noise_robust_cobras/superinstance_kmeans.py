@@ -11,7 +11,7 @@ class KMeans_SuperinstanceBuilder(SuperInstanceBuilder):
         return SuperInstance_kmeans(data, indices, train_indices, parent)
 
 
-class SuperInstance_kmeans(SuperInstance):
+class SuperInstance_kmeans(SuperInstance): # hoe wordt de medoid bepaald
     def __init__(self, data, indices, train_indices, parent=None):
         # super(SuperInstance_kmeans, self).__init__(data, indices, train_indices, parent)
         super(SuperInstance_kmeans, self).__init__(data, indices, train_indices, None)

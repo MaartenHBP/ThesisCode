@@ -60,7 +60,7 @@ if 'newS' not in st.session_state:
 
 
 
-st.session_state.Rerun = False
+# st.session_state.Rerun = False
 
 def newType():
     st.session_state.typeMetric = "supervised" if st.session_state.isSupervised else "semisupervised"
@@ -83,14 +83,23 @@ def newName():
     del(st.session_state.settings[st.session_state.current])
     st.session_state.current = newName
 
+def newK():
+    newK = st.session_state.clustK
+    st.session_state.settings[st.session_state.current].changeK(newK)
+
 def loadSetting():
     st.session_state.current = st.session_state.Selectedsetting
+    oldT = st.session_state.typeMetric
     st.session_state.isSupervised = st.session_state.settings[st.session_state.current].typeMetric == "supervised" 
     st.session_state.typeMetric = st.session_state.settings[st.session_state.current].typeMetric
     st.session_state.selectedData = st.session_state.settings[st.session_state.current].data
-    st.session_state.newM = list(metrics[st.session_state.typeMetric].keys()).index(st.session_state.settings[st.session_state.current].metric)
+    st.session_state.clustK = st.session_state.settings[st.session_state.current].k
+    if oldT == st.session_state.typeMetric:
+        st.session_state.selectedMetric = st.session_state.settings[st.session_state.current].metric
+    else:
+        st.session_state.newM = list(metrics[st.session_state.typeMetric].keys()).index(st.session_state.settings[st.session_state.current].metric)
 
-    st.session_state.Rerun = True
+    # st.session_state.Rerun = True
 
     path = Path(f'{DATA_PATH}/created/{st.session_state.settings[st.session_state.current].data}.data').absolute()
     data = np.loadtxt(path, delimiter=',')
@@ -127,7 +136,10 @@ if st.session_state.changedType:
     newMetric()
     st.session_state.changedType = False
 
+st.sidebar.markdown('---')
+
 # Hier nog voor de k-means
+st.sidebar.number_input("Number of clusters (do not spam)", key = "clustK", step = 1, on_change=newK, value=2)
 
 
 st.sidebar.markdown('---')
@@ -140,7 +152,8 @@ if 'settings' not in st.session_state:
         st.session_state.selectedData, 
         dict(metrics[st.session_state.typeMetric][st.session_state.selectedMetric]),
         st.session_state.selectedName,
-        st.session_state.typeMetric
+        st.session_state.typeMetric,
+        st.session_state.clustK
 
     )}
 
@@ -155,6 +168,7 @@ if st.sidebar.button("New/copy"):
     name = str(len(st.session_state.settings.keys()))
     st.session_state.settings[name] = st.session_state.settings[st.session_state.current].copy(name)
     st.session_state.newS = len(st.session_state.settings.keys()) - 1
+    st.session_state.current = name
     st.experimental_rerun()
 
 
@@ -163,7 +177,7 @@ if st.sidebar.button("New/copy"):
 # Container for the results
 st.markdown("""---""")
 with st.container():
-    col1, col2= st.columns(2)
+    col1, col2, col3, col4= st.columns(4)
     with col1:
         st.checkbox('Show constraints', key = "showConstraints")
     with col2:
@@ -173,31 +187,61 @@ with st.container():
     with col1:
         st.write("Original")
         fig, ax = plt.subplots()
+        c = st.session_state.original[:, 0]
+        if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustOriginal is None:
+            c = st.session_state.settings[st.session_state.current].clustOriginal
+        ax.scatter(x = st.session_state.original[:, 1], y = st.session_state.original[:, 2], c = c)
 
-        ### THE CONVEX HULL PROCEDURE ###
-        ax.scatter(x = st.session_state.original[:, 1], y = st.session_state.original[:, 2], c = st.session_state.original[:, 0])
+        if st.session_state.showConstraints and st.session_state.typeMetric == "semisupervised":
+            lines = st.session_state.settings[st.session_state.current].pairs
+            labels = st.session_state.settings[st.session_state.current].constraints
+
+            colors = {-1: "r", 1: "g"}
+
+            for i in range(len(lines)):
+                point1 = st.session_state.original[:, 1:][lines[i,0]]
+                point2 = st.session_state.original[:, 1:][lines[i,1]]
+                x_values = [point1[0], point2[0]]
+                y_values = [point1[1], point2[1]]
+                ax.plot(x_values, y_values, c = colors[labels[i]])
+
         st.pyplot(fig)
 
     with col2:
         st.write("Transformed")
-        if st.session_state.settings[st.session_state.current].transformed:
-            st.line_chart({"welcome": [1,2,3,4,5,6,7,4,3,2,1]})
+        if not st.session_state.settings[st.session_state.current].transformed is None:
+            fig, ax = plt.subplots()
+            c = st.session_state.original[:, 0]
+            if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustTransformed is None:
+                c = st.session_state.settings[st.session_state.current].clustTransformed
+            ax.scatter(x = st.session_state.settings[st.session_state.current].transformed[:, 0], 
+            y = st.session_state.settings[st.session_state.current].transformed[:, 1], c = c)
+            st.pyplot(fig)
 st.markdown("""---""")
-with st.container():
+with st.container(): # container as
     cola, colb, colc, cold = st.columns(4)
     with cola:
         if st.button('Learn metric on original'):
-                st.session_state.settings[st.session_state.current].learnMetric()
+            st.session_state.settings[st.session_state.current].learnMetric(st.session_state.original[:,1:])
+            st.experimental_rerun()
     with colb:
         if st.button('Generate new constraints'):
-            st.session_state.settings[st.session_state.current].newConstraints()
+            st.session_state.settings[st.session_state.current].newConstraints(st.session_state.original, 
+            st.session_state.nbconst)
+            st.experimental_rerun()
     with colc:
         if st.button('Exectute k-means'):
-            st.session_state.settings[st.session_state.current].executeCOBRAS(st.session_state.original)
+            st.session_state.settings[st.session_state.current].executeClustering(st.session_state.original[:,1:])
+            st.experimental_rerun()
             # execute the plot function once
     with cold:
         if st.button('Learn metric on the transformed dataset'):
-            st.session_state.settings[st.session_state.current].learnMetric(onOrig=False)
+            st.session_state.settings[st.session_state.current].learnMetric(st.session_state.original[:,1:], onOrig=False)
+            st.experimental_rerun()
+with st.container(): # container as
+    cola, colb, colc, cold = st.columns(4)
+    with colb:
+            st.number_input('Number of new constraints', key = 'nbconst', value=5)
 st.markdown("""---""")
 
 

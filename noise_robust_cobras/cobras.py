@@ -277,6 +277,29 @@ class COBRAS:
             self._cobras_log.update_clustering_to_store(self.clustering)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
+            #################################
+            # Test for CL in zelfde cluster #
+            #################################
+            ml_wrong = 0
+            cl_wrong = 0
+            total = 0
+            # go over the different constraints and chech ik they are wrong
+            labels = np.array(self.clustering_to_store)
+            for constraint in self.constraint_index:
+                total += 1
+                if len(np.unique(labels[[constraint.i1, constraint.i2]])) == 1:
+                    if constraint.is_CL():
+                        cl_wrong += 1
+                if len(np.unique(labels[[constraint.i1, constraint.i2]])) > 1:
+                   if constraint.is_ML():
+                        ml_wrong += 1 
+            print(f"ml_wrong: {ml_wrong}")
+            print(f"cl_wrong: {cl_wrong}")
+            print(f"total: {total}")
+
+           
+
+
             # splitting phase
             self._cobras_log.log_entering_phase("splitting")
             statuscode = self.split_next_superinstance()
@@ -502,7 +525,7 @@ class COBRAS:
         )
 
         # based on the resulting clusters make new superinstances
-        # superinstances with no training instances are assigned to the closest superinstance with training instances
+        # superinstances with no training instances are assigned to the closest superinstance with training instances -> euhhh
         training = []
         no_training = []
         for new_si_idx in set(clusters):
