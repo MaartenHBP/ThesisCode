@@ -1,0 +1,19 @@
+{
+    "Description": "COBRAS",
+    "fitparam": {
+        "preprocessor": "supervised",
+        "preprocestraining": false,
+        "baseline": true
+    },
+    "cobrasparam": {
+        "metric_algo": ["EuclidianDistance", "SemiSupervisedMetric"],
+        "metric_algo_parameters": {},
+        "cluster_algo": ["KMeansClusterAlgorithm"],
+        "cluster_algo_parameters": {},
+        "metricflow": ["None", "iteration", "querylimit", "rebuildinstances"],
+        "flowparameters": {},
+        "instanceRebuilder": ["None"],
+        "instanceRebuilder_parameters": {}
+
+    }
+}
