@@ -45,7 +45,7 @@ class SplitResult(Enum):
     SPLIT_FAILED = 3
 
 
-class COBRAS:
+class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een random getal te genereren
     certainty_constraint_set: NewCertaintyConstraintSet
     clustering: Union[Clustering, None]
 
@@ -66,29 +66,28 @@ class COBRAS:
         ###################
         # METRIC LEARNING #
         ###################
-        metric_algo=None, # the matric_algo
-        end = False, # only for the baseline
-        localLearning = False, # learn locally
-        localClusterLearning = False, # learn locally on clusters, not instances
-        localTransformation = False, 
-        localOnALl = False, # each time you learn, it is done locally on all clusters/instances
-        # when to do it
-        beforeSplitting = False,
-        afterSplitting = False,
-        eachIteration = False, # Base case is no metric learning
-        # iterative keep results
-        iterative = False,
+        metric_algo = EuclidianDistance, 
+        metric_algo_parameters = {},
 
-        # what to do with the instances after learning it
-        rebuildInstance = None, # A class that can remake the instances at any time, but it is used to do it after metric learning
+        cluster_algo_parameters = {},
+
+        metricflow = None,
+        flowparameters = {},
+
+        instanceRebuilder = None,
+        instanceRebuilder_parameters =  {},
+
+        baseline = False,
+
+
+
+
 
         ###########
         # Logging #
-        ###########
+        ########### -> nog herbekijken
 
-        logExtraInfo = False,
-
-        reset = False
+        logExtraInfo = False
 
 
     ):
@@ -108,21 +107,8 @@ class COBRAS:
         ###################
         # METRIC LEARNING #
         ###################
-        self.end = end
-        if metric_algo is None:
-            self.metric_algo = EuclidianDistance()
-        else:
-            self.metric_algo = metric_algo["value"](**metric_algo["parameters"])
-        self.localLearning = localLearning
-        self.localClusterLearning = localClusterLearning
-        self.localTransformation = localTransformation
-        self.localOnALl = localOnALl
-        self.beforeSplitting = beforeSplitting
-        self.afterSplitting = afterSplitting
-        self.eachIteration = eachIteration
-        self.rebuildInstance = rebuildInstance
-        self.iterative = iterative,
-        self.reset = reset
+        self.end = baseline
+        self.metric_algo = EuclidianDistance()(**metric_algo_parameters)
 
         self.logExtraInfo = logExtraInfo
 
