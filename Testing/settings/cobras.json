@@ -8,13 +8,8 @@
     "cobrasparam": {
         "metric": ["EuclidianDistance", "SemiSupervisedMetric"],
         "metric_parameters": {},
-        "metric_algo": "semisupervised",
         "cluster_algo": ["KMeansClusterAlgorithm"],
-        "cluster_algo_parameters": {},
-        "metricflow": ["None", "iteration", "querylimit", "rebuildinstances"],
-        "flowparameters": {},
-        "instanceRebuilder": ["None"],
-        "instanceRebuilder_parameters": {}
+        "cluster_algo_parameters": {}
 
     }
 }

@@ -36,7 +36,7 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 )
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import EuclidianDistance
+from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
 
 
 class SplitResult(Enum):
@@ -67,35 +67,21 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric = EuclidianDistance, 
+        metric = EuclidianDistance,
         metric_parameters = {},
-
-        metric_algo = None,
-
         cluster_algo_parameters = {},
-
-        metricflow = None,
-        flowparameters = {},
-
-        instanceRebuilder = None,
-        instanceRebuilder_parameters =  {},
-
         baseline = False,
-
-
-
-
 
         ###########
         # Logging #
-        ########### -> nog herbekijken
+        ########### -> TODO
 
         logExtraInfo = False
 
 
     ):
 
-        self.seed = seed
+        self.seed = seed # seed is belangrijk!!!!!!!!!!!!!!!!!!!!!  
 
         # init data, querier, max_questions, train_indices and store_intermediate results
         # already initialised so object size does not change during execution
@@ -111,12 +97,15 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
         self.end = baseline
-        self.metric = EuclidianDistance()(**metric_parameters)
+        self.metric : MetricLearningAlgorithm = metric()(**metric_parameters)
 
-        self.metric_algo = metric_algo # gaat een dictionary zijn
+        #TODO: clustering parameters init
 
-        self.logExtraInfo = logExtraInfo
-
+        ###################
+        # METRIC LEARNING #
+        ###################
+        # logging
+        self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -160,15 +149,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         self.correct_noise = correct_noise
 
+    # LOGGER HERE!
     @property
     def clustering_logger(self):
-        return self._cobras_log
-    
-    ############################
-    # Metric transfor function #
-    ############################
-    def metricPhase(): #TODO: deze is voor de laatste 
-        pass     
+        return self._cobras_log   
 
 
     def fit(self, X, nb_clusters, train_indices, querier):
@@ -195,12 +179,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
 
-        self.initialData = np.copy(X)
-
-        ###############################
-        # Metric initialisation phase #
-        ###############################
-        # TODO
+        # self.initialData = np.copy(X) -> not needed anymore
 
         # initial clustering: all instances in one superinstance in one cluster
         initial_superinstance = self.create_superinstance(
@@ -218,6 +197,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
 
+            ######################
+            # Metric learn phase #
+            ######################
+            skipSplit = False
+            if self.metric.executeNow('begin'):
+                skipSplit = self.metric.learn(self, None, None)
+
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(self.clustering)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
@@ -225,38 +211,38 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             #################################
             # Test for CL in zelfde cluster #
             #################################
-            ml_wrong = 0
-            cl_wrong = 0
-            total = 0
-            # go over the different constraints and chech ik they are wrong
-            labels = np.array(self.clustering_to_store)
-            for constraint in self.constraint_index:
-                total += 1
-                if len(np.unique(labels[[constraint.i1, constraint.i2]])) == 1:
-                    if constraint.is_CL():
-                        cl_wrong += 1
-                if len(np.unique(labels[[constraint.i1, constraint.i2]])) > 1:
-                   if constraint.is_ML():
-                        ml_wrong += 1 
-            print(f"ml_wrong: {ml_wrong}")
-            print(f"cl_wrong: {cl_wrong}")
-            print(f"total: {total}")
+            # ml_wrong = 0
+            # cl_wrong = 0
+            # total = 0
+            # # go over the different constraints and chech ik they are wrong
+            # labels = np.array(self.clustering_to_store)
+            # for constraint in self.constraint_index:
+            #     total += 1
+            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) == 1:
+            #         if constraint.is_CL():
+            #             cl_wrong += 1
+            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) > 1:
+            #        if constraint.is_ML():
+            #             ml_wrong += 1 
+            # print(f"ml_wrong: {ml_wrong}")
+            # print(f"cl_wrong: {cl_wrong}")
+            # print(f"total: {total}")
 
            
-
-
-            # splitting phase
-            self._cobras_log.log_entering_phase("splitting")
-            statuscode = self.split_next_superinstance()
-            if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
-                # there is no split left to be done
-                # we have produced the best clustering
-                break
-            elif statuscode == SplitResult.SPLIT_FAILED:
-                # tried to split a superinstance but failed to split it
-                # this is recorded in the superinstance
-                # we will split another superinstance in the next iteration
-                continue
+            # only split when you are allowed to
+            if not skipSplit: 
+                # splitting phase
+                self._cobras_log.log_entering_phase("splitting")
+                statuscode = self.split_next_superinstance()
+                if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
+                    # there is no split left to be done
+                    # we have produced the best clustering
+                    break
+                elif statuscode == SplitResult.SPLIT_FAILED:
+                    # tried to split a superinstance but failed to split it
+                    # this is recorded in the superinstance
+                    # we will split another superinstance in the next iteration
+                    continue
 
             # merging phase
             self._cobras_log.log_entering_phase("merging")
@@ -293,15 +279,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             if fully_merged or last_valid_clustering is None:
                 last_valid_clustering = copy.deepcopy(self.clustering)
 
-            if self.reset:
-                self.data = np.copy(self.initialData)
-            # with an if statement
-            # 
+
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()
 
-        # collect results and return
+        # collect results and return TODO: fixing the logging
         all_clusters = self._cobras_log.get_all_clusterings()
         runtimes = self._cobras_log.get_runtimes()
         transformations = self._cobras_log.getTransformation()
@@ -309,10 +292,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
 
-        ######################
-        # Metric learn phase #
-        ######################
-        self.metricPhase(end = True) # nog veranderen
+        # ######################
+        # # Metric learn phase #
+        # ######################
+        # self.metricPhase(end = True) # nog veranderen
 
         return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
 
@@ -344,13 +327,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ######################
         # Metric learn phase #
         ######################
-        self.metricPhase() # nog aanpassen
-        # en dan hier een superinstance fixing state
+        if self.metric.executeNow('before_splitting'):
+            self.metric.learn(self, to_split, originating_cluster)
                 
         new_super_instances = self.split_superinstance(to_split, split_level)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
+
+        ######################
+        # Metric learn phase #
+        ###################### -> kan nuttig zijn voor wanneer dat er enkel nieuwe instances worden gemaakt
+        if self.metric.executeNow('after_splitting'):
+            self.metric.learn(self, to_split, originating_cluster)
 
         new_clusters = self.add_new_clusters_from_split(new_super_instances)
 
