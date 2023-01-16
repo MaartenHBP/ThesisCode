@@ -66,8 +66,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        metric_algo = EuclidianDistance, 
-        metric_algo_parameters = {},
+
+        metric = EuclidianDistance, 
+        metric_parameters = {},
+
+        metric_algo = None,
 
         cluster_algo_parameters = {},
 
@@ -108,7 +111,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
         self.end = baseline
-        self.metric_algo = EuclidianDistance()(**metric_algo_parameters)
+        self.metric = EuclidianDistance()(**metric_parameters)
+
+        self.metric_algo = metric_algo # gaat een dictionary zijn
 
         self.logExtraInfo = logExtraInfo
 
@@ -162,53 +167,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     ############################
     # Metric transfor function #
     ############################
-    def metricPhase(self, end = False, # booleans are for when to do metriclearning
-        beforeSplitting = False,
-        afterSplitting = False,
-        eachIteration = False,
-        superinstance = None,
-        cluster = None):
-        perform = False
-        if (end and self.end):
-            perform = True
-            # self.metric_algo.learn(self)
-            # self.data = self.metric_algo.transformData(self.data)
-        if (beforeSplitting and self.beforeSplitting):
-            perform = True
-        if (afterSplitting and self.afterSplitting):
-            perform = True
-        if (eachIteration and self.eachIteration):
-            perform = True
-        if perform:
-            if self.localOnALl:
-                return # stil needs to be implementes
-                # for cluster in self.clustering.clusters:
-                #     for superinstance in cluster.super_instances:
-                #         pass
-            else:
-                local = None
-                if (self.localLearning):
-                    local = superinstance.train_indices
-                if self.localClusterLearning:
-                    local = cluster.get_all_points()
-                # Learn #
-                self.metric_algo.learn(self, local)
-                if (not self.localTransformation):
-                    local = None
-                # Transform #
-                if self.iterative:
-                    self.data = self.metric_algo.transformData(self.data, local)
-                else:
-                    self.data = self.metric_algo.transformData(self.initialData, local)
-
-            # if needed redo some super instances
-            if (self.rebuildInstance): # cluster meegeven voor als ge het enkel daar wilt (op level van die class gedaan) en mss de boolean
-                pass
-            if (self.iterative):
-                self.metric_algo.addData(self.data)
-
-            
-
+    def metricPhase(): #TODO: deze is voor de laatste 
+        pass     
 
 
     def fit(self, X, nb_clusters, train_indices, querier):
@@ -240,8 +200,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###############################
         # Metric initialisation phase #
         ###############################
-        self.metric_algo.addData(self.data)
-        self.metric_algo.addTrainigIndices(self.train_indices)
+        # TODO
 
         # initial clustering: all instances in one superinstance in one cluster
         initial_superinstance = self.create_superinstance(
@@ -250,7 +209,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         initial_clustering = Clustering([Cluster([initial_superinstance])])
         self.clustering = initial_clustering
 
-        ### SUPERINSTANCES ###
+        ### SUPERINSTANCES ### -> deze logger nog fixen
         self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
         self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
@@ -334,18 +293,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             if fully_merged or last_valid_clustering is None:
                 last_valid_clustering = copy.deepcopy(self.clustering)
 
-            ######################
-            # Metric learn phase #
-            ######################
-            self.metricPhase(eachIteration = True)
-
-            if self.logExtraInfo: #TODO: log superinstances after each queir asked
-            # after each iteration, keep the current data, so afterwards you can see all the transformations
-                self._cobras_log.addTransformation(self.data)
-                ### SUPERINSTANCES ###
-                self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-                self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
-
             if self.reset:
                 self.data = np.copy(self.initialData)
             # with an if statement
@@ -365,7 +312,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ######################
         # Metric learn phase #
         ######################
-        self.metricPhase(end = True)
+        self.metricPhase(end = True) # nog veranderen
 
         return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
 
@@ -397,18 +344,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ######################
         # Metric learn phase #
         ######################
-        self.dataPrevious = np.copy(self.data)
-        self.metricPhase(beforeSplitting = True, superinstance = to_split, cluster = originating_cluster)
-        
+        self.metricPhase() # nog aanpassen
+        # en dan hier een superinstance fixing state
+                
         new_super_instances = self.split_superinstance(to_split, split_level)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
-
-        ######################
-        # Metric learn phase #
-        ######################
-        self.metricPhase(afterSplitting= True) # dees lijkt me de meest nutteloze
 
         new_clusters = self.add_new_clusters_from_split(new_super_instances)
 

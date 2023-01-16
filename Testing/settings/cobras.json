@@ -6,8 +6,9 @@
         "baseline": true
     },
     "cobrasparam": {
-        "metric_algo": ["EuclidianDistance", "SemiSupervisedMetric"],
-        "metric_algo_parameters": {},
+        "metric": ["EuclidianDistance", "SemiSupervisedMetric"],
+        "metric_parameters": {},
+        "metric_algo": "semisupervised",
         "cluster_algo": ["KMeansClusterAlgorithm"],
         "cluster_algo_parameters": {},
         "metricflow": ["None", "iteration", "querylimit", "rebuildinstances"],
