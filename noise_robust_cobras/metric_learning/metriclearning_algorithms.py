@@ -5,21 +5,26 @@ import numpy as np
 from metric_learn import *
 from noise_robust_cobras.metric_learning.metricLearners import *
 
+
 class MetricLearningAlgorithm: # abstract class
     def __init__(self, when: str = 'before_splitting') -> None:
-        self.affinity = None # the result could be an affinity matrix, so set it
+        self.transformed = None # -> this way just gives a little more power for controlling
+        self.affinity = None # for when we need the affinity matrix (spectral transformation could give both, it then depends which type of algorithm uses the metric learn results)
+        ######################## -> affinity is always for the whole dataset (ga ervan uit dat dit zo is bij de metriclearners)
+        self.orginal = None
+        ########################
         self.when = when
     @abstractmethod
     def learn(self, cobras, current_superinstance, current_cluster):
         pass
         # returned momenteel nothing, zet gewoon wat variables aan
 
-    def getConstraints(self, cobras, localData = None, both = False):
-        '''
-        localdata: which data te be taken in consideration
-        both: both the points of constraints need te be in localdata
-        '''
-        pass
+    # def getConstraints(self, cobras, localData = None, both = False): -> zie de constraint index
+    #     '''
+    #     localdata: which data te be taken in consideration
+    #     both: both the points of constraints need te be in localdata
+    #     '''
+    #     pass
 
     def executeNow(self, when: str):
         '''
@@ -30,38 +35,89 @@ class MetricLearningAlgorithm: # abstract class
 
         return self.when == when 
 
+    def setOriginal(self, X):
+        self.orginal = np.copy(X)
+
+#################
+# basic options #
+#################
+
 class BasicLearning(MetricLearningAlgorithm):
-    def __init__(self, metric, when: str = 'before_splitting') -> None:
+    def __init__(self, metric = None, local = False, # rebuilder has to be created already
+    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting') -> None:
         super().__init__(when)
         self.metric = metric
+        ###########################
+        self.local = local
+        self.cluster = cluster
+        self.both = both
+        ###########################
+        self.useTransformed = useTransformed
+        self.iterative = iterative
+        ###########################
+        self.queriesNeeded = 0
 
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
-        return super().learn(cobras, current_superinstance, current_cluster)
+        # first get the constraints
+        local = current_cluster.get_all_points() if current_cluster else (current_superinstance.indices if current_superinstance else None)
+        pairs, constraints = cobras.constraint_index.getLearningConstraints(local, self.both)
+        result = False
+        if self.metric:
+            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # metric is a dictionary en gaan met wrappers wekren
+            self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
+            if self.useTransformed:
+                cobras.data = np.copy(self.transformed)
+            if self.iterative:
+                self.orginal = np.copy(self.transformed)
+        if cobras.rebuilder: # COBRAS has a rebuilder
+            data = self.orginal if self.transformed is None else self.transformed # normally work with transformed
+            result = cobras.rebuilder(cobras, data, self.affinity)
+        return result
 
 class LearnOnce(BasicLearning):
-    def __init__(self, metric, when: str = 'before_splitting', once = False) -> None:
-        super().__init__(metric, when)
+    def __init__(self, metric = None, local = False, 
+    cluster = False, both = False, useTransformed =  True,  iterative = False, when: str = 'before_splitting', once = False) -> None:
+        super().__init__(metric, local, cluster, both, useTransformed, iterative, when)
         self.once = once
         self.finished = False
 
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the one
-        return super().learn(cobras, current_superinstance, current_cluster)
+        if not self.finished:
+            self.finished = self.once
+            return super().learn(cobras, current_superinstance, current_cluster)
+        return False
+            
 
 class IterationLearning(LearnOnce):
-    def __init__(self, metric, when: str = 'before_splitting', once=False) -> None:
-        super().__init__(metric, when, once)
-        self.amount = 0
+    def __init__(self, metric = None, local = False, 
+    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting', once=False, amount = 0) -> None:
+        super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
+        self.amount = amount
         self.count = 0
         
     def learn(self, cobras, current_superinstance, current_cluster):
-        return super().learn(cobras, current_superinstance, current_cluster)
+        if self.count < self.amount:
+            self.count += 1
+            return False
+        else:
+            self.count = 0
+            return super().learn(cobras, current_superinstance, current_cluster)
 
 class QueriesLearning(LearnOnce):
-    def __init__(self, metric, when: str = 'before_splitting', once=False, queriesNeeded = 0) -> None:
-        super().__init__(metric, when, once)
-        self.queriesNeeded = 0
+    def __init__(self, metric = None, local = False, 
+    cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting', once=False, queriesNeeded = 0) -> None:
+        super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
+        self.queriesNeeded = queriesNeeded
 
+    def learn(self, cobras, current_superinstance, current_cluster):
+        return super().learn(cobras, current_superinstance, current_cluster)
 
+#######################
+# Euclidian distance  #
+#######################
+class EuclidianDistance(MetricLearningAlgorithm):
+    def learn(self, cobras, current_superinstance, current_cluster):
+        return False
 
 # # Easy option is to transform the data and still work with euclidian distance (but does this suffice?)
 # class MetricLearningAlgorithm:

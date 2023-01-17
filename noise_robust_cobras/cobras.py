@@ -37,6 +37,7 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
+from noise_robust_cobras.metric_learning.rebuildInstance import *
 
 
 class SplitResult(Enum):
@@ -47,11 +48,14 @@ class SplitResult(Enum):
 
 class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een random getal te genereren
     certainty_constraint_set: NewCertaintyConstraintSet
-    clustering: Union[Clustering, None]
+    clustering: Union[Clustering, None] # aha met die union (kan ook nuttig zijn voor bepaalde string opties TODO
 
     def __init__(
         self,
+        ###########################################################
         cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm(),
+        rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm(),
+        ###########################################################
         superinstance_builder: SuperInstanceBuilder = KMeans_SuperinstanceBuilder(),
         split_superinstance_selection_heur: SuperinstanceSelectionHeuristic = None,
         splitlevel_strategy=None,
@@ -67,9 +71,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric = EuclidianDistance,
-        metric_parameters = {},
-        cluster_algo_parameters = {},
+        metric = EuclidianDistance(), # gaan ervanuit dat de caller deze classes al heet initilised
+        rebuilder: InstanceRebuilder = None,
         baseline = False,
 
         ###########
@@ -97,8 +100,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
         self.end = baseline
-        self.metric : MetricLearningAlgorithm = metric()(**metric_parameters)
-
+        self.metric =  metric #metric()(**metric_parameters)
+        self.rebuild_cluster = rebuild_cluster # clustering algo for rebuilding the instances, momenteel worden er nog geen parameters meegegeven (enkel werken met de standaard)
+        self.rebuilder = rebuilder
         #TODO: clustering parameters init
 
         ###################
@@ -171,11 +175,15 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         self.random_generator = np.random.default_rng(self.seed)
         self._cobras_log.log_start_clustering()
-        self.data = X # data = X, deze moeten we dan indien nodig transformere
+        self.data = X
+        #######################
+        # Initializing metric #
+        #######################
+        self.metric.setOriginal(self.data)
         self.train_indices = (
             train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
         )
-        self.split_superinstance_selection_heur.set_clusterer(self)
+        self.split_superinstance_selection_heur.set_clusterer(self) # nadenken over dit design
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
 
@@ -438,7 +446,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         # cluster the instances of the superinstance
         clusters = self.cluster_algo.cluster(
-            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000)
+            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed is superrandom hier
         )
 
         # based on the resulting clusters make new superinstances
@@ -452,7 +460,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             si_train_indices = [x for x in cur_indices if x in self.train_indices]
             if len(si_train_indices) != 0:
-                training.append(self.create_superinstance(cur_indices, si))
+                training.append(self.create_superinstance(cur_indices, si)) # hier wordt de parent gezet
             else:
                 no_training.append(
                     (cur_indices, np.mean(self.data[cur_indices, :], axis=0))
@@ -467,7 +475,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             )
             closest_train.indices.extend(indices)
 
-        si.children = training
+        si.children = training 
         return training
 
     @staticmethod

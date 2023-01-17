@@ -6,7 +6,7 @@ from sklearn.cluster import KMeans
 
 class ClusterAlgorithm:
     @abc.abstractmethod
-    def cluster(self, data, indices, k, ml, cl, seed=None):
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # Added extra stuff for more advanced stuff
         pass
 
     def get_name(self):
@@ -52,7 +52,55 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10):
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None):
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!, ml and cl not used
+        if seed is not None:
+            km = KMeans(k, n_init=self.n_runs, random_state=seed)
+        else:
+            km = KMeans(k, n_init=self.n_runs)
+
+        # only cluster the given indices
+        km.fit(data[indices, :])
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int)
+
+class SpectralClusterAlgorithm(ClusterAlgorithm):
+    def __init__(self, n_runs=10):
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
+        if seed is not None:
+            km = KMeans(k, n_init=self.n_runs, random_state=seed)
+        else:
+            km = KMeans(k, n_init=self.n_runs)
+
+        # only cluster the given indices
+        km.fit(data[indices, :])
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int)
+
+class KMeansFixedCentreClusterAlgorithm(ClusterAlgorithm):
+    def __init__(self, n_runs=10):
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
+        if seed is not None:
+            km = KMeans(k, n_init=self.n_runs, random_state=seed)
+        else:
+            km = KMeans(k, n_init=self.n_runs)
+
+        # only cluster the given indices
+        km.fit(data[indices, :])
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int)
+
+class FixedCentreClusteringAlgorithm(ClusterAlgorithm):
+    def __init__(self, n_runs=10):
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
         if seed is not None:
             km = KMeans(k, n_init=self.n_runs, random_state=seed)
         else:
