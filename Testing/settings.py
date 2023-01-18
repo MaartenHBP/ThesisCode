@@ -121,6 +121,38 @@ class metricSettings:
             kmeans.fit(self.transformed)
             self.clustTransformed = kmeans.labels_
 
+    def exectuteSpectral(self, data): # ff snel gemaakt voor te testen TODO
+        kmeans = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= 10).fit(data)
+        # kmeans = SpectralClustering(n_clusters=2,
+        # eigen_solver="arpack", affinity='nearest_neighbors').fit(data)
+        # kmeans.fit(data)
+        self.clustOriginal = kmeans.labels_
+        if not self.transformed is None:
+            sp = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= 10).fit(self.transformed)
+            self.clustTransformed = sp.labels_
+
+    def executeSpectralSpecial(self, data):
+        kmeans = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= 10).fit(data)
+        aff = kmeans.affinity_matrix_
+        yc = np.copy(self.constraints)
+        yc[yc==-1] = 0
+        aff[self.pairs[:,0], self.pairs[:,1]] = yc
+        aff[self.pairs[:,1], self.pairs[:,0]] = yc
+        kmeans = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='precomputed').fit(aff)
+        # kmeans = SpectralClustering(n_clusters=2,
+        # eigen_solver="arpack", affinity='nearest_neighbors').fit(data)
+        # kmeans.fit(data)
+        self.clustOriginal = kmeans.labels_
+        if not self.transformed is None:
+            kmeans = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= 10).fit(self.transformed)
+            aff = kmeans.affinity_matrix_
+            yc = np.copy(self.constraints)
+            yc[yc==-1] = 0
+            aff[self.pairs[:,0], self.pairs[:,1]] = yc
+            aff[self.pairs[:,1], self.pairs[:,0]] = yc
+            kmeans = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='precomputed').fit(aff)
+            self.clustTransformed = kmeans.labels_
+
 
     # def executeCOBRAS(self, data, onOrig = True):
     #     if self.transformed and not onOrig:

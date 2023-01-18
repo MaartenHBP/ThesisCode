@@ -24,6 +24,8 @@ class SuperInstance:
         self.children = None
         self.parent = parent
 
+        self.transformed = False # this is for the rebuild step
+
     def get_representative_idx(self):
         try:
             return self.representative_idx

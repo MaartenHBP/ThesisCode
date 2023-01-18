@@ -241,6 +241,12 @@ with st.container(): # container as
 with st.container(): # container as
     cola, colb, colc, cold = st.columns(4)
     with colb:
+            if st.button('Exectute spectral'):
+                st.session_state.settings[st.session_state.current].exectuteSpectral(st.session_state.original[:,1:])
+                st.experimental_rerun()
+            if st.button('Exectute special spectral'):
+                st.session_state.settings[st.session_state.current].executeSpectralSpecial(st.session_state.original[:,1:])
+                st.experimental_rerun()
             st.number_input('Number of new constraints', key = 'nbconst', value=5)
 st.markdown("""---""")
 

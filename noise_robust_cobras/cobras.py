@@ -71,8 +71,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric = EuclidianDistance(), # gaan ervanuit dat de caller deze classes al heet initilised
-        rebuilder: InstanceRebuilder = None,
+        metric = IterationLearning(when = 'begin', amount=10, metric = {"value": ITML, "parameters": {}}, once = True), # gaan ervanuit dat de caller deze classes al heet initilised
+        rebuilder: InstanceRebuilder = ClosestInstance(),
         baseline = False,
 
         ###########
@@ -180,6 +180,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # Initializing metric #
         #######################
         self.metric.setOriginal(self.data)
+
+
         self.train_indices = (
             train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
         )

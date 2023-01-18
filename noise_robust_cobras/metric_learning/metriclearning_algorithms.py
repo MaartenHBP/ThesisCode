@@ -64,14 +64,15 @@ class BasicLearning(MetricLearningAlgorithm):
         result = False
         if self.metric:
             self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # metric is a dictionary en gaan met wrappers wekren
-            self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
+            # self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
+            self.transformed= np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal))) # kmoet nog wrappers maken
             if self.useTransformed:
                 cobras.data = np.copy(self.transformed)
             if self.iterative:
                 self.orginal = np.copy(self.transformed)
         if cobras.rebuilder: # COBRAS has a rebuilder
             data = self.orginal if self.transformed is None else self.transformed # normally work with transformed
-            result = cobras.rebuilder(cobras, data, self.affinity)
+            result = cobras.rebuilder.rebuildInstances(cobras, data, self.affinity)
         return result
 
 class LearnOnce(BasicLearning):
@@ -103,7 +104,7 @@ class IterationLearning(LearnOnce):
             self.count = 0
             return super().learn(cobras, current_superinstance, current_cluster)
 
-class QueriesLearning(LearnOnce):
+class QueriesLearning(LearnOnce): # deze is nog niet af
     def __init__(self, metric = None, local = False, 
     cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting', once=False, queriesNeeded = 0) -> None:
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
