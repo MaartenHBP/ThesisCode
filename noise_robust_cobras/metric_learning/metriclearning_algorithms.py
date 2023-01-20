@@ -55,7 +55,6 @@ class BasicLearning(MetricLearningAlgorithm):
         self.useTransformed = useTransformed
         self.iterative = iterative
         ###########################
-        self.queriesNeeded = 0
 
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
         # first get the constraints
@@ -110,7 +109,9 @@ class QueriesLearning(LearnOnce): # deze is nog niet af
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
         self.queriesNeeded = queriesNeeded
 
-    def learn(self, cobras, current_superinstance, current_cluster):
+    def learn(self, cobras, current_superinstance, current_cluster): # dubbele berekening van constraints
+        if len(cobras.constraint_index.constraints) < self.queriesNeeded:
+            return False
         return super().learn(cobras, current_superinstance, current_cluster)
 
 #######################

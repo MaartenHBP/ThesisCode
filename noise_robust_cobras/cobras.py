@@ -71,8 +71,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric = IterationLearning(when = 'begin', amount=10, metric = {"value": ITML, "parameters": {}}, once = True), # gaan ervanuit dat de caller deze classes al heet initilised
-        rebuilder: InstanceRebuilder = ClosestInstance(),
+        metric = None, # gaan ervanuit dat de caller deze classes al heet initilised
+        rebuilder: InstanceRebuilder = ClusterAgain(),
         baseline = False,
 
         ###########
@@ -173,7 +173,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 ml and cl are both lists of tuples representing the must-link and cannot-link constraints
                 note: these are the constraints that we got from the user! So there might be noisy constraints in these lists!
         """
-        self.random_generator = np.random.default_rng(self.seed)
+        self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
         self._cobras_log.log_start_clustering()
         self.data = X
         #######################
@@ -212,6 +212,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             ######################
             skipSplit = False
             if self.metric.executeNow('begin'):
+                print("here")
                 skipSplit = self.metric.learn(self, None, None)
 
             # during this iteration store the current clustering
@@ -448,7 +449,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         # cluster the instances of the superinstance
         clusters = self.cluster_algo.cluster(
-            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed is superrandom hier
+            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
         )
 
         # based on the resulting clusters make new superinstances

@@ -11,26 +11,53 @@ import pandas as pd
 from sklearn.cluster import KMeans
 import math
 from sklearn.cluster import SpectralClustering
-dataset_path = Path('testing/datasets/cobras-paper/UCI/iris.data').absolute()
+import matplotlib.pyplot as plt
+from sklearn.metrics import adjusted_rand_score
+seeds = [3,25 ,78, 99, 105, 2, 33]
+dataset_path = Path('testing/datasets/cobras-paper/UCI/sonar.data').absolute()
 dataset = np.loadtxt(dataset_path, delimiter=',')
 data = dataset[:, 1:]
 target = dataset[:, 0]
-querier2 = LabelQuerier(None, target, 200)
-clusterer = COBRAS(correct_noise=False)
-all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(data, -1, None, querier2)
 
-querier2 = LabelQuerier(None, target, 200)
-clusterer = COBRAS(correct_noise=False, metric = EuclidianDistance())
-all_clusters2, *_ = clusterer.fit(data, -1, None, querier2)
+mean = np.zeros(200) # hebben eigenlijk andere metrieken nodig om deze dingen te testen (komt wrs op hetzelfde neer)
+meanM = np.zeros(200)
+meanMeh = np.zeros(200)
+
+for seed in seeds:
+    print(seed)
+    querier2 = LabelQuerier(None, target, 200)
+    clusterer = COBRAS(correct_noise=False, seed=seed, metric = QueriesLearning(when = 'begin', queriesNeeded=32, metric = None, once = True))
+    all_clusters3, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(data, -1, None, querier2)
+    if len(all_clusters3) < 200:
+        diff = 200 - len(all_clusters)
+        for ex in range(diff):
+            all_clusters3.append(all_clusters3[-1])
+
+    querier2 = LabelQuerier(None, target, 200)
+    clusterer = COBRAS(correct_noise=False, seed=seed, metric = QueriesLearning(when = 'begin', queriesNeeded=32, metric = {"value": MMC, "parameters": {}}, once = True))
+    all_clusters, runtimes, superinstances, clusterIteration, *_ = clusterer.fit(data, -1, None, querier2)
+    if len(all_clusters) < 200:
+        diff = 200 - len(all_clusters)
+        for ex in range(diff):
+            all_clusters.append(all_clusters[-1])
+
+    querier2 = LabelQuerier(None, target, 200)
+    clusterer = COBRAS(correct_noise=False, metric = EuclidianDistance(), seed=seed)
+    all_clusters2, *_ = clusterer.fit(data, -1, None, querier2)
+    if len(all_clusters2) < 200:
+        diff = 200 - len(all_clusters2)
+        for ex in range(diff):
+            all_clusters2.append(all_clusters2[-1])
+
+    meanM += np.array([adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters])
+    mean += np.array([adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters2])
+    meanMeh += np.array([adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters3])
 
 
-import matplotlib.pyplot as plt
-from sklearn.metrics import adjusted_rand_score
-x = np.arange(len(all_clusters))
-IRA = np.array([adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters])
-IRA_normal = np.array([adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters2])
-x_2 = np.arange(len(all_clusters2))
-plt.plot(x, IRA, color='r', label='mCOBRAS')
-plt.plot(x_2, IRA_normal, color='g', label='COBRAS')
+
+x = np.arange(200)
+plt.plot(x, meanM/len(seeds), color='r', label='mCOBRAS')
+plt.plot(x, meanMeh/len(seeds), color='b', label='rebuildOnly')
+plt.plot(x, mean/len(seeds), color='g', label='COBRAS')
 plt.legend()
 plt.show()

@@ -1,5 +1,6 @@
 from abc import abstractmethod
 import numpy as np
+from sklearn.cluster import KMeans
 
 class InstanceRebuilder: # hier kunnen de parent child relatie kapot gemaakt worden
     @abstractmethod
@@ -43,7 +44,7 @@ class ClosestInstance(InstanceRebuilder): # deze nu al testen
             closest = min(
                 repres,
                 key=lambda x: np.linalg.norm(
-                    data[repres] - data[idx]
+                    data[x] - data[idx]
                 ),
             )
             closest_per_index.append(closest)
@@ -61,4 +62,19 @@ class ClusterAgain(InstanceRebuilder):
         super().__init__(selection_strategy)
 
     def rebuildInstances(self, cobras, data, affinitymatrix):
-        return True # cause the merge phase need to happen again
+        super = cobras.clustering.get_superinstances()
+        repres = np.array([s.get_representative_idx() for s in super])
+
+        km = KMeans(len(super), init = data[repres], random_state=cobras.random_generator.integers(1,1000000))
+        km.fit(data)
+        indices = np.arange(len(data))
+
+        cluster = np.array(km.labels_)
+        
+        new_supers = [cobras.create_superinstance(indices[cluster == i].tolist()) for i in set(cluster)]
+
+        new_clusters = cobras.add_new_clusters_from_split(new_supers)
+
+        cobras.clustering.clusters = new_clusters
+
+        return True
