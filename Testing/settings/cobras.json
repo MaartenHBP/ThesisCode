@@ -13,7 +13,7 @@
         "rebuild_cluster":["None"],
         "rebuild_cluster_parameters": {},
         "rebuilder": ["None"],
-        "rebuilder_parameters: {}"
+        "rebuilder_parameters": {}
 
 
     }
