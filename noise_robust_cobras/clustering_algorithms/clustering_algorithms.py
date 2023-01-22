@@ -52,11 +52,13 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10):
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!, ml and cl not used
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): #ml and cl not used
+        init = 'k-means++' if centers is None else centers 
+        
         if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed)
+            km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
         else:
-            km = KMeans(k, n_init=self.n_runs)
+            km = KMeans(k, n_init=self.n_runs, init = init)
 
         # only cluster the given indices
         km.fit(data[indices, :])

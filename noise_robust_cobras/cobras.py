@@ -72,7 +72,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
 
         metric = None, # gaan ervanuit dat de caller deze classes al heet initilised
-        rebuilder: InstanceRebuilder = ClusterAgain(),
+        rebuilder = None,
         baseline = False,
 
         ###########
@@ -100,7 +100,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
         self.end = baseline
-        self.metric =  metric #metric()(**metric_parameters)
+        self.metric =  metric if metric is not None else EuclidianDistance()
         self.rebuild_cluster = rebuild_cluster # clustering algo for rebuilding the instances, momenteel worden er nog geen parameters meegegeven (enkel werken met de standaard)
         self.rebuilder = rebuilder
         #TODO: clustering parameters init

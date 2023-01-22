@@ -50,9 +50,18 @@ def runAlgo(seed, dataName, parameters):
 
 def run():
     with LocalCluster() as cluster, Client(cluster) as client:
+
+        ##########################################################
+        # all the results
+        all_results = pd.DataFrame()
+        path_results = Path(f'{EXPERIMENT_PATH}/results').absolute()
+        if os.path.exists(path_results):
+            all_results = pd.read_csv(path_results, index_col=0)
+        ##########################################################
+
         #########################################################
         # run normal COBRAS first
-        cobras = None
+        cobras = None # the results drom COBRAS
         path_cobras = Path(f"{EXPERIMENT_PATH}/COBRAS").absolute()
         if os.path.exists(pathMean):
             cobras = pd.read_csv(path_cobras, index_col=0)
@@ -67,6 +76,9 @@ def run():
                 results = np.array(client.gather(futures))
                 cobras[nameData] = np.mean(results, axis=1)
                 print(f"Finished running COBRAS")
+            cobras["total"] = cobras.mean(axis=0)
+            all_results["Cobras"] = cobras["total"]
+            all_results.to_csv(path_results)
             cobras.to_csv(f"{EXPERIMENT_PATH}/COBRAS")
         ##########################################################
 
@@ -80,13 +92,6 @@ def run():
             print("created folder : ", path)
         ##########################################################
 
-        ##########################################################
-        # all the results
-        all_results = pd.DataFrame()
-        path_results = Path(f'{EXPERIMENT_PATH}/results').absolute()
-        if os.path.exists(path_results):
-            all_results = pd.read_csv(path_results, index_col=0)
-        ##########################################################
 
         ##########################################################
         path_data = Path('queue').absolute()
@@ -170,10 +175,27 @@ def run():
                     os.makedirs(path)
                     print("created folder : ", path)
                 
-                totalMean = np.zeros(QUERYLIMIT)
+                if os.path.exists(pathMean):
+                    mean = pd.read_csv(pathMean, index_col=0)
+
+                mean["total"] = mean.mean(axis=0)
+                all_results[i] = mean["total"]
+                all_results.to_csv(path_results)
+
+                mean.to_csv(f'{path_exp}/ARI')
+
+                pic = pd.DataFrame()
 
                 for key, value in mean.items():
-                    pass # the results of plain COBRAS are needed here
+                    totalMean += value
+                    pic["Cobras"] = cobras[key]
+                    pic[i] = value
+
+                    pic.plot()
+                    plt.savefig(f"{path_exp}/{i}.png")
+
+                all_results[["Cobras", i]].plot()
+                plt.savefig(f"{path_exp}/total.png")
 
                 ##########################################################
 

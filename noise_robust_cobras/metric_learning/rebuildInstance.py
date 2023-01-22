@@ -17,12 +17,12 @@ class InstanceRebuilder: # hier kunnen de parent child relatie kapot gemaakt wor
         if self.selection_strategy == 'all':
             cobras.clustering.get_superinstances()
             if removeFromClusters:
-                pass
+                cobras.clustering.clusters = [] # all clusters must be gone
             pass # return all superinstances
         if self.selection_strategy == 'ClusterMostCL':
             pass # select the cluster with the most CL inside
         if self.selection_strategy == 'Wrong clusters':
-            pass # select the clusters that are 
+            pass # select the clusters that have must-link to other clusters 
     def CreateNewInstances(self, cobras, removeFromClusters = False): # if removed from the cluster it needs to be put back in a new one
         pass
 ################ Rebuild the existing superinstances ################################
@@ -31,7 +31,7 @@ class ClosestInstance(InstanceRebuilder): # deze nu al testen
         super().__init__(selection_strategy)
 
     def rebuildInstances(self, cobras, data, affinitymatrix):
-        super = cobras.clustering.get_superinstances()
+        super = self.SelectInstances(cobras, False)
         repres = [s.get_representative_idx() for s in super]
         indices = []
         for s in super: indices.extend(s.indices) 
@@ -58,23 +58,26 @@ class ClosestInstance(InstanceRebuilder): # deze nu al testen
 # other algorithms that use the concept of "closest superinstances" -> calculate it using the points from the orinal superinstances transformed
 ################## Build new superinstances ##############################
 class ClusterAgain(InstanceRebuilder):
-    def __init__(self, selection_strategy: str = 'all') -> None:
+    def __init__(self, selection_strategy: str = 'all', useCentres = False) -> None:
         super().__init__(selection_strategy)
+        self.useCentres = useCentres
 
     def rebuildInstances(self, cobras, data, affinitymatrix):
-        super = cobras.clustering.get_superinstances()
-        repres = np.array([s.get_representative_idx() for s in super])
+        super = self.SelectInstances(cobras, True)
 
-        km = KMeans(len(super), init = data[repres], random_state=cobras.random_generator.integers(1,1000000))
-        km.fit(data)
+        repres = np.array([s.get_representative_idx() for s in super]) if self.useCentres else None
+
+    
         indices = np.arange(len(data))
 
-        cluster = np.array(km.labels_)
+        cluster = np.array(cobras.rebuild_cluster.cluster(self, data, indices, len(super), [], [], seed=cobras.random_generator.integers(1,1000000), affinity = affinitymatrix, centers = repres))
+        
         
         new_supers = [cobras.create_superinstance(indices[cluster == i].tolist()) for i in set(cluster)]
 
         new_clusters = cobras.add_new_clusters_from_split(new_supers)
 
-        cobras.clustering.clusters = new_clusters
+        cobras.clustering.clusters.extend(new_clusters)
 
         return True
+
