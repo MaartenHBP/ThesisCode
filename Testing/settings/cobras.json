@@ -3,7 +3,7 @@
     "fitparam": {
         "preprocessor": "supervised",
         "preprocestraining": false,
-        "baseline": true
+        "baseline": false
     },
     "cobrasparam": {
         "metric": ["EuclidianDistance", "SemiSupervisedMetric"],

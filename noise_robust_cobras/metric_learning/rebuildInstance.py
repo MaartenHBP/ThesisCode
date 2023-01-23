@@ -24,7 +24,7 @@ class InstanceRebuilder: # hier kunnen de parent child relatie kapot gemaakt wor
         if self.selection_strategy == 'Wrong clusters':
             pass # select the clusters that have must-link to other clusters 
     def CreateNewInstances(self, cobras, removeFromClusters = False): # if removed from the cluster it needs to be put back in a new one
-        pass
+        pass # not really needed right now
 ################ Rebuild the existing superinstances ################################
 class ClosestInstance(InstanceRebuilder): # deze nu al testen
     def __init__(self, selection_strategy: str = 'all') -> None:
@@ -58,9 +58,10 @@ class ClosestInstance(InstanceRebuilder): # deze nu al testen
 # other algorithms that use the concept of "closest superinstances" -> calculate it using the points from the orinal superinstances transformed
 ################## Build new superinstances ##############################
 class ClusterAgain(InstanceRebuilder):
-    def __init__(self, selection_strategy: str = 'all', useCentres = False) -> None:
+    def __init__(self, selection_strategy: str = 'all', useCentres = False, k_strategy = 'instances') -> None:
         super().__init__(selection_strategy)
         self.useCentres = useCentres
+        self.k_strategy = k_strategy
 
     def rebuildInstances(self, cobras, data, affinitymatrix):
         super = self.SelectInstances(cobras, True)
@@ -70,7 +71,9 @@ class ClusterAgain(InstanceRebuilder):
     
         indices = np.arange(len(data))
 
-        cluster = np.array(cobras.rebuild_cluster.cluster(self, data, indices, len(super), [], [], seed=cobras.random_generator.integers(1,1000000), affinity = affinitymatrix, centers = repres))
+        k = len(np.unique(cobras.clustering.construct_cluster_labeling())) if self.k_strategy == "clusters" else len(super)
+
+        cluster = np.array(cobras.rebuild_cluster.cluster(self, data, indices, k, [], [], seed=cobras.random_generator.integers(1,1000000), affinity = affinitymatrix, centers = repres))
         
         
         new_supers = [cobras.create_superinstance(indices[cluster == i].tolist()) for i in set(cluster)]

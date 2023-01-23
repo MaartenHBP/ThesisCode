@@ -2,6 +2,7 @@ import abc
 
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.cluster import SpectralClustering
 
 
 class ClusterAlgorithm:
@@ -67,49 +68,14 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
         return km.labels_.astype(np.int)
 
 class SpectralClusterAlgorithm(ClusterAlgorithm):
-    def __init__(self, n_runs=10):
+    def __init__(self, n_runs=10): #TODO: properties as class variables
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
-        if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed)
-        else:
-            km = KMeans(k, n_init=self.n_runs)
+    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None):
 
-        # only cluster the given indices
-        km.fit(data[indices, :])
+        sp = SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='nearest_neighbors', random_state=seed).fit(data) if affinity is None else SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='precomputed', random_state=seed).fit(affinity)
+
 
         # return the labels as a list of integers
-        return km.labels_.astype(np.int)
+        return sp.labels_.astype(np.int)
 
-class KMeansFixedCentreClusterAlgorithm(ClusterAlgorithm):
-    def __init__(self, n_runs=10):
-        self.n_runs = n_runs
-
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
-        if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed)
-        else:
-            km = KMeans(k, n_init=self.n_runs)
-
-        # only cluster the given indices
-        km.fit(data[indices, :])
-
-        # return the labels as a list of integers
-        return km.labels_.astype(np.int)
-
-class FixedCentreClusteringAlgorithm(ClusterAlgorithm):
-    def __init__(self, n_runs=10):
-        self.n_runs = n_runs
-
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # SEED!
-        if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed)
-        else:
-            km = KMeans(k, n_init=self.n_runs)
-
-        # only cluster the given indices
-        km.fit(data[indices, :])
-
-        # return the labels as a list of integers
-        return km.labels_.astype(np.int)

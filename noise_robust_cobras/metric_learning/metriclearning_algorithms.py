@@ -2,12 +2,11 @@
 
 from abc import abstractmethod
 import numpy as np
-from metric_learn import *
-from noise_robust_cobras.metric_learning.metricLearners import *
+from noise_robust_cobras.metric_learning.metriclearning import *
 
 
 class MetricLearningAlgorithm: # abstract class
-    def __init__(self, when: str = 'before_splitting') -> None:
+    def __init__(self, when: str = 'begin') -> None:
         self.transformed = None # -> this way just gives a little more power for controlling
         self.affinity = None # for when we need the affinity matrix (spectral transformation could give both, it then depends which type of algorithm uses the metric learn results)
         ######################## -> affinity is always for the whole dataset (ga ervan uit dat dit zo is bij de metriclearners)
@@ -38,17 +37,20 @@ class MetricLearningAlgorithm: # abstract class
     def setOriginal(self, X):
         self.orginal = np.copy(X)
 
+    def getDataForClustering(self):
+        return np.copy(self.transformed), np.copy(self.affinity) 
+
 #################
 # basic options #
 #################
 
 class BasicLearning(MetricLearningAlgorithm):
     def __init__(self, metric = None, local = False, # rebuilder has to be created already
-    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting') -> None:
+    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'begin') -> None:
         super().__init__(when)
         self.metric = metric
         ###########################
-        self.local = local
+        self.local = local # this is for the splitting phase
         self.cluster = cluster
         self.both = both
         ###########################
@@ -56,15 +58,23 @@ class BasicLearning(MetricLearningAlgorithm):
         self.iterative = iterative
         ###########################
 
+    def getDataForClustering(self):
+        if self.local:
+            return super().getDataForClustering()
+        return None, None # cannot use the results from here
+
+    def useResultsForSplitting(self):
+        return self.local
+
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
         # first get the constraints
         local = current_cluster.get_all_points() if current_cluster else (current_superinstance.indices if current_superinstance else None)
         pairs, constraints = cobras.constraint_index.getLearningConstraints(local, self.both)
+        # if len = 0 return and do nothing
         result = False
         if self.metric:
             self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # metric is a dictionary en gaan met wrappers wekren
-            # self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
-            self.transformed= np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal))) # kmoet nog wrappers maken
+            self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
             if self.useTransformed:
                 cobras.data = np.copy(self.transformed)
             if self.iterative:
@@ -76,7 +86,7 @@ class BasicLearning(MetricLearningAlgorithm):
 
 class LearnOnce(BasicLearning):
     def __init__(self, metric = None, local = False, 
-    cluster = False, both = False, useTransformed =  True,  iterative = False, when: str = 'before_splitting', once = False) -> None:
+    cluster = False, both = False, useTransformed =  True,  iterative = False, when: str = 'begin', once = False) -> None:
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when)
         self.once = once
         self.finished = False
@@ -90,7 +100,7 @@ class LearnOnce(BasicLearning):
 
 class IterationLearning(LearnOnce):
     def __init__(self, metric = None, local = False, 
-    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting', once=False, amount = 0) -> None:
+    cluster = False, both = False, useTransformed =  True, iterative = False, when: str = 'begin', once=False, amount = 0) -> None:
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
         self.amount = amount
         self.count = 0
@@ -105,13 +115,17 @@ class IterationLearning(LearnOnce):
 
 class QueriesLearning(LearnOnce): # deze is nog niet af
     def __init__(self, metric = None, local = False, 
-    cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'before_splitting', once=False, queriesNeeded = 0) -> None:
+    cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'begin', once=False, queriesNeeded = 0, restartCouning = True) -> None:
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
         self.queriesNeeded = queriesNeeded
+        self.seen = 0 
+        self.restartCouning = restartCouning
 
-    def learn(self, cobras, current_superinstance, current_cluster): # dubbele berekening van constraints
-        if len(cobras.constraint_index.constraints) < self.queriesNeeded:
+    def learn(self, cobras, current_superinstance, current_cluster): # dubbele berekening van constraints en als het aantal in de cluster afhangt wordt hier niet naar gekeken
+        if len(cobras.constraint_index.constraints) - self.seen < self.queriesNeeded:
             return False
+        if self.restartCouning:
+            self.seen += self.queriesNeeded
         return super().learn(cobras, current_superinstance, current_cluster)
 
 #######################
@@ -120,6 +134,9 @@ class QueriesLearning(LearnOnce): # deze is nog niet af
 class EuclidianDistance(MetricLearningAlgorithm):
     def learn(self, cobras, current_superinstance, current_cluster):
         return False
+    def setOriginal(self, X):
+        super().setOriginal(X)
+        self.transformed = np.copy(self.orginal) # als het later voor clusteren wordt gebruikt
 
 # # Easy option is to transform the data and still work with euclidian distance (but does this suffice?)
 # class MetricLearningAlgorithm:

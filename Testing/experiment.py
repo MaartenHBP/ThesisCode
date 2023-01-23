@@ -13,8 +13,8 @@ from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQue
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
 import noise_robust_cobras.metric_learning.metriclearning_algorithms
 import noise_robust_cobras.metric_learning.rebuildInstance
-from noise_robust_cobras.metric_learning.metricLearners import *
-from metric_learn import *
+from noise_robust_cobras.metric_learning.metriclearning import *
+# from metric_learn import * -> werken met wrappers
 
 import numpy as np 
 import pandas as pd
@@ -108,7 +108,7 @@ def run():
                 settings = dict()
                 metricsettings = dict(settings["metric_parameters"])
                 if "metric" in metricsettings:
-                    metricsettings["metric"]["value"] = eval(metricsettings["value"])
+                    metricsettings["metric"]["value"] = eval(metricsettings["metric"]["value"])
                 settings["metric"] = eval(experiment["metric"])(metricsettings)
                 if "cluster_algo" in settings:
                     settings["cluster_algo"] = eval(experiment["cluster_algo"])(experiment["cluster_algo_parameters"])

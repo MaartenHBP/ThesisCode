@@ -71,8 +71,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric = None, # gaan ervanuit dat de caller deze classes al heet initilised
-        rebuilder = None,
+        metric: MetricLearningAlgorithm = None, # gaan ervanuit dat de caller deze classes al heet initilised
+        rebuilder: InstanceRebuilder = None,
         baseline = False,
 
         ###########
@@ -447,9 +447,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             :return:   A list with the resulting super-instances
             :rtype List[Superinstance]
         """
+        clusdata, aff = self.metric.getDataForClustering()
+        if clusdata is None:
+            clusdata = np.copy(self.data)
         # cluster the instances of the superinstance
         clusters = self.cluster_algo.cluster(
-            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+            clusdata, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+            , affinity=aff
         )
 
         # based on the resulting clusters make new superinstances
