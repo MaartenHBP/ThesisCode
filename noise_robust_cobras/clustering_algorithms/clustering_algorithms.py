@@ -73,7 +73,9 @@ class SpectralClusterAlgorithm(ClusterAlgorithm):
 
     def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None):
 
-        sp = SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='nearest_neighbors', random_state=seed).fit(data) if affinity is None else SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='precomputed', random_state=seed).fit(affinity)
+        n_neighbours = min(10, len(indices)) # werkt niet voor split_level estimation
+
+        sp = SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='nearest_neighbors', random_state=seed, n_neighbors=n_neighbours).fit(data[indices, :]) if affinity is None else SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='precomputed', random_state=seed).fit(affinity[indices, :][:,indices])
 
 
         # return the labels as a list of integers

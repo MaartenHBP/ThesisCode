@@ -207,7 +207,7 @@ class ConstraintIndex:
     # new function!
     def getLearningConstraints(self,local = None, both = False):
         ml, cl = self.get_ml_and_cl_tuple_lists()
-        pairs = np.vstack((ml, cl))
+        pairs = np.vstack((ml, cl)) if len(ml) > 0 and len(cl) > 0 else (np.array(ml) if len(ml) > 0 else np.array(cl))
         constraints = np.full(len(ml) + len(cl), 1)
         constraints[len(ml):] = np.full(len(cl), -1)
 

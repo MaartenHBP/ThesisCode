@@ -38,7 +38,8 @@ class MetricLearningAlgorithm: # abstract class
         self.orginal = np.copy(X)
 
     def getDataForClustering(self):
-        return np.copy(self.transformed), np.copy(self.affinity) 
+        trans = np.copy(self.transformed) if self.transformed is not None else None
+        return trans, self.affinity
 
 #################
 # basic options #
@@ -59,23 +60,28 @@ class BasicLearning(MetricLearningAlgorithm):
         ###########################
 
     def getDataForClustering(self):
-        if self.local:
+        if self.local or self.cluster:
             return super().getDataForClustering()
         return None, None # cannot use the results from here
 
-    def useResultsForSplitting(self):
-        return self.local
+    def useResultsForSplitting(self): # wordt niet gebruikt momenteel
+        return self.local or self.cluster
 
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
         # first get the constraints
-        local = current_cluster.get_all_points() if current_cluster else (current_superinstance.indices if current_superinstance else None)
+        local = current_cluster.get_all_points() if self.cluster else (current_superinstance.indices if self.local else None)
+
+        if self.cluster: # superinstance was er al uitgehaald
+            local.extend(current_superinstance.indices)
         pairs, constraints = cobras.constraint_index.getLearningConstraints(local, self.both)
+
+        print(f"amount of constraints = {len(pairs)}")
         # if len = 0 return and do nothing
         result = False
         if self.metric:
             self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # metric is a dictionary en gaan met wrappers wekren
-            self.transformed, self.affinity = np.copy(self.learner.fit(pairs, constraints).transform(np.copy(self.orginal)))
-            if self.useTransformed:
+            self.transformed, self.affinity = self.learner.fit(pairs, constraints,local).transform(np.copy(self.orginal))
+            if self.useTransformed and not self.local and not self.cluster:
                 cobras.data = np.copy(self.transformed)
             if self.iterative:
                 self.orginal = np.copy(self.transformed)
@@ -115,7 +121,7 @@ class IterationLearning(LearnOnce):
 
 class QueriesLearning(LearnOnce): # deze is nog niet af
     def __init__(self, metric = None, local = False, 
-    cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'begin', once=False, queriesNeeded = 0, restartCouning = True) -> None:
+    cluster = False,both = False, useTransformed =  True, iterative = False, when: str = 'begin', once=False, queriesNeeded = 20, restartCouning = True) -> None:
         super().__init__(metric, local, cluster, both, useTransformed, iterative, when, once)
         self.queriesNeeded = queriesNeeded
         self.seen = 0 

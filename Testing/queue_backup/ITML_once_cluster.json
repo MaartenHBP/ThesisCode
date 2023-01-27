@@ -1,0 +1,18 @@
+{
+    "Description": "ITML with clustering after 20 queries",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "QueriesLearning",
+        "metric_parameters": {"metric": {"value": "ITML_wrapper",
+                                        "parameters":{}},
+                                "once": true},
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":"KMeansClusterAlgorithm",
+        "rebuild_cluster_parameters": {},
+        "rebuilder": "ClusterAgain",
+        "rebuilder_parameters": {"k_strategy": "clusters"}
+    }
+}

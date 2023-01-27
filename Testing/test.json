@@ -1,0 +1,19 @@
+{
+    "Description": "ITML with closest rebuild after 20 queries",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "QueriesLearning",
+        "metric_parameters": {"metric": {"value": "ITML_wrapper",
+                                        "parameters":{}},
+                                "once": true,
+                                "queriesNeeded": 20},
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": "TopDownSplitting",
+        "rebuilder_parameters": {}
+    }
+}

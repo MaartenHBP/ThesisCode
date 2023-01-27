@@ -1,0 +1,17 @@
+{
+    "Description": "ITML every time 20 new constraint have been queried",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "QueriesLearning",
+        "metric_parameters": {"metric": {"value": "ITML_wrapper",
+                                        "parameters":{}}},
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": null,
+        "rebuilder_parameters": {}
+    }
+}

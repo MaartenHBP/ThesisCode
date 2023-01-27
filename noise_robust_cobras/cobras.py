@@ -53,8 +53,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def __init__(
         self,
         ###########################################################
-        cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm(),
-        rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm(),
+        cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm,
+        cluster_algo_parameters = {},
+        rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm,
+        rebuild_cluster_parameters = {},
         ###########################################################
         superinstance_builder: SuperInstanceBuilder = KMeans_SuperinstanceBuilder(),
         split_superinstance_selection_heur: SuperinstanceSelectionHeuristic = None,
@@ -71,8 +73,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric: MetricLearningAlgorithm = None, # gaan ervanuit dat de caller deze classes al heet initilised
+        metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
+        metric_parameters = {},
         rebuilder: InstanceRebuilder = None,
+        rebuilder_parameters = {},
         baseline = False,
 
         ###########
@@ -94,15 +98,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.train_indices = None
 
         # init cobras_cluster_algo
-        self.cluster_algo = cluster_algo
+        self.cluster_algo = cluster_algo(**cluster_algo_parameters)
         self.superinstance_builder = superinstance_builder
         ###################
         # METRIC LEARNING #
         ###################
         self.end = baseline
-        self.metric =  metric if metric is not None else EuclidianDistance()
-        self.rebuild_cluster = rebuild_cluster # clustering algo for rebuilding the instances, momenteel worden er nog geen parameters meegegeven (enkel werken met de standaard)
-        self.rebuilder = rebuilder
+        self.metric =  metric(**metric_parameters)
+        self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
+        self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
+        self.splitlevel_cluster = KMeansClusterAlgorithm()
         #TODO: clustering parameters init
 
         ###################
@@ -212,7 +217,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             ######################
             skipSplit = False
             if self.metric.executeNow('begin'):
-                print("here")
                 skipSplit = self.metric.learn(self, None, None)
 
             # during this iteration store the current clustering
@@ -341,7 +345,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         if self.metric.executeNow('before_splitting'):
             self.metric.learn(self, to_split, originating_cluster)
                 
-        new_super_instances = self.split_superinstance(to_split, split_level)
+        new_super_instances = self.split_superinstance(to_split, split_level, True)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
@@ -436,7 +440,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         return self.splitlevel_strategy.estimate_splitting_level(superinstance)
 
-    def split_superinstance(self, si, k):
+    def split_superinstance(self, si, k, askMetric = False, data = None): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
         """
             Actually split the given super-instance si in k (the splitlevel) new super-instances
 
@@ -447,11 +451,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             :return:   A list with the resulting super-instances
             :rtype List[Superinstance]
         """
-        clusdata, aff = self.metric.getDataForClustering()
-        if clusdata is None:
-            clusdata = np.copy(self.data)
+        clusdata = None
+        aff = None
+
+        if data is not None:
+            clusdata = np.copy(data)
+        
+        else:
+            clusdata, aff = self.metric.getDataForClustering()
+            if clusdata is None or not askMetric:
+                clusdata = np.copy(self.data)
+                aff = None
+        
         # cluster the instances of the superinstance
-        clusters = self.cluster_algo.cluster(
+        clusters = self.splitlevel_cluster.cluster( # aparte cluster ff
             clusdata, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
             , affinity=aff
         )
