@@ -25,10 +25,12 @@ from sklearn.model_selection import StratifiedKFold, KFold
 import sklearn as sk
 from statistics import mean
 from sklearn.metrics import adjusted_rand_score
+from sklearn.neighbors import KNeighborsClassifier
 
 import matplotlib.pyplot as plt
 
 from dask.distributed import Client, LocalCluster
+
 EXPERIMENT_PATH = 'experimenten/closest_no_transform'
 nbRUNS = 100
 ARGUMENTS = range(100)
@@ -260,7 +262,54 @@ def test(nameData):
         plt.legend()
         plt.show()
 
+def kNN(dataName):
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
 
+    ###############################""
+    querier = LabelQuerier(None, target, 100)
+    clusterer = COBRAS(correct_noise=False)
+    all_clusters, runtimes, superinstances, clusterIteration, transformations, ml, cl = clusterer.fit(data, -1, None, querier)
+    print(adjusted_rand_score(target, all_clusters[-1]))
+    pairs = np.vstack((ml,cl))
+    constrains = np.full(len(ml) + len(cl), 1)
+    constrains[len(ml):] = np.full(len(cl), -1)
+    ######################################
+
+    # model = KNeighborsClassifier(n_neighbors=3)
+    # model.fit(data,target)
+    # predicted = model.predict(data)
+
+    # print("data/target")
+    # print(adjusted_rand_score(target, predicted))
+
+    model = KNeighborsClassifier(n_neighbors=3)
+    model.fit(data,all_clusters[-1])
+    predicted = model.predict(data)
+
+    print("data/COBRAS")
+    print(adjusted_rand_score(target, predicted))
+
+    itml = ITML(preprocessor=data)
+    newdata = itml.fit(pairs, constrains).transform(data)
+
+    # model = KNeighborsClassifier(n_neighbors=3)
+    # model.fit(newdata,target)
+    # predicted = model.predict(newdata)
+
+    # print("newdata/target")
+    # print(adjusted_rand_score(target, predicted))
+
+    model = KNeighborsClassifier(n_neighbors=3)
+    model.fit(newdata, all_clusters[-1])
+    predicted = model.predict(newdata)
+
+    print("newdata/COBRAS")
+    print(adjusted_rand_score(target, predicted))
+    
 
 
 if __name__ == "__main__":
@@ -271,7 +320,8 @@ if __name__ == "__main__":
 
     ignore_warnings() # moet meegegeven worden met de workers tho
     # run()
-    test("ecoli")
+    # test("ecoli")
+    kNN("ionosphere")
 
                 
 
