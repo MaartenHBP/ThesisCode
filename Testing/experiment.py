@@ -319,9 +319,9 @@ if __name__ == "__main__":
         warnings.simplefilter(action='ignore', category=Warning)
 
     ignore_warnings() # moet meegegeven worden met de workers tho
-    # run()
+    run()
     # test("ecoli")
-    kNN("ionosphere")
+    # kNN("ionosphere")
 
                 
 

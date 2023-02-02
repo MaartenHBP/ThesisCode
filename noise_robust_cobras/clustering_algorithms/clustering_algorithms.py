@@ -65,7 +65,7 @@ class KMedoidsCLusteringAlgorithm(ClusterAlgorithm):
         km.fit(distanceMatrix[indices, :][: ,indices])
 
         # return the labels as a list of integers
-        return km.labels_.astype(np.int), indices[km.medoid_indices_]
+        return km.labels_.astype(np.int)#, indices[km.medoid_indices_]
 
 
 class KMeansClusterAlgorithm(ClusterAlgorithm):
@@ -84,7 +84,7 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
         km.fit(data[indices, :])
 
         # return the labels as a list of integers
-        return km.labels_.astype(np.int), None
+        return km.labels_.astype(np.int)#, None
 
 class SpectralClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10): #TODO: properties as class variables
@@ -98,5 +98,5 @@ class SpectralClusterAlgorithm(ClusterAlgorithm):
 
 
         # return the labels as a list of integers
-        return sp.labels_.astype(np.int), None
+        return sp.labels_.astype(np.int)#, None
 

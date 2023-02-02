@@ -29,6 +29,19 @@ class ITML_wrapper(MetricLearner):
     def transform(self, data):
         return self.fitted.transform(data), self.affinity
 
+class NCA_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None):
+        self.fitted = None
+        super().__init__(preprocessor) # TODO: dit uitbereiden
+
+    def fit(self, pairs, y, local = None):
+        self.fitted = NCA()
+        self.fitted.fit(pairs, y)
+        return self
+
+    def transform(self, data):
+        return self.fitted.transform(data), self.affinity
+
 class Spectral(MetricLearner):
     def __init__(self, preprocessor=None):
         super().__init__(preprocessor)

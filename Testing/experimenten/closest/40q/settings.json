@@ -1,0 +1,17 @@
+{
+    "metric": "QueriesLearning",
+    "metric_parameters": {
+        "metric": {
+            "value": "ITML_wrapper",
+            "parameters": {}
+        },
+        "once": true,
+        "queriesNeeded": 40
+    },
+    "cluster_algo": "KMeansClusterAlgorithm",
+    "cluster_algo_parameters": {},
+    "rebuild_cluster": null,
+    "rebuild_cluster_parameters": {},
+    "rebuilder": "ClosestInstance",
+    "rebuilder_parameters": {}
+}

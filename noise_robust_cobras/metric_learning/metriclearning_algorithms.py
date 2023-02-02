@@ -70,16 +70,22 @@ class BasicLearning(MetricLearningAlgorithm):
     def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
         # first get the constraints
         local = current_cluster.get_all_points() if self.cluster else (current_superinstance.indices if self.local else None)
-
         if self.cluster: # superinstance was er al uitgehaald
-            local.extend(current_superinstance.indices)
-        pairs, constraints = cobras.constraint_index.getLearningConstraints(local, self.both)
+                local.extend(current_superinstance.indices)
+        if (self.metric["value"].__name__ == "NCA_wrapper"):
+            pairs = np.copy(self.orginal)
+            constraints = cobras.querier.labels 
+            if local is not None:
+                constraints = constraints[local]
+                pairs = pairs[local]
+        else: 
+            pairs, constraints = cobras.constraint_index.getLearningConstraints(local, self.both)
 
-        print(f"amount of constraints = {len(pairs)}")
+        # print(f"amount of constraints = {len(pairs)}")
         # if len = 0 return and do nothing
         result = False
         if self.metric:
-            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # metric is a dictionary en gaan met wrappers wekren
+            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # we hebben wrappers woehoe
             self.transformed, self.affinity = self.learner.fit(pairs, constraints,local).transform(np.copy(self.orginal))
             if self.useTransformed and not self.local and not self.cluster:
                 cobras.data = np.copy(self.transformed)

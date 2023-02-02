@@ -231,7 +231,7 @@ with st.container(): # container as
             st.experimental_rerun()
     with colc:
         if st.button('Exectute k-means'):
-            st.session_state.settings[st.session_state.current].executeClustering(st.session_state.original[:,1:])
+            st.session_state.settings[st.session_state.current].executeKMedoids(st.session_state.original[:,1:])
             st.experimental_rerun()
             # execute the plot function once
     with cold:
