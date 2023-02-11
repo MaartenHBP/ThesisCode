@@ -91,7 +91,7 @@ class ClusterAgain(InstanceRebuilder):
 
         return True
 
-class TopDownSplitting(InstanceRebuilder):
+class TopDownSplitting(InstanceRebuilder): # dit leek niet goed te werken
     def __init__(self, selection_strategy: str = 'all') -> None:
         super().__init__(selection_strategy)
 

@@ -4,16 +4,15 @@
 
     },
     "cobrasparam": {
-        "metric": "QueriesLearning",
+        "metric": "BasicLearning",
         "metric_parameters": {"metric": {"value": "ITML_wrapper",
                                         "parameters":{}},
-                                "once": true,
-                                "queriesNeeded": 20},
+                                "when": "end"},
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},
         "rebuild_cluster":null,
         "rebuild_cluster_parameters": {},
-        "rebuilder": "TopDownSplitting",
+        "rebuilder": null,
         "rebuilder_parameters": {}
     }
 }

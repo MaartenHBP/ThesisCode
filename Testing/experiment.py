@@ -31,7 +31,8 @@ import matplotlib.pyplot as plt
 
 from dask.distributed import Client, LocalCluster
 
-EXPERIMENT_PATH = 'experimenten/closest_no_transform'
+import shutil
+
 nbRUNS = 100
 ARGUMENTS = range(100)
 SEED = 24
@@ -39,21 +40,30 @@ random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creqtion of the seeds
 QUERYLIMIT = 200
 
-def runAlgo(seed, dataName, parameters):
+def runAlgo(seed, dataName, parameters, querylimit = 200):
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
     path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
     dataset = np.loadtxt(path, delimiter=',')
     data = dataset[:, 1:]
     target = dataset[:, 0]
     # print(f"classlabels = {len(np.unique(target))}")
-    querier = LabelQuerier(None, target, QUERYLIMIT)
+    querier = LabelQuerier(None, target, querylimit)
+    # try:
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **parameters)
     all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
     if len(all_clusters) < QUERYLIMIT:
         diff = QUERYLIMIT - len(all_clusters)
         for ex in range(diff): all_clusters.append(all_clusters[-1])
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+    # except Exception as e: # failed equals zero results
+    #     print(e)
+    #     return [np.zeros(len(data)) for i in range(QUERYLIMIT)]
 
-def run():
+
+def run(EXPERIMENT_PATH, queue):
     with LocalCluster() as cluster, Client(cluster) as client:
 
         ##########################################################
@@ -103,7 +113,7 @@ def run():
 
 
         ##########################################################
-        path_data = Path('queue').absolute()
+        path_data = Path(queue).absolute()
         dir_list = os.listdir(path_data)
         for k in range(len(dir_list)):
             i = dir_list[k][:len(dir_list[k]) - 5]
@@ -116,24 +126,28 @@ def run():
                 experiment = experiments["cobrasparam"]
 
                 # setup the arguments
-                settings = dict() # is not a deepcopy if you have nested disctionaries (see documentation)
-                if "metric" in experiment:
-                    metricsettings = copy.deepcopy(experiment["metric_parameters"])
-                    if "metric" in metricsettings:
-                        metricsettings["metric"]["value"] = eval(metricsettings["metric"]["value"])
-                    settings["metric"] = eval(experiment["metric"]) if experiment["metric"] else None
-                    settings["metric_parameters"] = metricsettings
-                if "cluster_algo" in experiment:
-                    settings["cluster_algo"] = eval(experiment["cluster_algo"]) if experiment["cluster_algo"] else None
-                    settings["cluster_algo_parameters"] = experiment["cluster_algo_parameters"]
+                try:
+                    settings = dict() # is not a deepcopy if you have nested disctionaries (see documentation)
+                    if "metric" in experiment:
+                        metricsettings = copy.deepcopy(experiment["metric_parameters"])
+                        if "metric" in metricsettings:
+                            metricsettings["metric"]["value"] = eval(metricsettings["metric"]["value"])
+                        settings["metric"] = eval(experiment["metric"]) if experiment["metric"] else None
+                        settings["metric_parameters"] = metricsettings
+                    if "cluster_algo" in experiment:
+                        settings["cluster_algo"] = eval(experiment["cluster_algo"]) if experiment["cluster_algo"] else None
+                        settings["cluster_algo_parameters"] = experiment["cluster_algo_parameters"]
 
-                if "rebuild_cluster" in experiment:
-                    settings["rebuild_cluster"] = eval(experiment["rebuild_cluster"]) if experiment["rebuild_cluster"] else None
-                    settings["rebuild_cluster_parameters"] = experiment["rebuild_cluster_parameters"]
+                    if "rebuild_cluster" in experiment:
+                        settings["rebuild_cluster"] = eval(experiment["rebuild_cluster"]) if experiment["rebuild_cluster"] else None
+                        settings["rebuild_cluster_parameters"] = experiment["rebuild_cluster_parameters"]
 
-                if "rebuilder" in experiment:
-                    settings["rebuilder"] = eval(experiment["rebuilder"]) if experiment["rebuilder"] else None
-                    settings["rebuilder_parameters"] = experiment["rebuilder_parameters"]
+                    if "rebuilder" in experiment:
+                        settings["rebuilder"] = eval(experiment["rebuilder"]) if experiment["rebuilder"] else None
+                        settings["rebuilder_parameters"] = experiment["rebuilder_parameters"]
+                except Exception as e: # failed equals zero results
+                    print(e)
+                    continue
 
                 # make path for results of this run
                 path_exp = f'{EXPERIMENT_PATH}/{i}'
@@ -171,18 +185,23 @@ def run():
                     print(f"{nameData} started at {start}")
 
                     # runAlgo(1, nameData, settings)
-                    parallel_func = functools.partial(runAlgo, dataName = nameData, parameters = settings)
+                    try:
+                        parallel_func = functools.partial(runAlgo, dataName = nameData, parameters = settings)
 
-                    futures = client.map(parallel_func, ARGUMENTS)   
+                        futures = client.map(parallel_func, ARGUMENTS)   
 
-                    results = np.array(client.gather(futures))
-                    end = str(datetime.now())
-                    timestamps[nameData] = [start, end]
-                    mean[nameData] = np.mean(results, axis=0)
-                    mean.to_csv(f'{path_exp}/ARI')
-                    timestamps.to_csv(f'{path_exp}/timestamps')
-                    
-                    print(f"{nameData} finished at {end}")
+                        results = np.array(client.gather(futures))
+                        end = str(datetime.now())
+                        timestamps[nameData] = [start, end]
+                        mean[nameData] = np.mean(results, axis=0)
+                        mean.to_csv(f'{path_exp}/ARI')
+                        timestamps.to_csv(f'{path_exp}/timestamps')
+                        
+                        print(f"{nameData} finished at {end}")
+                    except Exception as e: # failed equals zero results
+                        print(f"{nameData} failed with error")
+                        print(e)
+                        continue
                     
 
                     ##########################################################
@@ -250,14 +269,15 @@ def test(nameData):
             settings["rebuilder"] = eval(experiment["rebuilder"]) if experiment["rebuilder"] else None
             settings["rebuilder_parameters"] = experiment["rebuilder_parameters"]
 
-        plt.plot(np.arange(200),runAlgo(1, nameData, settings), label='test')
+        plt.plot(np.arange(200),runAlgo(1, nameData, {}, querylimit=30), label='cobras')
+        plt.plot(np.arange(200),runAlgo(1, nameData, settings, querylimit=30), label='test')
 
-        k = [5]
+        # k = [5]
         
-        for i in k:
-            settings["metric_parameters"]["queriesNeeded"] = i
-            plt.plot(np.arange(200),runAlgo(1, nameData, settings), label=f'test_{i}')
-        plt.plot(np.arange(200),runAlgo(1, nameData, {}), label='COBRAS')
+        # for i in k:
+        #     settings["metric_parameters"]["queriesNeeded"] = i
+        #     plt.plot(np.arange(200),runAlgo(1, nameData, settings), label=f'test_{i}')
+        # plt.plot(np.arange(200),runAlgo(1, nameData, {}), label='COBRAS')
         
         plt.legend()
         plt.show()
@@ -310,7 +330,29 @@ def kNN(dataName):
     print("newdata/COBRAS")
     print(adjusted_rand_score(target, predicted))
     
+def executeExperiments():
 
+    # ###################################
+    # path = Path('experimenten/errors').absolute()
+    # CHECK_FOLDER = os.path.isdir(path)
+    # if not CHECK_FOLDER:
+    #     os.makedirs(path)
+    #     print("created folder : ", path)
+    # ####################################
+
+    #####################################
+    path_data = Path('queue').absolute()
+    dir_list = os.listdir(path_data)
+    for k in range(len(dir_list)):
+        name = k
+        print("Started"  + k)
+        run(f'experimenten/{name}', f'queue/{name}')
+        print("Finished"  + k)
+        print("Deleting the queue of this experiment")
+
+        shutil.rmtree(f'queue/{name}')
+        ####################################
+                
 
 if __name__ == "__main__":
     def ignore_warnings():
@@ -319,8 +361,9 @@ if __name__ == "__main__":
         warnings.simplefilter(action='ignore', category=Warning)
 
     ignore_warnings() # moet meegegeven worden met de workers tho
-    run()
-    # test("ecoli")
+    executeExperiments()
+    # run()
+    # test("column_2C")
     # kNN("ionosphere")
 
                 

@@ -1,4 +1,8 @@
-
+from numpy.linalg import matrix_rank
+from numpy import linalg as LA
+from scipy.linalg import eigh
+from sklearn.metrics import pairwise_distances
+import math
 
 from copy import deepcopy
 from time import time
@@ -8,8 +12,337 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.neighbors._ball_tree import BallTree
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.manifold import SpectralEmbedding
+from sklearn.manifold._locally_linear import barycenter_kneighbors_graph
 
 from noise_robust_cobras.metric_learning.knn import knn_error_score
+from metric_learn import RCA
+
+from sklearn.metrics import pairwise_kernels # can be very usefull
+from scipy.spatial.distance import cdist
+
+from scipy.optimize import minimize
+
+
+from sklearn.metrics.pairwise import rbf_kernel, polynomial_kernel
+
+from scipy.sparse import csr_matrix
+
+def heursitcSearch(Sw, Sb, d, errorterm):
+    # make the new Sw and Sb -> doet kinda iets juist ma is nog niet echt duidelijk hoe ik dit moet incorporeren
+    # A = Sw + Sb
+    # w, v = eigh(A)
+    # W1 = v[w != 0]
+    # Sw = W1.T @ Sw @ W1
+    # Sb = W1.T @ Sb @ W1
+
+    rank = matrix_rank(Sw)
+    if d > len(Sw) - rank:
+        lambda1 = np.trace(Sb)/np.trace(Sw)
+        Sb_eigenvalues = eigh(Sb, eigvals_only=True)[-d:]
+        alphas = np.sum(Sb_eigenvalues)
+        Sw_eigenvalues = eigh(Sw, eigvals_only=True)[-d:]
+        betas = np.sum(Sw_eigenvalues)
+        lambda2 = alphas/betas
+        lmbda = (lambda1 + lambda2)/2
+
+        while lambda2 - lambda1 > errorterm:
+            print("entered")
+            g = np.sum(eigh(Sb - lmbda*Sw , eigvals_only=True)[-d:])
+            if g > 0: lambda1 = lmbda
+            else: lambda2 = lmbda
+            lmbda = (lambda1 + lambda2)/2
+        _, v = eigh(Sb - lmbda*Sw)
+        W = v[:,-d:]
+        return W
+        # return W1 @ W @ W.T @ W1.T
+
+    else:
+        eigen, z = eigh(Sw)
+        Z = z[:,0:(len(Sw) - rank)]
+        _, v = eigh(Z.T@Sb@Z)
+        W = v[:,-d:]
+        print((Z@W).shape)
+        return Z @ W
+        # return W1 @ W @ W.T @ W1.T
+
+##########
+# KITML 2#
+##########
+
+# class KITML2:
+#     def __init__(self, preprocessor = None, alpha=1.0, gamma=1.0, max_iter=100):
+#         self.alpha = alpha
+#         self.gamma = gamma
+#         self.max_iter = max_iter
+#         self.preprocessor = preprocessor
+        
+#     def fit(self, pairs, y):
+
+#         X = np.copy(self.preprocessor)
+#         must_links = pairs[y == 1]
+#         cannot_links = pairs[y == -1]
+#         n_samples, n_features = X.shape
+#         K = rbf_kernel(X, gamma=self.gamma)
+#         K = csr_matrix(K)
+        
+#         if must_links is None:
+#             must_links = []
+#         if cannot_links is None:
+#             cannot_links = []
+        
+#         def cost_function(A):
+#             A = np.array(A).reshape((n_samples, n_samples))
+#             A = csr_matrix(A)
+#             KA = K.dot(A)
+#             obj = np.sum(np.multiply(K, A)) - np.trace(KA)
+#             obj = 0.5 * obj + 0.5 * self.alpha * np.sum(A ** 2)
+            
+#             for i, j in must_links:
+#                 obj -= A[i, j]
+                
+#             for i, j in cannot_links:
+#                 obj += A[i, j] ** 2
+            
+#             return obj
+        
+#         def grad_function(A):
+#             A = np.array(A).reshape((n_samples, n_samples))
+#             A = csr_matrix(A)
+#             KA = K.dot(A)
+#             grad = K - KA + self.alpha * A
+            
+#             for i, j in must_links:
+#                 grad[i, j] -= 1
+                
+#             for i, j in cannot_links:
+#                 grad[i, j] += 2 * A[i, j]
+            
+#             return grad.flatten()
+        
+#         A0 = np.zeros((n_samples, n_samples))
+#         result = minimize(cost_function, A0.flatten(), method="trust-ncg", jac=grad_function,
+#                           options={"maxiter": self.max_iter})
+#         self.A_ = result.x.reshape((n_samples, n_samples))
+#         return self
+    
+#     def transform(self, X):
+#         K = rbf_kernel(X, gamma=self.gamma)
+#         return K.dot(self.A_)
+
+class KITML2:
+    def __init__(self, preprocessor, n_components=2, reg=1e-5):
+        self.X = preprocessor
+        self.n_components = n_components
+        self.reg = reg
+        self.L = None
+        
+    def fit(self, pairs, y):
+
+        must_links = pairs[y == 1]
+        cannot_links = pairs[y == -1]
+
+        n, d = self.X.shape
+        n_ref, d_ref = self.X.shape
+        
+        K = rbf_kernel(self.X)
+        H = np.eye(n_ref) - (1/n_ref) * np.ones((n_ref, n_ref))
+        H = np.dot(H, H.T)
+        P = np.dot(K, np.dot(H, K.T))
+        
+        if must_links is not None:
+            for i, j in must_links:
+                P[i, j] = 1e10
+                P[j, i] = 1e10
+        
+        if cannot_links is not None:
+            for i, j in cannot_links:
+                P[i, j] = -1e10
+                P[j, i] = -1e10
+        
+        def objective(L):
+            L = L.reshape((n, self.n_components))
+            obj = np.trace(np.dot(np.dot(L.T, P), L))
+            obj += self.reg * np.linalg.norm(L, ord='fro') ** 2
+            return obj
+        
+        L0 = np.random.randn(n * self.n_components)
+        self.L = minimize(objective, L0).x.reshape((n, self.n_components))
+
+        return self
+        
+    def transform(self, X=None):
+        K = rbf_kernel(X)
+        X_transformed = np.dot(K, self.L)
+        return X_transformed
+
+#########
+# KITML #
+#########
+
+# def rbf_kernel(X, gamma=None):
+#     """Compute the RBF kernel matrix of the input data."""
+#     if gamma is None:
+#         # default to 1 / n_features
+#         gamma = 1.0 / X.shape[1]
+#     pairwise_dists = cdist(X, X, "sqeuclidean")
+#     K = np.exp(-gamma * pairwise_dists)
+#     return K
+
+class KITML:
+    def __init__(self, preprocessor, default_cost=1):
+        self.reg = 1e-5
+        # self.kernel_func = kernel_func
+        self.default_cost = default_cost
+        self.alpha = None
+        self.preprocessing = preprocessor
+        self.n_components = 2
+    
+    def fit(self, pairs, y):
+        must_link = pairs[y == 1]
+        cannot_link = pairs[y == -1]
+        X = np.copy(self.preprocessing)
+        n_samples = X.shape[0]
+        C = self.compute_cost_matrix(n_samples, must_link, cannot_link)
+        K = polynomial_kernel(X)
+        
+        def obj_func(L0):
+            alpha = L0.reshape((n_samples, self.n_components))
+            return 0.5 * np.sum(np.dot(np.dot(alpha.T, K), alpha)) - np.sum(np.sum(alpha))
+        
+        cons = ({'type': 'eq', 'fun': lambda alpha: np.dot(C, alpha) - alpha},
+                {'type': 'ineq', 'fun': lambda alpha: alpha})
+        
+        L0 = np.ones((n_samples, self.n_components)).ravel()
+        res = minimize(obj_func, L0, options={"maxiter": 20}).x.reshape((n_samples, self.n_components))
+        self.alpha = res
+        return self
+    
+    def transform(self, X):
+        K = polynomial_kernel(X)
+        X_transformed = np.dot(K, self.alpha)
+        print(X_transformed)
+        return X_transformed
+    
+    def compute_cost_matrix(self, n_samples, must_link, cannot_link):
+        C = np.ones((n_samples, n_samples)) * self.default_cost
+        for i, j in must_link:
+            C[i, j] = 0
+            C[j, i] = 0
+        for i, j in cannot_link:
+            C[i, j] = 10000
+            C[j, i] = 10000
+        return C
+
+#############
+# Kernel ML #
+#############
+class kernel:
+    def __init__(self, preprocessor = None, n_components = None, nb_neigh = 0):
+        self.ensemble = None
+        self.distance = pairwise_distances(preprocessor, metric='braycurtis')
+        self.d = math.floor(preprocessor.shape[1]/2)
+        # self.d = 2
+        self.alph = 0.2 if self.d > 5 else 0.02
+        self.k = 10
+        self.prepocessor = preprocessor
+
+    def fit(self, pairs ,y):
+        n = len(self.distance)
+        w = 2*1.5*np.sum(np.triu(self.distance))/(n*(n + 1)) # hier zijn er ook parameters waarmee je kan spelen
+        kernel = np.exp(self.distance/-w)
+        seen_indices = set()
+
+        ML = pairs[y == 1]
+        CL = pairs[y == -1]
+        for ml in ML:
+            seen_indices.add(ml[0])
+            seen_indices.add(ml[1])
+        ml_indices = list(seen_indices)
+        reduced_kernel = kernel[ml_indices, :] # ik denk dat het zo moet
+
+        # use the constraints
+        Sp = np.zeros((n, n))
+        Sp[ML[:,0], ML[:,1]] = 1
+        Sp[ML[:,1], ML[:,0]] = 1
+        Dp = np.diag(Sp.sum(axis=1))
+        Up = Dp - Sp
+
+        Sd = np.zeros((n, n))
+        Sd[CL[:,0], CL[:,1]] = 1
+        Sd[CL[:,1], CL[:,0]] = 1
+        Dd = np.diag(Sd.sum(axis=1))
+        Ud = Dd - Sd
+
+        Sb = reduced_kernel @ Ud @ reduced_kernel.T
+        
+        optimal_weight_matrix = barycenter_kneighbors_graph(self.prepocessor, n_neighbors=self.k)
+
+        E = (np.identity(n) - optimal_weight_matrix).T @ (np.identity(n) - optimal_weight_matrix)
+        Sw = reduced_kernel @ (Up + self.alph * E) @ reduced_kernel.T
+
+        self.ensemble = reduced_kernel.T @ heursitcSearch(Sw, Sb, self.d, 0.00000000001)
+
+        return self
+
+
+
+
+    def transform(self, data):
+        return self.ensemble
+    
+
+#######
+# RCA #
+#######
+class RCA_wrapper:
+    def __init__(self, preprocessor = None, n_components = None):
+        self.ensemble = None
+        self.preprocessor = preprocessor
+    def fit(self, pairs ,y):
+        blobs = []
+        seen_indices = [] # deze zitten dus in ML blobs
+        for ml in pairs[y == 1]:
+            ind1 = ml[0]
+            ind2 = ml[1]
+            blob1 = []
+            blob2 = []
+            if ind1 in seen_indices:
+                for blob in blobs:
+                    if ind1 in blob:
+                        blob1 = blob
+                        break
+            if ind2 in seen_indices:
+                for blob in blobs:
+                    if ind2 in blob:
+                        blob2 = blob
+                        break
+
+            if len(blob1) > 0 and len(blob2) > 0:
+                blob1.extend(blob2)
+                blobs.remove(blob2)
+                continue
+            if len(blob1) > 0:
+                blob1.append(ind2)
+                seen_indices.append(ind2)
+                continue
+            if len(blob2) > 0:
+                blob2.append(ind1)
+                seen_indices.append(ind1)
+                continue
+            blobs.append([ind1, ind2])
+            seen_indices.extend([ind1, ind2])
+        constr = []
+        indici = []
+        i = 0
+        for blob in blobs:
+            indici.extend(blob)
+            constr.extend([i]*len(blob))
+            i+=1
+        self.ensemble = RCA(preprocessor=self.preprocessor).fit(indici, constr)
+        return self
+
+    def transform(self, data):
+        return self.ensemble.transform(data)
 
 #####################
 # Spectralembedding #

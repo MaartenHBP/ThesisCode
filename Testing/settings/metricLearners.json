@@ -27,6 +27,9 @@
             "verbose": false,
             "random_state": 42
         },
+        "RCA_wrapper": {
+            "n_components": null
+        },
         "laplacian_semi": {
             "dim": 2
         },
@@ -35,6 +38,15 @@
         },
         "ssSpectralClust": {
             "nb_neigh": 10
+        },
+        "kernel": {
+            "nb_neigh": 10
+        },
+        "KITML": {
+            "default_cost": 1
+        },
+        "KITML2": {
+            "n_components": 2
         }
     }
     

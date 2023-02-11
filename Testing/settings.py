@@ -4,6 +4,7 @@ from abc import abstractmethod
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import * 
+from noise_robust_cobras.metric_learning.metricLearners import * 
 from metric_learn import *
 from pathlib import Path
 import os
@@ -85,34 +86,34 @@ class metricSettings:
             self.pairs = pairs
 
     def learnMetric(self, data, onOrig = True):
-        self.transformed = np.copy(data)
-        # if self.constraints is None:
-        #     print("Need constraints")
-        #     return
-        # if onOrig:
-        #     print("learning metric on original data")
-        #     if (self.typeMetric == "supervised"):
-        #         metric = eval(self.metric)(**self.parameters)
-        #         self.transformed = metric.fit(np.copy(data), self.constraints).transform(np.copy(data))
-        #     else:
-        #         metric = eval(self.metric)(preprocessor=np.copy(data),**self.parameters)
-        #         self.transformed = metric.fit(self.pairs, self.constraints).transform(np.copy(data))
+        # self.transformed = np.copy(data)
+        if self.constraints is None:
+            print("Need constraints")
+            return
+        if onOrig:
+            print("learning metric on original data")
+            if (self.typeMetric == "supervised"):
+                metric = eval(self.metric)(**self.parameters)
+                self.transformed = metric.fit(np.copy(data), self.constraints).transform(np.copy(data))
+            else:
+                metric = eval(self.metric)(preprocessor=np.copy(data),**self.parameters)
+                self.transformed = metric.fit(self.pairs, self.constraints).transform(np.copy(data))
             
-        # else:
-        #     if not self.transformed is None:
-        #         print("learning metric on transformed data")
-        #         if (self.typeMetric == "supervised"):
-        #             metric = eval(self.metric)(**self.parameters)
-        #             self.transformed = metric.fit(np.copy(self.transformed), self.constraints).transform(np.copy(self.transformed))
-        #         else:
-        #             metric = eval(self.metric)(preprocessor=np.copy(data),**self.parameters)
-        #             self.transformed = metric.fit(self.pairs, self.constraints).transform(np.copy(self.transformed))
+        else:
+            if not self.transformed is None:
+                print("learning metric on transformed data")
+                if (self.typeMetric == "supervised"):
+                    metric = eval(self.metric)(**self.parameters)
+                    self.transformed = metric.fit(np.copy(self.transformed), self.constraints).transform(np.copy(self.transformed))
+                else:
+                    metric = eval(self.metric)(preprocessor=np.copy(data),**self.parameters)
+                    self.transformed = metric.fit(self.pairs, self.constraints).transform(np.copy(self.transformed))
 
-        #     else:
-        #         print("No transformed data available") # hier had je met errors kunnen werken thooo
+            else:
+                print("No transformed data available") # hier had je met errors kunnen werken thooo
             
-        # self.clustOriginal = None   
-        # self.clustTransformed = None
+        self.clustOriginal = None   
+        self.clustTransformed = None
 
     #  dist(x, y) = sqrt(dot(x, x) - 2 * dot(x, y) + dot(y, y), werken via een callable voor kernel zeverrrrrrr
     def executeKMedoids(self, data):

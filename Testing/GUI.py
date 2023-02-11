@@ -188,8 +188,8 @@ with st.container():
         st.write("Original")
         fig, ax = plt.subplots()
         c = st.session_state.original[:, 0]
-        if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustOriginal is None:
-            c = st.session_state.settings[st.session_state.current].clustOriginal
+        if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustTransformed is None:
+            c = st.session_state.settings[st.session_state.current].clustTransformed
         ax.scatter(x = st.session_state.original[:, 1], y = st.session_state.original[:, 2], c = c)
 
         if st.session_state.showConstraints and st.session_state.typeMetric == "semisupervised":
@@ -214,8 +214,8 @@ with st.container():
             c = st.session_state.original[:, 0]
             if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustTransformed is None:
                 c = st.session_state.settings[st.session_state.current].clustTransformed
-            ax.scatter(x = st.session_state.settings[st.session_state.current].transformed[:, 0], 
-            y = st.session_state.settings[st.session_state.current].transformed[:, 1], c = c)
+            ax.scatter(x = st.session_state.settings[st.session_state.current].transformed[:,0], 
+                        y = st.session_state.settings[st.session_state.current].transformed[:,1], c = c)
             st.pyplot(fig)
 st.markdown("""---""")
 with st.container(): # container as
@@ -231,7 +231,7 @@ with st.container(): # container as
             st.experimental_rerun()
     with colc:
         if st.button('Exectute k-means'):
-            st.session_state.settings[st.session_state.current].executeKMedoids(st.session_state.original[:,1:])
+            st.session_state.settings[st.session_state.current].executeClustering(st.session_state.original[:,1:])
             st.experimental_rerun()
             # execute the plot function once
     with cold:
