@@ -80,7 +80,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuilder: InstanceRebuilder = None,
         rebuilder_parameters = {},
         baseline = False,
-        randomConstraints_baseline = False,
 
         ###########
         # Logging #
@@ -107,8 +106,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        self.end = baseline
-        self.randomConstraints_baseline = randomConstraints_baseline
+        self.baseline = baseline
         self.metric =  metric(**metric_parameters)
         self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
         self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
@@ -214,6 +212,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # last valid clustering keeps the last completely merged clustering
         last_valid_clustering = None
 
+        if self.metric.executeNow('initial'):
+                skipSplit = self.metric.learn(self, None, None)
+
+
         while not self.querier.query_limit_reached():
 
             ######################
@@ -222,6 +224,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             skipSplit = False
             if self.metric.executeNow('begin'):
                 skipSplit = self.metric.learn(self, None, None)
+                if self.baseline:
+                    break
 
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(self.clustering)
@@ -305,24 +309,28 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         all_clusters = self._cobras_log.get_all_clusterings()
 
         if self.metric.executeNow('end'):
-            self.metric.learn(self, None, None)
-            transformed = self.metric.transformed
-            supers = self.clustering.get_superinstances()
-            repres = np.array([s.get_representative_idx() for s in supers])
-            indices = [i for i in range(len(self.data))]
-            closest_per_index = []
-            for idx in indices:
-                if idx in repres:
-                    closest_per_index.append(idx)
-                    continue
-                closest = min(
-                    repres,
-                    key=lambda x: np.linalg.norm(
-                        transformed[x] - transformed[idx]
-                    ),
-                )
-                closest_per_index.append(closest)
-            all_clusters[-1] = np.array(all_clusters[-1])[closest_per_index]
+            skipSplit = self.metric.learn(self, None, None)
+
+
+        # if self.metric.executeNow('end'):
+        #     self.metric.learn(self, None, None)
+        #     transformed = self.metric.transformed
+        #     supers = self.clustering.get_superinstances()
+        #     repres = np.array([s.get_representative_idx() for s in supers])
+        #     indices = [i for i in range(len(self.data))]
+        #     closest_per_index = []
+        #     for idx in indices:
+        #         if idx in repres:
+        #             closest_per_index.append(idx)
+        #             continue
+        #         closest = min(
+        #             repres,
+        #             key=lambda x: np.linalg.norm(
+        #                 transformed[x] - transformed[idx]
+        #             ),
+        #         )
+        #         closest_per_index.append(closest)
+        #     all_clusters[-1] = np.array(all_clusters[-1])[closest_per_index]
 
 
         # collect results and return TODO: fixing the logging
