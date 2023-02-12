@@ -49,10 +49,18 @@ def runAlgo(seed, dataName, parameters, querylimit = 200):
     dataset = np.loadtxt(path, delimiter=',')
     data = dataset[:, 1:]
     target = dataset[:, 0]
+
     # print(f"classlabels = {len(np.unique(target))}")
     querier = LabelQuerier(None, target, querylimit)
     # try:
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **parameters)
+    if clusterer.baseline: # sketchy baseline
+        all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
+        data = np.copy(clusterer.data)
+        querier = LabelQuerier(None, target, querylimit)
+        clusterer = COBRAS(correct_noise=False, seed=seeds[seed]) # run standard cobras
+
+
     all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
     if len(all_clusters) < QUERYLIMIT:
         diff = QUERYLIMIT - len(all_clusters)
@@ -166,7 +174,7 @@ def run(EXPERIMENT_PATH, queue):
                     timestamps = pd.read_csv(pathTimestamps, index_col=0)
                 # dump the settings of this task also in the resulting folder
                 with open(f"{path_exp}/settings.json", "w") as outfile:
-                    json.dump(experiment, outfile, indent=4)
+                    json.dump(experiments, outfile, indent=4)
                 
                 # go over all the UCI datasets
                 path_datasets = Path('datasets/cobras-paper/UCI').absolute()

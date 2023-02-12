@@ -41,6 +41,39 @@ class MetricLearningAlgorithm: # abstract class
         trans = np.copy(self.transformed) if self.transformed is not None else None
         return trans, self.affinity
 
+##################
+# Simple testing #
+##################
+
+class SimpleLearning(MetricLearningAlgorithm):
+    def __init__(self, metric = None, when: str = 'begin', nbConstraints = 20) -> None:
+        super().__init__(when)
+        self.metric = metric
+        self.nbConstraints = nbConstraints
+        self.done = False
+
+
+    def getDataForClustering(self):
+        return None, None # is het veiligste
+
+    def learn(self, cobras, current_superinstance, current_cluster): # here comes the basic algorithm
+        if not self.metric or self.done:
+            return False
+
+        pairs, constraints = None, None
+        if (self.metric["value"].__name__ == "NCA_wrapper"):
+            pairs = np.copy(self.orginal)
+            constraints = cobras.querier.labels 
+        else:
+            pairs, constraints = cobras.querier.getRandomConstraints(self.nbConstraints)  if self.when == 'initial' else cobras.constraint_index.getLearningConstraints()
+
+        if len(pairs) >= self.nbConstraints:
+            self.done = True
+            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # we hebben wrappers woehoe
+            self.transformed, self.affinity = self.learner.fit(pairs, constraints).transform(np.copy(self.orginal))
+            cobras.data = np.copy(self.transformed)
+        return False
+
 #################
 # basic options #
 #################

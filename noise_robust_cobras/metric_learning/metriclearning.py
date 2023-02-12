@@ -44,7 +44,7 @@ class kernelbased(MetricLearner):
         self.k = 10
         self.prepocessor = preprocessor
 
-    def fit(self, pairs ,y):
+    def fit(self, pairs ,y, local = None):
         n = len(self.distance)
         w = 2*1.5*np.sum(np.triu(self.distance))/(n*(n + 1)) # hier zijn er ook parameters waarmee je kan spelen
         kernel = np.exp(self.distance/-w)
