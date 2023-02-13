@@ -110,6 +110,56 @@ class NCA_wrapper(MetricLearner):
 
     def transform(self, data):
         return self.fitted.transform(data), self.affinity
+    
+class RCA_wrapper(MetricLearner):
+    def __init__(self, preprocessor = None, n_components = None):
+        self.ensemble = None
+        self.preprocessor = preprocessor
+    def fit(self, pairs ,y):
+        blobs = []
+        seen_indices = [] # deze zitten dus in ML blobs
+        for ml in pairs[y == 1]:
+            ind1 = ml[0]
+            ind2 = ml[1]
+            blob1 = []
+            blob2 = []
+            if ind1 in seen_indices:
+                for blob in blobs:
+                    if ind1 in blob:
+                        blob1 = blob
+                        break
+            if ind2 in seen_indices:
+                for blob in blobs:
+                    if ind2 in blob:
+                        blob2 = blob
+                        break
+
+            if len(blob1) > 0 and len(blob2) > 0:
+                blob1.extend(blob2)
+                blobs.remove(blob2)
+                continue
+            if len(blob1) > 0:
+                blob1.append(ind2)
+                seen_indices.append(ind2)
+                continue
+            if len(blob2) > 0:
+                blob2.append(ind1)
+                seen_indices.append(ind1)
+                continue
+            blobs.append([ind1, ind2])
+            seen_indices.extend([ind1, ind2])
+        constr = []
+        indici = []
+        i = 0
+        for blob in blobs:
+            indici.extend(blob)
+            constr.extend([i]*len(blob))
+            i+=1
+        self.ensemble = RCA(preprocessor=self.preprocessor).fit(indici, constr)
+        return self
+
+    def transform(self, data):
+        return self.ensemble.transform(data), self.affinity
 
 class Spectral(MetricLearner): # TODO: dit opnieuw testen, wrs is hier een fout
     def __init__(self, preprocessor=None):
@@ -133,8 +183,9 @@ class Spectral(MetricLearner): # TODO: dit opnieuw testen, wrs is hier een fout
         return self
 
     def transform(self, data):
-        transformed = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed').fit_transform(self.affinity)
-        return np.copy(data), self.affinity
+        n_components = math.floor(data.shape[1]/2)# aantal components is nbatuurlijk wel belangrijk
+        transformed = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed', n_components= n_components).fit_transform(self.affinity)
+        return transformed, self.affinity
     
 
 ####################

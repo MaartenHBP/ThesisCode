@@ -67,9 +67,9 @@ class SimpleLearning(MetricLearningAlgorithm):
         else:
             pairs, constraints = cobras.querier.getRandomConstraints(self.nbConstraints)  if self.when == 'initial' else cobras.constraint_index.getLearningConstraints()
 
-        if len(pairs) >= self.nbConstraints:
+        if len(pairs) >= self.nbConstraints or self.when == 'end':
             self.done = True
-            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"]) # we hebben wrappers woehoe
+            self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"])
             self.transformed, self.affinity = self.learner.fit(pairs, constraints).transform(np.copy(self.orginal))
             cobras.data = np.copy(self.transformed)
         return False

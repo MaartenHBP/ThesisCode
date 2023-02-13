@@ -1,0 +1,20 @@
+{
+    "Description": "Baseline of kernelbased",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "SimpleLearning",
+        "metric_parameters": {"metric": {"value": "kernelbased",
+                                        "parameters":{}},
+                               "when": "end"        
+                            },
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": null,
+        "rebuilder_parameters": {},
+        "baseline": true
+    }
+}

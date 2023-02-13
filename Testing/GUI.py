@@ -214,8 +214,8 @@ with st.container():
             c = st.session_state.original[:, 0]
             if st.session_state.showSuper and not st.session_state.settings[st.session_state.current].clustTransformed is None:
                 c = st.session_state.settings[st.session_state.current].clustTransformed
-            ax.scatter(x = st.session_state.settings[st.session_state.current].transformed[:,0], 
-                        y = st.session_state.settings[st.session_state.current].transformed[:,1], c = c)
+            ax.scatter(x = st.session_state.settings[st.session_state.current].transformed, 
+                        y = np.zeros(len(st.session_state.settings[st.session_state.current].transformed)), c = c)
             st.pyplot(fig)
 st.markdown("""---""")
 with st.container(): # container as

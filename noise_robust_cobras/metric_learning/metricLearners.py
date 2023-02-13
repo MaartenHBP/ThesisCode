@@ -374,6 +374,7 @@ class ssSpectralClust:
         self.ensemble = None
         self.preprocessor = preprocessor
         self.nb_neigh = nb_neigh
+        self.affinity = None
     def fit(self, pairs ,y):
         sp = SpectralClustering(n_clusters=2, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors= self.nb_neigh).fit(self.preprocessor)
         aff = sp.affinity_matrix_
@@ -381,11 +382,13 @@ class ssSpectralClust:
         yc[yc==-1] = 0
         aff[pairs[:,0], pairs[:,1]] = yc
         aff[pairs[:,1], pairs[:,0]] = yc
-        self.ensemble = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed').fit_transform(aff)
+        self.affinity = aff
         return self
 
     def transform(self, data):
-        return self.ensemble
+        n_components = math.floor(data.shape[1]/2)# aantal components is nbatuurlijk wel belangrijk
+        transformed = SpectralEmbedding(eigen_solver="arpack", affinity='precomputed', n_components= n_components).fit_transform(self.affinity)
+        return transformed
 
 #########
 #gb_lmnn#
