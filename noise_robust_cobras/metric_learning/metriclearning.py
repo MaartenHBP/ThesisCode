@@ -17,6 +17,11 @@ from sklearn.manifold._locally_linear import barycenter_kneighbors_graph
 from sklearn.metrics import pairwise_kernels # can be very usefull
 from scipy.spatial.distance import cdist
 
+from sklearn.decomposition import PCA
+from sklearn.decomposition import KernelPCA
+
+# Moeten seed nog doen!
+
 
 
 class MetricLearner:
@@ -37,12 +42,12 @@ class kernelbased(MetricLearner):
     '''
     def __init__(self, preprocessor = None):
         self.ensemble = None
-        self.distance = pairwise_distances(preprocessor, metric='Euclidian')
+        self.distance = pairwise_distances(preprocessor, metric='euclidean')
         self.d = math.floor(preprocessor.shape[1]/2)
         # self.d = 2
         self.alph = 0.2 if self.d > 5 else 0.02
         self.k = 10
-        self.prepocessor = preprocessor
+        super().__init__(preprocessor)
 
     def fit(self, pairs ,y, local = None):
         n = len(self.distance)
@@ -73,7 +78,7 @@ class kernelbased(MetricLearner):
 
         Sb = reduced_kernel @ Ud @ reduced_kernel.T
         
-        optimal_weight_matrix = barycenter_kneighbors_graph(self.prepocessor, n_neighbors=self.k)
+        optimal_weight_matrix = barycenter_kneighbors_graph(self.preprocessor, n_neighbors=self.k)
 
         E = (np.identity(n) - optimal_weight_matrix).T @ (np.identity(n) - optimal_weight_matrix)
         Sw = reduced_kernel @ (Up + self.alph * E) @ reduced_kernel.T
@@ -112,9 +117,16 @@ class NCA_wrapper(MetricLearner):
         return self.fitted.transform(data), self.affinity
     
 class RCA_wrapper(MetricLearner):
-    def __init__(self, preprocessor = None, n_components = None):
+    def __init__(self, preprocessor = None, n_components = None, kernel = False):
         self.ensemble = None
-        self.preprocessor = preprocessor
+        n_comp = preprocessor.shape[1] # ff zo gedaan, maar best anders doen
+        if n_comp > 5:
+            n_comp = 5
+        else:
+            if not kernel:
+                n_comp = 'mle'
+        pre = KernelPCA(kernel='rbf',n_components = n_comp).fit_transform(preprocessor) if kernel else PCA(n_components = n_comp, svd_solver='full').fit_transform(preprocessor)
+        super().__init__(pre)
     def fit(self, pairs ,y):
         blobs = []
         seen_indices = [] # deze zitten dus in ML blobs
@@ -155,11 +167,11 @@ class RCA_wrapper(MetricLearner):
             indici.extend(blob)
             constr.extend([i]*len(blob))
             i+=1
-        self.ensemble = RCA(preprocessor=self.preprocessor).fit(indici, constr)
+        self.ensemble = RCA(preprocessor=self.preprocessor).fit(indici, constr) # ff wat hacky
         return self
 
     def transform(self, data):
-        return self.ensemble.transform(data), self.affinity
+        return self.ensemble.transform(np.copy(self.preprocessor)), self.affinity 
 
 class Spectral(MetricLearner): # TODO: dit opnieuw testen, wrs is hier een fout
     def __init__(self, preprocessor=None):
@@ -210,7 +222,6 @@ def heursitcSearch(Sw, Sb, d, errorterm):
         lmbda = (lambda1 + lambda2)/2
 
         while lambda2 - lambda1 > errorterm:
-            print("entered")
             g = np.sum(eigh(Sb - lmbda*Sw , eigvals_only=True)[-d:])
             if g > 0: lambda1 = lmbda
             else: lambda2 = lmbda
@@ -225,6 +236,5 @@ def heursitcSearch(Sw, Sb, d, errorterm):
         Z = z[:,0:(len(Sw) - rank)]
         _, v = eigh(Z.T@Sb@Z)
         W = v[:,-d:]
-        print((Z@W).shape)
         return Z @ W
         # return W1 @ W @ W.T @ W1.T

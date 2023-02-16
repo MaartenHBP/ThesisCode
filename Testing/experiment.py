@@ -99,7 +99,7 @@ def run(EXPERIMENT_PATH, queue):
             cobras = pd.read_csv(path_cobras, index_col=0)
             all_results["Cobras"] = cobras["total"]
             all_results.to_csv(path_results)
-            print(all_results)
+            # print(all_results)
         else:
             path_datasets = Path('datasets/cobras-paper/UCI').absolute()
             datasets = os.listdir(path_datasets)
@@ -125,7 +125,7 @@ def run(EXPERIMENT_PATH, queue):
         dir_list = os.listdir(path_data)
         for k in range(len(dir_list)):
             i = dir_list[k][:len(dir_list[k]) - 5]
-            with open(f'queue/{dir_list[k]}') as json_file:
+            with open(f'{queue}/{dir_list[k]}') as json_file:
                 print(f"Start/continue {i}")
                 # ga verder met een experiment of start
                 experiments = json.load(json_file)
@@ -153,6 +153,9 @@ def run(EXPERIMENT_PATH, queue):
                     if "rebuilder" in experiment:
                         settings["rebuilder"] = eval(experiment["rebuilder"]) if experiment["rebuilder"] else None
                         settings["rebuilder_parameters"] = experiment["rebuilder_parameters"]
+
+                    if "baseline" in experiment:
+                        settings["baseline"] = experiment["baseline"]
                 except Exception as e: # failed equals zero results
                     print(e)
                     continue
@@ -277,8 +280,11 @@ def test(nameData):
             settings["rebuilder"] = eval(experiment["rebuilder"]) if experiment["rebuilder"] else None
             settings["rebuilder_parameters"] = experiment["rebuilder_parameters"]
 
-        plt.plot(np.arange(200),runAlgo(1, nameData, {}, querylimit=30), label='cobras')
-        plt.plot(np.arange(200),runAlgo(1, nameData, settings, querylimit=30), label='test')
+        if "baseline" in experiment:
+            settings["baseline"] = experiment["baseline"]
+
+        # plt.plot(np.arange(200),runAlgo(0, nameData, {}), label='cobras')
+        plt.plot(np.arange(200),runAlgo(0, nameData, settings), label='test')
 
         # k = [5]
         
@@ -351,11 +357,11 @@ def executeExperiments():
     #####################################
     path_data = Path('queue').absolute()
     dir_list = os.listdir(path_data)
-    for k in range(len(dir_list)):
+    for k in dir_list:
         name = k
-        print("Started"  + k)
+        print("Started "  + str(k))
         run(f'experimenten/{name}', f'queue/{name}')
-        print("Finished"  + k)
+        print("Finished "  + str(k))
         print("Deleting the queue of this experiment")
 
         shutil.rmtree(f'queue/{name}')
@@ -370,9 +376,7 @@ if __name__ == "__main__":
 
     ignore_warnings() # moet meegegeven worden met de workers tho
     executeExperiments()
-    # run()
-    # test("column_2C")
-    # kNN("ionosphere")
+    # test("dermatology")
 
                 
 

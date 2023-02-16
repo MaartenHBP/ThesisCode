@@ -224,7 +224,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             skipSplit = False
             if self.metric.executeNow('begin'):
                 skipSplit = self.metric.learn(self, None, None)
-                if self.baseline:
+                if self.baseline and self.metric.isDone():
                     break
 
             # during this iteration store the current clustering
