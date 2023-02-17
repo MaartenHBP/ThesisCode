@@ -28,7 +28,7 @@ class LabelQuerier(Querier):
 
     def getRandomConstraints(self, nbConstraints):
         indices = np.arange(len(self.labels))
-        all_pairs = np.array(list(combinations(indices), 2))
+        all_pairs = np.array(list(combinations(indices, 2)))
 
         indi = np.arange(len(all_pairs))
         random.shuffle(indi)
