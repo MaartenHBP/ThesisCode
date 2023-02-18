@@ -20,14 +20,17 @@ from scipy.spatial.distance import cdist
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 
+import itertools
+
 # Moeten seed nog doen!
 
 
 
 class MetricLearner:
-    def __init__(self, preprocessor = None):
+    def __init__(self, preprocessor = None, expand = False):
         self.affinity = None
         self.preprocessor = preprocessor
+        self.expand = expand
     @abstractmethod
     def fit(self, pairs ,y, local = None): # dingen die tansformen en dingen die affinity maken kunnen gecombineerd al worden (bv spectral na ITML (the full power))
         pass # return transformed and affinity
@@ -91,9 +94,9 @@ class kernelbased(MetricLearner):
         return self.ensemble, self.affinity
 
 class ITML_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None):
+    def __init__(self, preprocessor=None, expand = False):
         self.fitted = None
-        super().__init__(preprocessor) # TODO: dit uitbereiden
+        super().__init__(preprocessor, expand) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, local = None):
         self.fitted = ITML(preprocessor=self.preprocessor)
@@ -238,3 +241,76 @@ def heursitcSearch(Sw, Sb, d, errorterm):
         W = v[:,-d:]
         return Z @ W
         # return W1 @ W @ W.T @ W1.T
+
+def expand(pairs, y):
+    newpairs = []
+    newy = []
+    blobs = createBlobs(pairs[y == 1])
+    for blob in blobs:
+        new = list(itertools.combinations(blob, 2))
+        newpairs.extend(new)
+        newy.extend([1]*len(new))
+
+    for cl in pairs[y == -1]:
+        left = min(cl)
+        right = max(cl)
+        if ([left, right] in newpairs):
+            continue
+        leftblob = [left]
+        rightblob = [right]
+
+        found = 0
+        for blob in blobs:
+            if left in blob:
+                leftblob = blob
+                found += 1
+            if right in blob:
+                rightblob = blob
+                found += 1
+            if found == 2:
+                break
+        
+        newcl = np.transpose([np.tile(leftblob, len(rightblob)), np.repeat(leftblob, len(rightblob))])
+
+        newpairs.extend(newcl.tolist())
+        newy.extend([-1]*len(new))
+
+    return newpairs, newy
+
+
+def createBlobs(must_links):
+    blobs = []
+    seen_indices = [] # deze zitten dus in ML blobs
+    for ml in must_links:
+        ind1 = ml[0]
+        ind2 = ml[1]
+        blob1 = []
+        blob2 = []
+        if ind1 in seen_indices:
+            for blob in blobs:
+                if ind1 in blob:
+                    blob1 = blob
+                    break
+        if ind2 in seen_indices:
+            for blob in blobs:
+                if ind2 in blob:
+                    blob2 = blob
+                    break
+
+        if len(blob1) > 0 and len(blob2) > 0:
+            blob1.extend(blob2)
+            blobs.remove(blob2)
+            continue
+        if len(blob1) > 0:
+            blob1.append(ind2)
+            seen_indices.append(ind2)
+            continue
+        if len(blob2) > 0:
+            blob2.append(ind1)
+            seen_indices.append(ind1)
+            continue
+        blobs.append([ind1, ind2])
+        seen_indices.extend([ind1, ind2])
+
+    return blobs
+
