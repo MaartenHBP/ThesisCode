@@ -1,23 +1,21 @@
 {
-    "Description": "ITML once after 250 constraints",
+    "Description": "ITML baseline with random constraints",
     "fitparam": {},
     "cobrasparam": {
         "metric": "SimpleLearning",
         "metric_parameters": {
             "metric": {
                 "value": "ITML_wrapper",
-                "parameters": {
-                    "expand": true
-                }
+                "parameters": {}
             },
-            "nbConstraints": 50
+            "nbConstraints": 450,
+            "when": "initial"
         },
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},
         "rebuild_cluster": null,
         "rebuild_cluster_parameters": {},
         "rebuilder": null,
-        "rebuilder_parameters": {},
-        "baseline": true
+        "rebuilder_parameters": {}
     }
 }

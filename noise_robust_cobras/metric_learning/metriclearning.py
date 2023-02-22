@@ -39,7 +39,7 @@ class MetricLearner:
         pass
 
 
-class kernelbased(MetricLearner):
+class kernelbased(MetricLearner): # TODO: check de implementatie
     ''' 
     Semi-Supervised Metric Learning Using Pairwise Constraints, Soleymani Baghshah M, Bagheri Shouraki S
     '''
@@ -99,6 +99,8 @@ class ITML_wrapper(MetricLearner):
         super().__init__(preprocessor, expand) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, local = None):
+        if self.expand:
+            pairs, y = expand(pairs, y)
         self.fitted = ITML(preprocessor=self.preprocessor)
         self.fitted.fit(pairs, y)
         return self
@@ -270,10 +272,10 @@ def expand(pairs, y):
             if found == 2:
                 break
         
-        newcl = np.transpose([np.tile(leftblob, len(rightblob)), np.repeat(leftblob, len(rightblob))])
+        newcl = np.transpose([np.tile(leftblob, len(rightblob)), np.repeat(rightblob, len(leftblob))])
 
         newpairs.extend(newcl.tolist())
-        newy.extend([-1]*len(new))
+        newy.extend([-1]*len(newcl))
 
     return newpairs, newy
 

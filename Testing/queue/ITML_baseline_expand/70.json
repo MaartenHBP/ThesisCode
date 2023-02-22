@@ -10,7 +10,7 @@
                     "expand": true
                 }
             },
-            "nbConstraints": 50
+            "nbConstraints": 70
         },
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},

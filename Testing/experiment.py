@@ -39,6 +39,7 @@ SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creqtion of the seeds
 QUERYLIMIT = 200
+BASELINELIMIT = 550
 
 def runAlgo(seed, dataName, parameters, querylimit = 200):
     import warnings
@@ -51,9 +52,12 @@ def runAlgo(seed, dataName, parameters, querylimit = 200):
     target = dataset[:, 0]
 
     # print(f"classlabels = {len(np.unique(target))}")
-    querier = LabelQuerier(None, target, querylimit)
-    # try:
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **parameters)
+    if not clusterer.baseline:
+        querier = LabelQuerier(None, target, querylimit)
+    else:
+        querier = LabelQuerier(None, target, BASELINELIMIT)
+    # try:
     if clusterer.baseline: # sketchy baseline
         all_clusters, runtimes, *_ = clusterer.fit(data, -1, None, querier)
         data = np.copy(clusterer.data)
@@ -376,7 +380,7 @@ if __name__ == "__main__":
 
     ignore_warnings() # moet meegegeven worden met de workers tho
     executeExperiments()
-    # test("dermatology")
+    # test("spambase")
 
                 
 

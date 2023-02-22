@@ -1,16 +1,14 @@
 {
-    "Description": "ITML once after 250 constraints",
+    "Description": "ITML once after 400 constraints",
     "fitparam": {},
     "cobrasparam": {
         "metric": "SimpleLearning",
         "metric_parameters": {
             "metric": {
                 "value": "ITML_wrapper",
-                "parameters": {
-                    "expand": true
-                }
+                "parameters": {}
             },
-            "nbConstraints": 50
+            "nbConstraints": 400
         },
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},

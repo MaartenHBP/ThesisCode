@@ -6,11 +6,9 @@
         "metric_parameters": {
             "metric": {
                 "value": "ITML_wrapper",
-                "parameters": {
-                    "expand": true
-                }
+                "parameters": {}
             },
-            "nbConstraints": 50
+            "nbConstraints": 250
         },
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},

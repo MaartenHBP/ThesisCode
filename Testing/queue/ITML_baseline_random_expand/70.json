@@ -10,14 +10,14 @@
                     "expand": true
                 }
             },
-            "nbConstraints": 50
+            "nbConstraints": 70,
+            "when": "initial"
         },
         "cluster_algo": "KMeansClusterAlgorithm",
         "cluster_algo_parameters": {},
         "rebuild_cluster": null,
         "rebuild_cluster_parameters": {},
         "rebuilder": null,
-        "rebuilder_parameters": {},
-        "baseline": true
+        "rebuilder_parameters": {}
     }
 }
