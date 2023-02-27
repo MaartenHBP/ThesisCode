@@ -199,11 +199,12 @@ with st.container():
             colors = {-1: "r", 1: "g"}
 
             for i in range(len(lines)):
-                point1 = st.session_state.original[:, 1:][lines[i,0]]
-                point2 = st.session_state.original[:, 1:][lines[i,1]]
-                x_values = [point1[0], point2[0]]
-                y_values = [point1[1], point2[1]]
-                ax.plot(x_values, y_values, c = colors[labels[i]])
+                if labels[i] == -1 and st.session_state.original[:, 0][lines[i,0]] == 1:
+                    point1 = st.session_state.original[:, 1:][lines[i,0]]
+                    point2 = st.session_state.original[:, 1:][lines[i,1]]
+                    x_values = [point1[0], point2[0]]
+                    y_values = [point1[1], point2[1]]
+                    ax.plot(x_values, y_values, c = colors[labels[i]])
 
         st.pyplot(fig)
 

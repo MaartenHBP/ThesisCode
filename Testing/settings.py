@@ -82,8 +82,7 @@ class metricSettings:
             pairs = np.vstack((ml,cl))
             constrains = np.full(len(ml) + len(cl), 1)
             constrains[len(ml):] = np.full(len(cl), -1)
-            self.constraints = constrains
-            self.pairs = pairs
+            self.pairs, self.constraints = expand(pairs, constrains)
 
     def learnMetric(self, data, onOrig = True):
         # self.transformed = np.copy(data)
@@ -346,4 +345,76 @@ class metricSettings:
     #         self.cobrasOriginal = [superinstances, clusterIteration]
 
         # animation should be saved here
+
+def expand(pairs, y):
+    newpairs = []
+    newy = []
+    blobs = createBlobs(pairs[y == 1])
+    for blob in blobs:
+        new = list(itertools.combinations(blob, 2))
+        newpairs.extend(new)
+        newy.extend([1]*len(new))
+
+    for cl in pairs[y == -1]:
+        left = min(cl)
+        right = max(cl)
+        if ([left, right] in newpairs):
+            continue
+        leftblob = [left]
+        rightblob = [right]
+
+        found = 0
+        for blob in blobs:
+            if left in blob:
+                leftblob = blob
+                found += 1
+            if right in blob:
+                rightblob = blob
+                found += 1
+            if found == 2:
+                break
+        
+        newcl = np.transpose([np.tile(leftblob, len(rightblob)), np.repeat(rightblob, len(leftblob))])
+
+        newpairs.extend(newcl.tolist())
+        newy.extend([-1]*len(newcl))
+
+    return np.array(newpairs), np.array(newy)
+
+
+def createBlobs(must_links):
+    blobs = []
+    seen_indices = [] # deze zitten dus in ML blobs
+    for ml in must_links:
+        ind1 = ml[0]
+        ind2 = ml[1]
+        blob1 = []
+        blob2 = []
+        if ind1 in seen_indices:
+            for blob in blobs:
+                if ind1 in blob:
+                    blob1 = blob
+                    break
+        if ind2 in seen_indices:
+            for blob in blobs:
+                if ind2 in blob:
+                    blob2 = blob
+                    break
+
+        if len(blob1) > 0 and len(blob2) > 0:
+            blob1.extend(blob2)
+            blobs.remove(blob2)
+            continue
+        if len(blob1) > 0:
+            blob1.append(ind2)
+            seen_indices.append(ind2)
+            continue
+        if len(blob2) > 0:
+            blob2.append(ind1)
+            seen_indices.append(ind1)
+            continue
+        blobs.append([ind1, ind2])
+        seen_indices.extend([ind1, ind2])
+
+    return blobs
 

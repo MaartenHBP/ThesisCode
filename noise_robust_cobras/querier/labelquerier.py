@@ -40,3 +40,11 @@ class LabelQuerier(Querier):
         constraints[self.labels[pairs[:,0]] != self.labels[pairs[:, 1]]] = -1
 
         return pairs, constraints
+    
+    def checkConstraints(self,constraints, y):
+        for i in range(len(constraints)):
+            if y[i] == 1 and self.labels[constraints[i][0]] != self.labels[constraints[i][1]]:
+                return False
+            if y[i] == -1 and self.labels[constraints[i][0]] == self.labels[constraints[i][1]]:
+                return False
+        return True

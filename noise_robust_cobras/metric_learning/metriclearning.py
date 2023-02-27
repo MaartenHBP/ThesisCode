@@ -99,10 +99,21 @@ class ITML_wrapper(MetricLearner):
         super().__init__(preprocessor, expand) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, local = None):
+        print(len(pairs))
         if self.expand:
             pairs, y = expand(pairs, y)
-        self.fitted = ITML(preprocessor=self.preprocessor)
-        self.fitted.fit(pairs, y)
+        print(len(pairs))
+        try:
+            self.fitted = ITML(preprocessor=self.preprocessor)
+            self.fitted.fit(pairs, y)
+        except:
+            print("OEI OEI OEIEOEIEO")
+            ch = np.random.choice(len(pairs), math.floor(0.5*len(pairs)), replace = False)
+            pairs = np.delete(pairs, ch, axis=0)
+            y =  np.delete(y, ch, axis=0)
+            print(len(pairs))
+            self.fitted = ITML(preprocessor=self.preprocessor)
+            self.fitted.fit(pairs, y)
         return self
 
     def transform(self, data):
@@ -248,6 +259,7 @@ def expand(pairs, y):
     newpairs = []
     newy = []
     blobs = createBlobs(pairs[y == 1])
+    print(blobs)
     for blob in blobs:
         new = list(itertools.combinations(blob, 2))
         newpairs.extend(new)
@@ -277,7 +289,8 @@ def expand(pairs, y):
         newpairs.extend(newcl.tolist())
         newy.extend([-1]*len(newcl))
 
-    return newpairs, newy
+
+    return np.array(newpairs), np.array(newy)
 
 
 def createBlobs(must_links):
@@ -298,6 +311,9 @@ def createBlobs(must_links):
                 if ind2 in blob:
                     blob2 = blob
                     break
+
+        if ind1 in blob2:
+            continue
 
         if len(blob1) > 0 and len(blob2) > 0:
             blob1.extend(blob2)

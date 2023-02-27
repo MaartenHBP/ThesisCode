@@ -288,7 +288,8 @@ def test(nameData):
             settings["baseline"] = experiment["baseline"]
 
         # plt.plot(np.arange(200),runAlgo(0, nameData, {}), label='cobras')
-        plt.plot(np.arange(200),runAlgo(0, nameData, settings), label='test')
+        plt.plot(np.arange(200),runAlgo(19, nameData, settings), label='test')
+        # plt.plot(np.arange(200),runAlgo(18, nameData, {}), label='COBRAS')
 
         # k = [5]
         
@@ -379,8 +380,8 @@ if __name__ == "__main__":
         warnings.simplefilter(action='ignore', category=Warning)
 
     ignore_warnings() # moet meegegeven worden met de workers tho
-    executeExperiments()
-    # test("spambase")
+    # executeExperiments()
+    test("parkinsons")
 
                 
 
