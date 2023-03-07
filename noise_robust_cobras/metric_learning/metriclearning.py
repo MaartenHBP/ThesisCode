@@ -32,7 +32,7 @@ class MetricLearner:
         self.preprocessor = preprocessor
         self.expand = expand
     @abstractmethod
-    def fit(self, pairs ,y, local = None): # dingen die tansformen en dingen die affinity maken kunnen gecombineerd al worden (bv spectral na ITML (the full power))
+    def fit(self, pairs ,y, labels, superinstances, COBRASlabels, local = None): # dingen die tansformen en dingen die affinity maken kunnen gecombineerd al worden (bv spectral na ITML (the full power))
         pass # return transformed and affinity
     @abstractmethod
     def transform(self, data):
@@ -52,7 +52,7 @@ class kernelbased(MetricLearner): # TODO: check de implementatie
         self.k = 10
         super().__init__(preprocessor)
 
-    def fit(self, pairs ,y, local = None):
+    def fit(self, pairs ,y, labels, superinstances, COBRASlabels, local = None):
         n = len(self.distance)
         w = 2*1.5*np.sum(np.triu(self.distance))/(n*(n + 1)) # hier zijn er ook parameters waarmee je kan spelen
         kernel = np.exp(self.distance/-w)
@@ -98,22 +98,11 @@ class ITML_wrapper(MetricLearner):
         self.fitted = None
         super().__init__(preprocessor, expand) # TODO: dit uitbereiden
 
-    def fit(self, pairs, y, local = None):
-        # print(len(pairs))
+    def fit(self, pairs, y, labels, superinstances, COBRASlabels, local = None):
         if self.expand:
             pairs, y = expand(pairs, y)
-        # print(len(pairs))
-        # try:
         self.fitted = ITML(preprocessor=self.preprocessor, max_iter=100)
         self.fitted.fit(pairs, y)
-        # except:
-        #     print("OEI OEI OEIEOEIEO")
-        #     ch = np.random.choice(len(pairs), math.floor(0.5*len(pairs)), replace = False)
-        #     pairs = np.delete(pairs, ch, axis=0)
-        #     y =  np.delete(y, ch, axis=0)
-        #     print(len(pairs))
-        #     self.fitted = ITML(preprocessor=self.preprocessor)
-        #     self.fitted.fit(pairs, y)
         return self
 
     def transform(self, data):
@@ -124,9 +113,9 @@ class NCA_wrapper(MetricLearner):
         self.fitted = None
         super().__init__(preprocessor) # TODO: dit uitbereiden
 
-    def fit(self, pairs, y, local = None):
+    def fit(self, pairs, y, labels, superinstances, COBRASlabels, local = None):
         self.fitted = NCA()
-        self.fitted.fit(pairs, y)
+        self.fitted.fit(self.preprocessor, labels) # is momenteel op alle data
         return self
 
     def transform(self, data):
@@ -143,39 +132,8 @@ class RCA_wrapper(MetricLearner):
                 n_comp = 'mle'
         pre = KernelPCA(kernel='rbf',n_components = n_comp).fit_transform(preprocessor) if kernel else PCA(n_components = n_comp, svd_solver='full').fit_transform(preprocessor)
         super().__init__(pre)
-    def fit(self, pairs ,y):
-        blobs = []
-        seen_indices = [] # deze zitten dus in ML blobs
-        for ml in pairs[y == 1]:
-            ind1 = ml[0]
-            ind2 = ml[1]
-            blob1 = []
-            blob2 = []
-            if ind1 in seen_indices:
-                for blob in blobs:
-                    if ind1 in blob:
-                        blob1 = blob
-                        break
-            if ind2 in seen_indices:
-                for blob in blobs:
-                    if ind2 in blob:
-                        blob2 = blob
-                        break
-
-            if len(blob1) > 0 and len(blob2) > 0:
-                blob1.extend(blob2)
-                blobs.remove(blob2)
-                continue
-            if len(blob1) > 0:
-                blob1.append(ind2)
-                seen_indices.append(ind2)
-                continue
-            if len(blob2) > 0:
-                blob2.append(ind1)
-                seen_indices.append(ind1)
-                continue
-            blobs.append([ind1, ind2])
-            seen_indices.extend([ind1, ind2])
+    def fit(self, pairs, y, labels, superinstances, COBRASlabels, local = None):
+        blobs = createBlobs(pairs, y)
         constr = []
         indici = []
         i = 0
@@ -190,10 +148,12 @@ class RCA_wrapper(MetricLearner):
         return self.ensemble.transform(np.copy(self.preprocessor)), self.affinity 
 
 class Spectral(MetricLearner): # TODO: dit opnieuw testen, wrs is hier een fout
-    def __init__(self, preprocessor=None):
-        super().__init__(preprocessor)
+    def __init__(self, preprocessor=None, expand = False):
+        super().__init__(preprocessor, expand)
     
-    def fit(self, pairs, y, local = None):
+    def fit(self, pairs, y, labels, superinstances, COBRASlabels, local = None):
+        if self.expand:
+            pairs, y = expand(pairs, y)
         data = self.preprocessor if local is None else self.preprocessor[local,:]
         n_neighbours = min(10, len(data))
         sp = SpectralClustering(n_clusters=1, eigen_solver="arpack", affinity='nearest_neighbors', n_neighbors=n_neighbours).fit(data)

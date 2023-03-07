@@ -64,17 +64,20 @@ class SimpleLearning(MetricLearningAlgorithm):
             return False
 
         pairs, constraints = None, None
-        if (self.metric["value"].__name__ == "NCA_wrapper"): # nbconstraints is percemtage to keep for NCA
-            select = np.random.choice(len(self.orginal), math.floor((self.nbConstraints/100)*len(self.orginal)), replace=False)
-            pairs = np.copy(self.orginal[select])
-            constraints = cobras.querier.labels[select]
-        else:
-            pairs, constraints = cobras.querier.getRandomConstraints(self.nbConstraints)  if self.when == 'initial' else cobras.constraint_index.getLearningConstraints()
+
+
+        # select = np.random.choice(len(self.orginal), math.floor((self.nbConstraints/100)*len(self.orginal)), replace=False)
+        labels = np.copy(cobras.querier.labels)
+        COBRASlabels = np.copy(cobras.clustering.construct_cluster_labeling())
+        superinstances = np.copy(cobras.clustering.get_superinstances())
+
+
+        pairs, constraints = np.copy(cobras.querier.getRandomConstraints(self.nbConstraints))  if self.when == 'initial' else np.copy(cobras.constraint_index.getLearningConstraints())
 
         if len(pairs) >= self.nbConstraints or self.when == 'end' or self.when == 'initial':
             self.done = True
             self.learner = self.metric["value"](preprocessor = np.copy(self.orginal),**self.metric["parameters"])
-            self.transformed, self.affinity = self.learner.fit(pairs, constraints).transform(np.copy(self.orginal))
+            self.transformed, self.affinity = self.learner.fit(pairs, constraints, labels, superinstances, COBRASlabels).transform(np.copy(self.orginal))
             cobras.data = np.copy(self.transformed)
         return False
 

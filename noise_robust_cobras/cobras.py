@@ -116,7 +116,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
         # logging
-        self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen
+        self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen TODO
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -205,7 +205,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         initial_clustering = Clustering([Cluster([initial_superinstance])])
         self.clustering = initial_clustering
 
-        ### SUPERINSTANCES ### -> deze logger nog fixen
+        ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
         self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
         self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
@@ -342,10 +342,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
 
-        # ######################
-        # # Metric learn phase #
-        # ######################
-        # self.metricPhase(end = True) # nog veranderen
 
         return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
 
@@ -486,6 +482,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             :return:   A list with the resulting super-instances
             :rtype List[Superinstance]
         """
+
+        # gaan hier ff afblijven
         clusdata = None
         aff = None
 
