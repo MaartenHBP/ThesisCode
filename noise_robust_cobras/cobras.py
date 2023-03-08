@@ -341,9 +341,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         superinstances = self._cobras_log.getSuperinstances()
         clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
+        all_constraints = self._cobras_log.getConstraints() # hoef je niet meerdere keren herrunnen om te zien wat
 
 
-        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
+        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl, all_constraints # volgorde van returnen is van belang
 
     ###########################
     #       SPLITTING         #
