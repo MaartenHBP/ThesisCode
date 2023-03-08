@@ -33,6 +33,8 @@ from dask.distributed import Client, LocalCluster
 
 import shutil
 
+from sklearn.manifold import TSNE
+
 nbRUNS = 100
 ARGUMENTS = range(100)
 SEED = 24
@@ -301,53 +303,73 @@ def test(nameData):
         plt.legend()
         plt.show()
 
-def kNN(dataName):
-    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
-    
+def viz(nameData):
+    path = Path(f'datasets/cobras-paper/UCI/{nameData}.data').absolute()
     dataset = np.loadtxt(path, delimiter=',')
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    ###############################""
-    querier = LabelQuerier(None, target, 100)
-    clusterer = COBRAS(correct_noise=False)
-    all_clusters, runtimes, superinstances, clusterIteration, transformations, ml, cl = clusterer.fit(data, -1, None, querier)
-    print(adjusted_rand_score(target, all_clusters[-1]))
-    pairs = np.vstack((ml,cl))
-    constrains = np.full(len(ml) + len(cl), 1)
-    constrains[len(ml):] = np.full(len(cl), -1)
-    ######################################
+    emb = TSNE(random_state=42).fit_transform(data)
 
-    # model = KNeighborsClassifier(n_neighbors=3)
-    # model.fit(data,target)
-    # predicted = model.predict(data)
+    plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
+    plt.show()
 
-    # print("data/target")
-    # print(adjusted_rand_score(target, predicted))
+    data = ITML_Supervised(random_state=42,num_constraints= 500).fit_transform(data, target)
 
-    model = KNeighborsClassifier(n_neighbors=3)
-    model.fit(data,all_clusters[-1])
-    predicted = model.predict(data)
+    emb = TSNE(random_state=42).fit_transform(data)
 
-    print("data/COBRAS")
-    print(adjusted_rand_score(target, predicted))
+    plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
+    plt.show()
 
-    itml = ITML(preprocessor=data)
-    newdata = itml.fit(pairs, constrains).transform(data)
 
-    # model = KNeighborsClassifier(n_neighbors=3)
-    # model.fit(newdata,target)
-    # predicted = model.predict(newdata)
 
-    # print("newdata/target")
-    # print(adjusted_rand_score(target, predicted))
+# def kNN(dataName):
+#     path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    
+#     dataset = np.loadtxt(path, delimiter=',')
+#     data = dataset[:, 1:]
+#     target = dataset[:, 0]
 
-    model = KNeighborsClassifier(n_neighbors=3)
-    model.fit(newdata, all_clusters[-1])
-    predicted = model.predict(newdata)
+#     ###############################""
+#     querier = LabelQuerier(None, target, 100)
+#     clusterer = COBRAS(correct_noise=False)
+#     all_clusters, runtimes, superinstances, clusterIteration, transformations, ml, cl = clusterer.fit(data, -1, None, querier)
+#     print(adjusted_rand_score(target, all_clusters[-1]))
+#     pairs = np.vstack((ml,cl))
+#     constrains = np.full(len(ml) + len(cl), 1)
+#     constrains[len(ml):] = np.full(len(cl), -1)
+#     ######################################
 
-    print("newdata/COBRAS")
-    print(adjusted_rand_score(target, predicted))
+#     # model = KNeighborsClassifier(n_neighbors=3)
+#     # model.fit(data,target)
+#     # predicted = model.predict(data)
+
+#     # print("data/target")
+#     # print(adjusted_rand_score(target, predicted))
+
+#     model = KNeighborsClassifier(n_neighbors=3)
+#     model.fit(data,all_clusters[-1])
+#     predicted = model.predict(data)
+
+#     print("data/COBRAS")
+#     print(adjusted_rand_score(target, predicted))
+
+#     itml = ITML(preprocessor=data)
+#     newdata = itml.fit(pairs, constrains).transform(data)
+
+#     # model = KNeighborsClassifier(n_neighbors=3)
+#     # model.fit(newdata,target)
+#     # predicted = model.predict(newdata)
+
+#     # print("newdata/target")
+#     # print(adjusted_rand_score(target, predicted))
+
+#     model = KNeighborsClassifier(n_neighbors=3)
+#     model.fit(newdata, all_clusters[-1])
+#     predicted = model.predict(newdata)
+
+#     print("newdata/COBRAS")
+#     print(adjusted_rand_score(target, predicted))
     
 def executeExperiments():
 
@@ -380,8 +402,9 @@ if __name__ == "__main__":
         warnings.simplefilter(action='ignore', category=Warning)
 
     ignore_warnings() # moet meegegeven worden met de workers tho
-    executeExperiments()
+    # executeExperiments()
     # test("parkinsons")
+    viz("parkinsons")
 
                 
 
