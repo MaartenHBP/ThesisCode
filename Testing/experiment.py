@@ -303,7 +303,7 @@ def test(nameData):
         plt.legend()
         plt.show()
 
-def viz(nameData):
+def viz(nameData, queries, meticlearner):
     path = Path(f'datasets/cobras-paper/UCI/{nameData}.data').absolute()
     dataset = np.loadtxt(path, delimiter=',')
     data = dataset[:, 1:]
@@ -320,6 +320,13 @@ def viz(nameData):
 
     plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
     plt.show()
+
+def allvizs(seednumber:int):
+    path = Path("Vizs").absolute()
+    CHECK_FOLDER = os.path.isdir(path)
+    if not CHECK_FOLDER:
+        os.makedirs(path)
+        print("created folder : ", path)
 
 
 
@@ -404,7 +411,6 @@ if __name__ == "__main__":
     ignore_warnings() # moet meegegeven worden met de workers tho
     # executeExperiments()
     # test("parkinsons")
-    viz("parkinsons")
 
                 
 

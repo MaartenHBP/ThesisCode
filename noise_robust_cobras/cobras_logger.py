@@ -73,6 +73,17 @@ class ClusteringLogger:
                 cl.append(constraint.get_instance_tuple())
         return ml, cl
 
+    def getConstraints(self):
+        pairs = []
+        labels = []
+        for constraint in self.all_user_constraints:
+            pairs.append(constraint.get_instance_tuple())
+            if constraint.is_ML():
+               labels.append(1)
+            else:
+                labels.append(-1)
+        return np.hstack((pairs, labels))
+
     def add_mistake_information(self, ground_truth_querier):
         for i, (constraint_number, constraint_copy) in enumerate(
             self.corrected_constraint_sets
@@ -172,7 +183,7 @@ class ClusteringLogger:
 
     ###################
     # Metric learning #
-    ###################
+    ################### -> TODO fixen
 
     def addTransformation(self, data):
         self.transformations.append(np.copy(data))

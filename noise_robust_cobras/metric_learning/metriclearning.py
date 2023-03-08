@@ -227,7 +227,7 @@ def expand(pairs, y):
     for cl in pairs[y == -1]:
         left = min(cl)
         right = max(cl)
-        if ([left, right] in newpairs):
+        if ([left, right] in newpairs or [right, left] in newpairs):
             continue
         leftblob = [left]
         rightblob = [right]
