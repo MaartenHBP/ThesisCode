@@ -45,11 +45,13 @@ class ClusteringLogger:
         # Metric learning #
         ###################
 
-        self.transformations = []
+        self.currentSuperinstances = None
 
         self.superinstances = []
 
-        self.clusteringIteration = []
+        self.currentrepres = None
+
+        self.repres = []
 
     #########################
     # information retrieval #
@@ -108,6 +110,10 @@ class ClusteringLogger:
         # add the constraint to all_user_constraints
         self.all_user_constraints.append(constraint)
 
+        # remember the superinstances and repres
+        self.superinstances.append(self.currentSuperinstances)
+        self.repres.append(self.currentrepres)
+
         # keep algorithm phases up to date
         self.algorithm_phases.append(self.current_phase)
 
@@ -134,14 +140,14 @@ class ClusteringLogger:
     # phase data #
     ##############
 
-    def log_entering_phase(self, phase):
+    def log_entering_phase(self, phase): # ook nuttig
         self.current_phase = phase
 
     ###############
     # clusterings #
     ###############
 
-    def update_clustering_to_store(self, clustering):
+    def update_clustering_to_store(self, clustering, superinstances):
         if isinstance(clustering, np.ndarray):
             self.clustering_to_store = clustering.tolist()
         elif isinstance(clustering, list):
@@ -149,7 +155,10 @@ class ClusteringLogger:
         else:
             self.clustering_to_store = clustering.construct_cluster_labeling()
 
-    def update_last_intermediate_result(self, clustering):
+        self.currentrepres = []
+        self.currentSuperinstances = []
+
+    def update_last_intermediate_result(self, clustering, superinstances):
         if len(self.intermediate_results) == 0:
             return
         if not isinstance(clustering, np.ndarray):
@@ -180,25 +189,3 @@ class ClusteringLogger:
         con_length = len(self.all_user_constraints)
         for con in constraints:
             self.detected_noisy_constraint_data.append((con_length, copy.copy(con)))
-
-    ###################
-    # Metric learning #
-    ################### -> TODO fixen
-
-    def addTransformation(self, data):
-        self.transformations.append(np.copy(data))
-
-    def getTransformation(self):
-        return self.transformations
-
-    def addSuperinstances(self, data):
-        self.superinstances.append(np.copy(data))
-
-    def getSuperinstances(self):
-        return self.superinstances
-
-    def addClus(self, data):
-        self.clusteringIteration.append(np.copy(data))
-
-    def getClus(self):
-        return self.clusteringIteration

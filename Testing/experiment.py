@@ -15,6 +15,7 @@ from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
 from noise_robust_cobras.metric_learning.rebuildInstance import *
 from noise_robust_cobras.metric_learning.metriclearning import *
 from noise_robust_cobras.clustering_algorithms.clustering_algorithms import *
+from noise_robust_cobras.strategies.splitlevel_estimation import *
 import copy
 # from metric_learn import * -> werken met wrappers
 
@@ -43,7 +44,7 @@ seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creqtion
 QUERYLIMIT = 200
 BASELINELIMIT = 550
 
-def getConstraints(seed, dataName, querylimit = 200):
+def getInfoCobras(seed, dataName, querylimit = 200):
     import warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
     warnings.simplefilter(action='ignore', category=Warning)
@@ -54,9 +55,9 @@ def getConstraints(seed, dataName, querylimit = 200):
     target = dataset[:, 0]
 
     querier = LabelQuerier(None, target, querylimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], splitlevel_strategy=ConstantSplitLevelEstimationStrategy(constant_split_level=2)) #TODO: testen met silhouette plot
 
-    _, _, _, _, _,  _, _, all_constraints = clusterer.fit(data, -1, None, querier)
+    _, _, _, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
 
     path = Path(f'experimenten/constraints/{dataName}_{seed}.data').absolute()
     np.savetxt(path, all_constraints)
@@ -68,7 +69,7 @@ def getAllConstraints():
         ##########################################################
         for j in range(len(datasets)):
             nameData = datasets[j][:len(datasets[j]) - 5]
-            parallel_func = functools.partial(getConstraints, dataName = nameData)
+            parallel_func = functools.partial(getInfoCobras, dataName = nameData)
             futures = client.map(parallel_func, ARGUMENTS) 
 
 
