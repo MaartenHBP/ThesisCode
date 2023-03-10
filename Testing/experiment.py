@@ -43,6 +43,37 @@ seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creqtion
 QUERYLIMIT = 200
 BASELINELIMIT = 550
 
+def getConstraints(seed, dataName, querylimit = 200):
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querier = LabelQuerier(None, target, querylimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
+
+    _, _, _, _, _,  _, _, all_constraints = clusterer.fit(data, -1, None, querier)
+
+    path = Path(f'experimenten/constraints/{dataName}_{seed}.data').absolute()
+    np.savetxt(path, all_constraints)
+
+def getAllConstraints():
+    with LocalCluster() as cluster, Client(cluster) as client:
+        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+        datasets = os.listdir(path_datasets)
+        ##########################################################
+        for j in range(len(datasets)):
+            nameData = datasets[j][:len(datasets[j]) - 5]
+            parallel_func = functools.partial(getConstraints, dataName = nameData)
+            futures = client.map(parallel_func, ARGUMENTS) 
+
+
+
+
 def runAlgo(seed, dataName, parameters, querylimit = 200):
     import warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -321,12 +352,13 @@ def viz(nameData, queries, meticlearner):
     plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
     plt.show()
 
-def allvizs(seednumber:int):
-    path = Path("Vizs").absolute()
+def getCOBRASConstraints(seednumber:int):
+    path = Path("experimenten/constraints").absolute()
     CHECK_FOLDER = os.path.isdir(path)
     if not CHECK_FOLDER:
         os.makedirs(path)
         print("created folder : ", path)
+    
 
 
 
