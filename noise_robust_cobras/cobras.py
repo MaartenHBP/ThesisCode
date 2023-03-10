@@ -205,9 +205,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         initial_clustering = Clustering([Cluster([initial_superinstance])])
         self.clustering = initial_clustering
 
-        ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
-        self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-        self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+        # ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
+        # self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+        # self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
         # last valid clustering keeps the last completely merged clustering
         last_valid_clustering = None
@@ -337,14 +337,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
         
         runtimes = self._cobras_log.get_runtimes()
-        transformations = self._cobras_log.getTransformation()
         superinstances = self._cobras_log.getSuperinstances()
-        clusterIteration = self._cobras_log.getClus()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
         all_constraints = self._cobras_log.getConstraints() # hoef je niet meerdere keren herrunnen om te zien wat
 
 
-        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl, all_constraints # volgorde van returnen is van belang
+        return all_clusters, runtimes, superinstances, ml, cl, all_constraints # volgorde van returnen is van belang
 
     ###########################
     #       SPLITTING         #
