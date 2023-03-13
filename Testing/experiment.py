@@ -35,16 +35,21 @@ from dask.distributed import Client, LocalCluster
 import shutil
 
 from sklearn.manifold import TSNE
+from scipy.interpolate import interp1d
 
 nbRUNS = 100
 ARGUMENTS = range(100)
 SEED = 24
 random_generator = np.random.default_rng(SEED)
-seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creqtion of the seeds
+seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
 QUERYLIMIT = 200
 BASELINELIMIT = 550
 
-def getInfoCobras(seed, dataName, querylimit = 200):
+################
+# Plain COBRAS #
+################
+
+def getInfoCobras(seed, dataName):
     import warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
     warnings.simplefilter(action='ignore', category=Warning)
@@ -54,23 +59,147 @@ def getInfoCobras(seed, dataName, querylimit = 200):
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
+    querylimit = max(len(data), 200) 
+
     querier = LabelQuerier(None, target, querylimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], splitlevel_strategy=ConstantSplitLevelEstimationStrategy(constant_split_level=2)) #TODO: testen met silhouette plot
 
-    _, _, _, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
+    all_clusters, _, superinstances, repres, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
 
-    path = Path(f'experimenten/constraints/{dataName}_{seed}.data').absolute()
-    np.savetxt(path, all_constraints)
+    saveNumpy("experimenten/COBRAS", [all_clusters, superinstances, repres, all_constraints], ["all_clusters", "superinstances", "repres", "all_constraints"])
 
-def getAllConstraints():
+    if len(all_clusters) < querylimit:
+        diff = QUERYLIMIT - len(all_clusters)
+        for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
+
+def plainCOBRAS():
+    print("==Running COBRAS==")
+    makeFolders("experimenten/COBRAS", ["all_clusters", "superinstances", "repres", "all_constraints", "plots"])
+    makeFolders("experimenten/COBRAS/plots", ["absolute", "relative_points", "relative_constraints"])
     with LocalCluster() as cluster, Client(cluster) as client:
         path_datasets = Path('datasets/cobras-paper/UCI').absolute()
         datasets = os.listdir(path_datasets)
+        cobras = dict()
         ##########################################################
         for j in range(len(datasets)):
             nameData = datasets[j][:len(datasets[j]) - 5]
+            print(f"(COBRAS) ({nameData})\t Running")
             parallel_func = functools.partial(getInfoCobras, dataName = nameData)
-            futures = client.map(parallel_func, ARGUMENTS) 
+            futures = client.map(parallel_func, ARGUMENTS)
+            results = np.array(client.gather(futures))
+            cobras[nameData] = np.mean(results, axis=0)
+        print(f"(COBRAS)\t Plotting and saving results")
+        plotDataframe(cobras, "COBRAS")
+        saveDict(cobras, f"experiments/COBRAS/", "total")
+
+
+####################
+# Helper functions #
+####################
+
+def saveNumpy(initial, numpyArray, dataName, where, seed):
+    for array, place in zip(numpyArray, where):
+        path = Path(f'{initial}/{place}/{dataName}/{seed}.data').absolute()
+        np.savetxt(path, array)
+
+def makeFolders(initial, where):
+    path = Path(initial).absolute()
+    CHECK_FOLDER = os.path.isdir(path)
+    if not CHECK_FOLDER:
+        os.makedirs(path)
+        print("created folder : ", path)
+
+    for place in where:
+        path = Path(f"{initial}/{place}").absolute()
+        CHECK_FOLDER = os.path.isdir(path)
+        if not CHECK_FOLDER:
+            os.makedirs(path)
+            print("created folder : ", path)
+
+def saveDict(dict, path, name):
+    with open(f"{path}/{name}.json", "w") as outfile:
+        json.dump(dict, outfile, indent=4)
+
+def loadDict(path, name):
+    path = Path(f'{path}/{name}.json').absolute()
+    if not os.path.exists(path):
+        return dict()
+    with open(f'{path}/{name}.json') as json_file:
+        # ga verder met een experiment of start
+        return json.load(json_file)
+
+def saveDataframe(dataframe, where):
+    path = Path(where).absolute()
+    dataframe.to_csv(path)
+
+def openDataframe(where):
+    path = Path(where).absolute()
+    if os.path.exists(path):
+        return pd.read_csv(path, index_col=0)
+    else:
+        return pd.DataFrame(0,100,0.1)
+
+def plotDataframe(dataframe:dict, algorithm, compareWithCobras = False):
+    path = f"experiments/{algorithm}/plots:"
+    cobras = loadDict(f"experiments/COBRAS", "total") if compareWithCobras else dict()
+    absolute_total = pd.DataFrame() # gaan met 200 werken
+    relative_total = pd.DataFrame()
+    relative_len = np.arange()
+    for key, value in dataframe.items():
+        #  Absolute first
+        x = np.arange(value)
+        y = value
+        scatterPlot(x, y, key)
+        if cobras:
+            y = cobras["key"]
+            scatterPlot(x, y, "COBRAS")
+        saveFig(path + "absolute",key)
+        absolute_total[key] = value[:200]
+
+        path = Path(f'datasets/cobras-paper/UCI/{key}.data').absolute()
+        ln = len(np.loadtxt(path, delimiter=','))
+        y = value[:ln]
+        sprong = (1/ln)*100
+        x = np.arange(0,100,sprong) 
+
+        f = interp1d(x, y)
+        ynew = f(relative_len)
+
+        scatterPlot(x, ynew, key)
+        saveFig(path + "relative_points",key)
+
+
+    abs_tot = pd.DataFrame()
+    abs_tot[algorithm] = absolute_total.mean(axis = 1)
+    saveDataframe(abs_tot,path + "abs_total")
+    if compareWithCobras: # moeten we momenteel nog niet implementeren
+        pass
+
+    pandasPlot(absolute_total, path + "absolute")
+
+    rel_tot = pd.DataFrame()
+    rel_tot[algorithm] = relative_total.mean(axis = 1)
+    saveDataframe(relative_total,path + "rel_total")
+    if compareWithCobras: # moeten we momenteel nog niet implementeren
+        pass
+
+    pandasPlot(absolute_total, path + "absolute")
+        
+        
+def pandasPlot(dataFrame, path):
+    dataFrame.plot()
+    plt.savefig(f"{path}/total.png")
+
+def scatterPlot(x, y, name):
+    plt.plot(x, y, label = name)
+
+def saveFig(path, name):
+    plt.legend()
+    plt.savefig(f"{path}/{name}.png")
+
 
 
 
@@ -335,30 +464,30 @@ def test(nameData):
         plt.legend()
         plt.show()
 
-def viz(nameData, queries, meticlearner):
-    path = Path(f'datasets/cobras-paper/UCI/{nameData}.data').absolute()
-    dataset = np.loadtxt(path, delimiter=',')
-    data = dataset[:, 1:]
-    target = dataset[:, 0]
+# def viz(nameData, queries, meticlearner):
+#     path = Path(f'datasets/cobras-paper/UCI/{nameData}.data').absolute()
+#     dataset = np.loadtxt(path, delimiter=',')
+#     data = dataset[:, 1:]
+#     target = dataset[:, 0]
 
-    emb = TSNE(random_state=42).fit_transform(data)
+#     emb = TSNE(random_state=42).fit_transform(data)
 
-    plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
-    plt.show()
+#     plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
+#     plt.show()
 
-    data = ITML_Supervised(random_state=42,num_constraints= 500).fit_transform(data, target)
+#     data = ITML_Supervised(random_state=42,num_constraints= 500).fit_transform(data, target)
 
-    emb = TSNE(random_state=42).fit_transform(data)
+#     emb = TSNE(random_state=42).fit_transform(data)
 
-    plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
-    plt.show()
+#     plt.scatter(x = emb[:,0], y =emb[:,1], c=target)
+#     plt.show()
 
-def getCOBRASConstraints(seednumber:int):
-    path = Path("experimenten/constraints").absolute()
-    CHECK_FOLDER = os.path.isdir(path)
-    if not CHECK_FOLDER:
-        os.makedirs(path)
-        print("created folder : ", path)
+# def getCOBRASConstraints(seednumber:int):
+#     path = Path("experimenten/constraints").absolute()
+#     CHECK_FOLDER = os.path.isdir(path)
+#     if not CHECK_FOLDER:
+#         os.makedirs(path)
+#         print("created folder : ", path)
     
 
 

@@ -53,8 +53,7 @@ class ClosestInstance(InstanceRebuilder): # deze nu al testen
         for s in super:
             s.indices = (indices[closest_per_index == s.get_representative_idx()]).tolist()
             s.train_indices = [x for x in s.indices if x in cobras.train_indices]
-            s.si_train_indices = [x for x in s.indices if x in cobras.train_indices]
-
+            s.si_train_indices = [x for x in s.indices if x in cobras.train_indices] # geen idee wat ik hier heb gedaan
         return False
 
 # other algorithms that use the concept of "closest superinstances" -> calculate it using the points from the orinal superinstances transformed

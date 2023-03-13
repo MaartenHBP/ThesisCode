@@ -85,6 +85,12 @@ class ClusteringLogger:
             else:
                 labels.append(-1)
         return np.hstack((pairs, labels))
+    
+    def getSuperinstances(self):
+        return self.superinstances
+    
+    def getRepres(self):
+        return self.repres
 
     def add_mistake_information(self, ground_truth_querier):
         for i, (constraint_number, constraint_copy) in enumerate(
@@ -155,8 +161,16 @@ class ClusteringLogger:
         else:
             self.clustering_to_store = clustering.construct_cluster_labeling()
 
-        self.currentrepres = []
-        self.currentSuperinstances = []
+        currentrepres = []
+        currentSuperinstances = np.zeros(len(superinstances))
+
+        for i, super in enumerate(superinstances): # oh wauw
+            self.currentrepres.append(super.get_representative_idx())
+            self.currentSuperinstances[np.array(super.indices)] = i
+
+
+        self.currentrepres = currentrepres
+        self.currentSuperinstances = currentSuperinstances.tolist()
 
     def update_last_intermediate_result(self, clustering, superinstances):
         if len(self.intermediate_results) == 0:
@@ -173,6 +187,17 @@ class ClusteringLogger:
                 time.time() - self.start_time,
                 len(self.all_user_constraints),
             )
+
+        currentrepres = []
+        currentSuperinstances = np.zeros(len(superinstances))
+
+        for i, super in enumerate(superinstances): # oh wauw
+            self.currentrepres.append(super.get_representative_idx())
+            self.currentSuperinstances[np.array(super.indices)] = i
+
+
+        self.repres[-1] = currentrepres
+        self.superinstances[-1] = currentSuperinstances.tolist()
 
     #####################
     # noisy constraints #
