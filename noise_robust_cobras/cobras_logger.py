@@ -84,13 +84,19 @@ class ClusteringLogger:
                labels.append(1)
             else:
                 labels.append(-1)
-        return np.hstack((pairs, labels))
+        return np.c_[ np.array(pairs), np.array(labels) ]
     
     def getSuperinstances(self):
-        return self.superinstances
+        return np.array(self.superinstances)
     
     def getRepres(self):
-        return self.repres
+        ln = len(self.repres[-1])
+        for r in self.repres:
+            k = ln - len(r)
+            if k == 0: continue
+            r.extend([-1] * k)
+    
+        return np.array(self.repres)
 
     def add_mistake_information(self, ground_truth_querier):
         for i, (constraint_number, constraint_copy) in enumerate(
@@ -162,11 +168,11 @@ class ClusteringLogger:
             self.clustering_to_store = clustering.construct_cluster_labeling()
 
         currentrepres = []
-        currentSuperinstances = np.zeros(len(superinstances))
+        currentSuperinstances = np.zeros(len(self.clustering_to_store))
 
         for i, super in enumerate(superinstances): # oh wauw
-            self.currentrepres.append(super.get_representative_idx())
-            self.currentSuperinstances[np.array(super.indices)] = i
+            currentrepres.append(super.get_representative_idx())
+            currentSuperinstances[np.array(super.indices)] = i
 
 
         self.currentrepres = currentrepres
@@ -189,11 +195,11 @@ class ClusteringLogger:
             )
 
         currentrepres = []
-        currentSuperinstances = np.zeros(len(superinstances))
+        currentSuperinstances = np.zeros(len(self.clustering_to_store))
 
         for i, super in enumerate(superinstances): # oh wauw
-            self.currentrepres.append(super.get_representative_idx())
-            self.currentSuperinstances[np.array(super.indices)] = i
+            currentrepres.append(super.get_representative_idx())
+            currentSuperinstances[np.array(super.indices)] = i
 
 
         self.repres[-1] = currentrepres

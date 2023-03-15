@@ -36,6 +36,8 @@ import shutil
 
 from sklearn.manifold import TSNE
 from scipy.interpolate import interp1d
+from matplotlib.animation import FuncAnimation, PillowWriter
+from scipy.spatial import ConvexHull
 
 nbRUNS = 100
 ARGUMENTS = range(100)
@@ -54,6 +56,9 @@ def getInfoCobras(seed, dataName):
     warnings.simplefilter(action='ignore', category=FutureWarning)
     warnings.simplefilter(action='ignore', category=Warning)
 
+    
+      
+
     path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
     dataset = np.loadtxt(path, delimiter=',')
     data = dataset[:, 1:]
@@ -61,12 +66,22 @@ def getInfoCobras(seed, dataName):
 
     querylimit = max(len(data), 200) 
 
+    path_test = Path(f"experimenten/COBRAS/all_clusters/{dataName}/{seed}.data").absolute()
+    if os.path.exists(path_test):
+        all_clusters = np.loadtxt(path_test, delimiter=',').tolist()
+        if len(all_clusters) < querylimit:
+            diff = QUERYLIMIT - len(all_clusters)
+            for ex in range(diff): all_clusters.append(all_clusters[-1])
+        return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
     querier = LabelQuerier(None, target, querylimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], splitlevel_strategy=ConstantSplitLevelEstimationStrategy(constant_split_level=2)) #TODO: testen met silhouette plot
 
     all_clusters, _, superinstances, repres, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
 
-    saveNumpy("experimenten/COBRAS", [all_clusters, superinstances, repres, all_constraints], ["all_clusters", "superinstances", "repres", "all_constraints"])
+    # makeAnimation(target, superinstances, "COBRAS", dataName, seed) 
+
+    saveNumpy("experimenten/COBRAS", [all_clusters, superinstances, repres, all_constraints], dataName, ["all_clusters", "superinstances", "repres", "all_constraints"], seed)
 
     if len(all_clusters) < querylimit:
         diff = QUERYLIMIT - len(all_clusters)
@@ -78,32 +93,125 @@ def getInfoCobras(seed, dataName):
 def plainCOBRAS():
     print("==Running COBRAS==")
     makeFolders("experimenten/COBRAS", ["all_clusters", "superinstances", "repres", "all_constraints", "plots"])
-    makeFolders("experimenten/COBRAS/plots", ["absolute", "relative_points", "relative_constraints"])
-    with LocalCluster() as cluster, Client(cluster) as client:
-        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
-        datasets = os.listdir(path_datasets)
-        cobras = dict()
-        ##########################################################
-        for j in range(len(datasets)):
-            nameData = datasets[j][:len(datasets[j]) - 5]
-            print(f"(COBRAS) ({nameData})\t Running")
-            parallel_func = functools.partial(getInfoCobras, dataName = nameData)
-            futures = client.map(parallel_func, ARGUMENTS)
-            results = np.array(client.gather(futures))
-            cobras[nameData] = np.mean(results, axis=0)
-        print(f"(COBRAS)\t Plotting and saving results")
-        plotDataframe(cobras, "COBRAS")
-        saveDict(cobras, f"experiments/COBRAS/", "total")
+    makeFolders("experimenten/COBRAS/plots", ["absolute", "relative_points", "relative_constraints", "animations"])
+    path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+    datasets = os.listdir(path_datasets)
+    cobras = loadDict("experimenten/COBRAS", "total")
+    # ##########################################################
+    # with LocalCluster() as cluster, Client(cluster) as client:
+    #     for j in range(len(datasets)):
+    #         nameData = datasets[j][:len(datasets[j]) - 5]
+    #         for k in ["all_clusters", "superinstances", "repres", "all_constraints", "plots/absolute", "plots/relative_points", "plots/animations"]:
+    #             makeFolders(f"experimenten/COBRAS/{k}", [nameData])
+    #         doTSNE(nameData)
+    #         print(f"(COBRAS) ({nameData})\t Running")
+    #         parallel_func = functools.partial(getInfoCobras, dataName = nameData)
+    #         futures = client.map(parallel_func, ARGUMENTS)
+    #         results = np.array(client.gather(futures))
+    #         cobras[nameData] = np.mean(results, axis=0).tolist()
+    print(f"(COBRAS)\t Plotting and saving results")
+    
+    saveDict(cobras, f"experimenten/COBRAS", "total")
+    plotDataframe(cobras, "COBRAS")
+
+def simpleTest():
+    path = "experimenten/COBRAS"
+    normalTSNE_path = Path(f'experimenten/TSNE/spambase.data').absolute()
+    normalTSNE = np.loadtxt(normalTSNE_path, delimiter=',')
+
+    constraints_path = Path(f'{path}/all_constraints/spambase/1.data').absolute()
+    constraints = np.loadtxt(constraints_path, delimiter=',')
+
+    path_data = Path(f'datasets/cobras-paper/UCI/spambase.data').absolute()
+    dataset = np.loadtxt(path_data, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    # NCA
+    nca_data = NCA().fit_transform(data, target)
+    nca_tsne = TSNE(n_components=2, learning_rate='auto',init='random', perplexity=3).fit_transform(nca_data)
+
+    # ITML
+    itml_data = ITML_wrapper(preprocessor=data).fit_transform(constraints[:300,:1], constraints[:300,2])
+    itml_TSNE = TSNE(n_components=2, learning_rate='auto',init='random', perplexity=3).fit_transform(itml_data)
+
+    # ITML_expand
+    itml_expand_data = ITML_wrapper(preprocessor=data, expand = True).fit_transform(constraints[:300,:1], constraints[:300,2])
+    itml_expand_TSNE = TSNE(n_components=2, learning_rate='auto',init='random', perplexity=3).fit_transform(itml_expand_data)
+
+
+
 
 
 ####################
 # Helper functions #
 ####################
 
+### TSNE ###
+def doTSNE(dataName):   
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    makeFolders("experimenten/", ["TSNE"])
+    path = Path(f'experimenten/TSNE/{dataName}.data').absolute()
+    if  os.path.exists(path):
+        return 
+    print(f"(TSNE) ({dataName})\t Running")
+    newData = TSNE(n_components=2, learning_rate='auto',init='random', perplexity=3).fit_transform(data)
+    np.savetxt(path, newData, delimiter=',')
+
+
+
+### Animation ###
+
+def makeAnimation(labels, superinstances, algorithm, dataName, seed):
+    path_data = Path(f'experimenten/TSNE/{dataName}.data').absolute()
+    data = np.loadtxt(path_data, delimiter=',')
+    path = f"experimenten/{algorithm}/plots/animations/{dataName}"
+    fig = plt.figure()
+    def anim(i):
+        cluster = i%len(superinstances)
+        fig.clear()
+        plt.text(0.15,0.3,str(cluster), fontsize = 22)
+        plt.scatter(data[:,0], data[:,1], c = labels)
+
+        for j in np.unique(superinstances[cluster]):
+        # get the convex hull
+            points = data[superinstances[cluster] == j]
+            if len(points) < 3:
+                continue
+            hull = ConvexHull(points)
+            x_hull = np.append(points[hull.vertices,0],
+                            points[hull.vertices,0][0])
+            y_hull = np.append(points[hull.vertices,1],
+                            points[hull.vertices,1][0])
+            
+            # interpolate
+            # dist = np.sqrt((x_hull[:-1] - x_hull[1:])**2 + (y_hull[:-1] - y_hull[1:])**2)
+            # dist_along = np.concatenate(([0], dist.cumsum()))
+            # spline, u = interpolate.splprep([x_hull, y_hull], 
+            #                                 u=dist_along, s=0, per=1)
+            # interp_d = np.linspace(dist_along[0], dist_along[-1], 50)
+            # interp_x, interp_y = interpolate.splev(interp_d, spline)
+            # plot shape
+            plt.fill(x_hull, y_hull, '--', alpha=0.2)
+
+    animation = FuncAnimation(fig, anim, interval = 1000)
+    f = f"{path}/{seed}.gif" 
+    # writergif = PillowWriter(fps=30) 
+    # animation.save(f, writer=writergif)
+    plt.savefig(f"{path}/{seed}.png")
+    
+
+
+### Numpy ###
+
 def saveNumpy(initial, numpyArray, dataName, where, seed):
     for array, place in zip(numpyArray, where):
         path = Path(f'{initial}/{place}/{dataName}/{seed}.data').absolute()
-        np.savetxt(path, array)
+        np.savetxt(path, array, delimiter=',')
+
+### Folders ###
 
 def makeFolders(initial, where):
     path = Path(initial).absolute()
@@ -119,17 +227,22 @@ def makeFolders(initial, where):
             os.makedirs(path)
             print("created folder : ", path)
 
+### Dict ###
+
 def saveDict(dict, path, name):
     with open(f"{path}/{name}.json", "w") as outfile:
         json.dump(dict, outfile, indent=4)
 
 def loadDict(path, name):
-    path = Path(f'{path}/{name}.json').absolute()
-    if not os.path.exists(path):
+    path_test = Path(f'{path}/{name}.json').absolute()
+    if not os.path.exists(path_test):
         return dict()
+    print(f'{path}/{name}.json')
     with open(f'{path}/{name}.json') as json_file:
         # ga verder met een experiment of start
         return json.load(json_file)
+
+### Dataframes ###
 
 def saveDataframe(dataframe, where):
     path = Path(where).absolute()
@@ -142,51 +255,51 @@ def openDataframe(where):
     else:
         return pd.DataFrame(0,100,0.1)
 
-def plotDataframe(dataframe:dict, algorithm, compareWithCobras = False):
-    path = f"experiments/{algorithm}/plots:"
-    cobras = loadDict(f"experiments/COBRAS", "total") if compareWithCobras else dict()
-    absolute_total = pd.DataFrame() # gaan met 200 werken
-    relative_total = pd.DataFrame()
-    relative_len = np.arange()
+### Plots ###
+
+def plotDataframe(dataframe:dict, algorithm):
+    path = f"experimenten/{algorithm}/plots"
+    absolute_total = np.zeros(200)
+    relative_total = np.zeros(999)
+    relative_len = np.arange(0.1,100,0.1)
+    absolute_len = np.arange(200)
     for key, value in dataframe.items():
         #  Absolute first
-        x = np.arange(value)
-        y = value
-        scatterPlot(x, y, key)
-        if cobras:
-            y = cobras["key"]
-            scatterPlot(x, y, "COBRAS")
-        saveFig(path + "absolute",key)
-        absolute_total[key] = value[:200]
+        y = np.copy(np.array(value)[:200])
+        scatterPlot(absolute_len, y, key)
+        saveFig(path + "/absolute",key, key, xlabel="#queries")
+        absolute_total += y
 
-        path = Path(f'datasets/cobras-paper/UCI/{key}.data').absolute()
-        ln = len(np.loadtxt(path, delimiter=','))
-        y = value[:ln]
+        path_data = Path(f'datasets/cobras-paper/UCI/{key}.data').absolute()
+        ln = len(np.loadtxt(path_data, delimiter=','))
+        y = np.array(value)[:ln]
         sprong = (1/ln)*100
-        x = np.arange(0,100,sprong) 
-
-        f = interp1d(x, y)
-        ynew = f(relative_len)
-
-        scatterPlot(x, ynew, key)
-        saveFig(path + "relative_points",key)
+        x = np.arange(sprong,100+(sprong/2),sprong)
 
 
-    abs_tot = pd.DataFrame()
-    abs_tot[algorithm] = absolute_total.mean(axis = 1)
-    saveDataframe(abs_tot,path + "abs_total")
-    if compareWithCobras: # moeten we momenteel nog niet implementeren
-        pass
+        # if len(x)>len(y):
+        #     x = x[:-1] 
 
-    pandasPlot(absolute_total, path + "absolute")
+        # if len(y)>len(x):
+        #     y = y[:-1] 
 
-    rel_tot = pd.DataFrame()
-    rel_tot[algorithm] = relative_total.mean(axis = 1)
-    saveDataframe(relative_total,path + "rel_total")
-    if compareWithCobras: # moeten we momenteel nog niet implementeren
-        pass
+        f = interp1d(np.insert(x, 0, 0), np.insert(y, 0, 0))
+        ynew = np.array(f(relative_len))
 
-    pandasPlot(absolute_total, path + "absolute")
+        scatterPlot(relative_len, ynew, key)
+        saveFig(path + "/relative_points",key, key, xlabel="#queries/len(data)")
+
+        relative_total += ynew
+    absolute_total /= 15
+    relative_total /= 15
+    scatterPlot(absolute_len, absolute_total, "COBRAS")
+    saveFig(path, "absolute_total", "Average ARI per asked query", xlabel="#queries")
+
+    scatterPlot(relative_len, relative_total, "COBRAS")
+    saveFig(path , "relative_total",  "Average ARI per asked query/length data", xlabel="#queries/len(data)")
+
+
+    
         
         
 def pandasPlot(dataFrame, path):
@@ -196,9 +309,13 @@ def pandasPlot(dataFrame, path):
 def scatterPlot(x, y, name):
     plt.plot(x, y, label = name)
 
-def saveFig(path, name):
+def saveFig(path, name, title, xlabel):
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel("ARI")
     plt.legend()
     plt.savefig(f"{path}/{name}.png")
+    plt.clf()
 
 
 
@@ -573,6 +690,8 @@ if __name__ == "__main__":
     ignore_warnings() # moet meegegeven worden met de workers tho
     # executeExperiments()
     # test("parkinsons")
+    # getInfoCobras(19, "breast-cancer-wisconsin")
+    plainCOBRAS()
 
                 
 
