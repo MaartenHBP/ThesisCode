@@ -51,7 +51,7 @@ class ClusteringLogger:
 
         self.currentrepres = None
 
-        self.repres = []
+        self.repres = [] 
 
     #########################
     # information retrieval #
@@ -90,13 +90,9 @@ class ClusteringLogger:
         return np.array(self.superinstances)
     
     def getRepres(self):
-        ln = len(self.repres[-1])
-        for r in self.repres:
-            k = ln - len(r)
-            if k == 0: continue
-            r.extend([-1] * k)
-    
-        return np.array(self.repres)
+        l1=list(range(len(self.repres)))
+        d1=zip(l1,self.repres)
+        return dict(d1)
 
     def add_mistake_information(self, ground_truth_querier):
         for i, (constraint_number, constraint_copy) in enumerate(
