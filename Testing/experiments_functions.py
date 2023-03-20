@@ -14,6 +14,8 @@ from noise_robust_cobras.querier.labelquerier import LabelQuerier
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
 from noise_robust_cobras.metric_learning.rebuildInstance import *
 from noise_robust_cobras.metric_learning.metriclearning import *
+from noise_robust_cobras.metric_learning.module.metriclearners import *
+from noise_robust_cobras.metric_learning.module.metriclearning_algorithms import *
 from noise_robust_cobras.clustering_algorithms.clustering_algorithms import *
 from noise_robust_cobras.strategies.splitlevel_estimation import *
 import copy
@@ -61,7 +63,6 @@ RELATIVE_TEST = [0.05, 0.1, 0.15, 0.2, 0.25]
 def runCOBRAS(seed, dataName):
     """This is the code to be called for the running COBRAS:
         - COBRAS 
-        - variance analysis
         - Saving the repres with their clustering label and constraints for later use
     """
     import warnings
@@ -95,12 +96,41 @@ def runCOBRAS(seed, dataName):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
-def Experiment1(seed, dataName, metricLearner, metriclearner_arguments, randomConstraints = False):
+def Experiment1(seed, dataName, metricLearner, metriclearner_arguments, amountNormal, amountRandom, supervisedAmount, superviseCOBRASAmount): # want er is ook een supervised mogelijkheid
     """This is the code to be called for the first experiment:
         - learn a metric beforehand and then run COBRAS, ask randomconstraints already to COBRAS TODO
         - for seedsForTSNE calculate the TSNE, to see what the transformation does
     """
-    pass
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
+
+    # first learn the transformation
+    path = Path(f'experimenten/COBRAS/all_constraints/{dataName}/{seed}.data').absolute()
+    constraints = np.loadtxt(path, delimiter=',')
+    repres = loadDict(f'experimenten/COBRAS/repres/{dataName}', seed)
+    repres_labels =loadDict(f'experimenten/COBRAS/repres_labels/{dataName}', seed)
+
+    querier = LabelQuerier(None, target, querylimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
+
+    metric = metricLearner(preprocessor = np.copy(data),**metriclearner_arguments)
+    # choose the constraints and make them
+
+    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+
+    if len(all_clusters) < querylimit:
+        diff = querylimit - len(all_clusters)
+        for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
 def Experiment2(seed, dataName, metricLearner, metriclearner_arguments, function, functionarguments, askExtraConstraints = 0): # function is hoe je de nieuwe clustering maakt (hier zijn een paar ideeen mogelijk)
     """This is the code to be called for the second experiment:
@@ -188,6 +218,16 @@ def saveDicts(initial, dict, dataName, where, seed): # for multiple dictionaries
 def saveDict(dict, path, name):
     with open(f"{path}/{name}.json", "w") as outfile:
         json.dump(dict, outfile, indent=4)
+
+# loadData
+def loadDict(path, name):
+    path_test = Path(f'{path}/{name}.json').absolute()
+    if not os.path.exists(path_test):
+        return dict()
+    print(f'{path}/{name}.json')
+    with open(f'{path}/{name}.json') as json_file:
+        # ga verder met een experiment of start
+        return json.load(json_file)
 
 ### Folders ###
 

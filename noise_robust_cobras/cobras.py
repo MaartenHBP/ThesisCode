@@ -40,6 +40,7 @@ from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
 from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
 from noise_robust_cobras.metric_learning.rebuildInstance import *
+import random 
 
 
 class SplitResult(Enum):
@@ -57,8 +58,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###########################################################
         cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm,
         cluster_algo_parameters = {},
-        rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm,
-        rebuild_cluster_parameters = {},
+        # rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm,
+        # rebuild_cluster_parameters = {},
         ###########################################################
         superinstance_builder: SuperInstanceBuilder = KMeans_SuperinstanceBuilder(),
         split_superinstance_selection_heur: SuperinstanceSelectionHeuristic = None,
@@ -75,17 +76,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # METRIC LEARNING #
         ###################
 
-        metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
-        metric_parameters = {},
-        rebuilder: InstanceRebuilder = None,
-        rebuilder_parameters = {},
-        baseline = False,
+        # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
+        # metric_parameters = {},
+        # rebuilder: InstanceRebuilder = None,
+        # rebuilder_parameters = {},
+        # baseline = False,
 
-        ###########
-        # Logging #
-        ########### -> TODO
+        # ###########
+        # # Logging #
+        # ########### -> TODO
 
-        logExtraInfo = False
+        # logExtraInfo = False
 
 
     ):
@@ -106,17 +107,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        self.baseline = baseline
-        self.metric =  metric(**metric_parameters)
-        self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
-        self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
+        # self.baseline = baseline
+        # self.metric =  metric(**metric_parameters)
+        # self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
+        # self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
 
 
         ###################
         # METRIC LEARNING #
         ###################
         # logging
-        self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen TODO
+        # self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen TODO
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -212,8 +213,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # last valid clustering keeps the last completely merged clustering
         last_valid_clustering = None
 
-        if self.metric.executeNow('initial'):
-                skipSplit = self.metric.learn(self, None, None)
 
 
         while not self.querier.query_limit_reached():
@@ -221,11 +220,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             ######################
             # Metric learn phase #
             ######################
-            skipSplit = False
-            if self.metric.executeNow('begin'):
-                skipSplit = self.metric.learn(self, None, None)
-                if self.baseline and self.metric.isDone():
-                    break
 
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(self.clustering, self.clustering.get_superinstances())
@@ -253,19 +247,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
            
             # only split when you are allowed to
-            if not skipSplit: 
+            
                 # splitting phase
-                self._cobras_log.log_entering_phase("splitting")
-                statuscode = self.split_next_superinstance()
-                if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
-                    # there is no split left to be done
-                    # we have produced the best clustering
-                    break
-                elif statuscode == SplitResult.SPLIT_FAILED:
-                    # tried to split a superinstance but failed to split it
-                    # this is recorded in the superinstance
-                    # we will split another superinstance in the next iteration
-                    continue
+            self._cobras_log.log_entering_phase("splitting")
+            statuscode = self.split_next_superinstance()
+            if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
+                # there is no split left to be done
+                # we have produced the best clustering
+                break
+            elif statuscode == SplitResult.SPLIT_FAILED:
+                # tried to split a superinstance but failed to split it
+                # this is recorded in the superinstance
+                # we will split another superinstance in the next iteration
+                continue
 
             # merging phase
             self._cobras_log.log_entering_phase("merging")
@@ -308,8 +302,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self._cobras_log.log_end_clustering()
         all_clusters = self._cobras_log.get_all_clusterings()
 
-        if self.metric.executeNow('end'):
-            skipSplit = self.metric.learn(self, None, None)
 
 
         # if self.metric.executeNow('end'):
@@ -369,23 +361,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         # split to_split into new clusters
         split_level = self.determine_split_level(to_split)
-
-        ######################
-        # Metric learn phase #
-        ######################
-        if self.metric.executeNow('before_splitting'):
-            self.metric.learn(self, to_split, originating_cluster)
                 
-        new_super_instances = self.split_superinstance(to_split, split_level, True)
+        new_super_instances = self.split_superinstance(to_split, split_level)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
-
-        ######################
-        # Metric learn phase #
-        ###################### -> kan nuttig zijn voor wanneer dat er enkel nieuwe instances worden gemaakt
-        if self.metric.executeNow('after_splitting'):
-            self.metric.learn(self, to_split, originating_cluster)
 
         new_clusters = self.add_new_clusters_from_split(new_super_instances)
 
@@ -471,7 +451,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         return self.splitlevel_strategy.estimate_splitting_level(superinstance)
 
-    def split_superinstance(self, si, k, askMetric = False, data = None): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
+    def split_superinstance(self, si, k): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
         """
             Actually split the given super-instance si in k (the splitlevel) new super-instances
 
@@ -483,23 +463,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             :rtype List[Superinstance]
         """
 
-        # gaan hier ff afblijven
-        clusdata = None
-        aff = None
-
-        if data is not None:
-            clusdata = np.copy(data)
-        
-        else:
-            clusdata, aff = self.metric.getDataForClustering()
-            if clusdata is None or not askMetric:
-                clusdata = np.copy(self.data)
-                aff = None
         
         # cluster the instances of the superinstance
-        clusters = self.splitlevel_cluster.cluster( # aparte cluster ff
-            clusdata, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
-            , affinity=aff
+        clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+
         )
 
         # based on the resulting clusters make new superinstances
@@ -827,6 +795,29 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # if reused_constraint is not None:
         #     self._cobras_log.log_reused_constraint_instances(reused_constraint.is_ML(), i1, i2)
         return reused_constraint
+    
+
+    
+    
+    def query_random_points(self, options = None, count = 0):
+        opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
+        gen = pair_generator(opt) 
+        pairs = []
+        labels = []
+ 
+        # Get 10 pairs: 
+        for i in range(count): 
+            pair = gen.next() 
+            pairs.append(pair)
+            cstr = self.query_querier(pairs[0], pair[1], "random_points")
+            if cstr.is_ML():
+                labels.append(1)
+            else:
+                labels.append(-1)
+        return np.array(pairs), np.array(labels)
+
+
+
 
     def query_querier(self, instance1, instance2, purpose):
         """
@@ -872,3 +863,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         )
 
         return new_constraint
+
+
+def pair_generator(numbers): 
+        """Return an iterator of random pairs from a list of numbers.""" 
+        # Keep track of already generated pairs 
+        used_pairs = set() 
+        
+        while True: 
+            pair = random.sample(numbers, 2) 
+            # Avoid generating both (1, 2) and (2, 1) 
+            pair = tuple(sorted(pair)) 
+            if pair not in used_pairs: 
+                used_pairs.add(pair) 
+                yield pair

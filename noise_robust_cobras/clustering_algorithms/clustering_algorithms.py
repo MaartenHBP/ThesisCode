@@ -5,10 +5,12 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import SpectralClustering
 from sklearn_extra.cluster import KMedoids
 
+# Deze class is voor als er ingewikkeldere dingen moeten gebeuren in hoe de metric wordt geleerd -> gaan aan de cluster class er ook toevoegen
+
 
 class ClusterAlgorithm:
     @abc.abstractmethod
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None): # Added extra stuff for more advanced stuff
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None): # Added extra stuff for more advanced stuff
         pass
 
     def get_name(self):
@@ -49,30 +51,12 @@ class ClusterAlgorithm:
             (indices.index(ml1), indices.index(ml2)) for ml1, ml2 in constraint_set
         )
 
-class KMedoidsCLusteringAlgorithm(ClusterAlgorithm):
-    def __init__(self, n_runs=10):
-        self.n_runs = n_runs
-
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None, distanceMatrix = None): #ml and cl not used
-        init = 'k-means++' if centers is None else centers 
-        
-        if seed is not None:
-            km = KMedoids(n_clusters=k, random_state=seed, metric='precomputed') # precomputed distance
-        else:
-            km = KMedoids(n_clusters=k, metric='precomputed')
-
-        # only cluster the given indices
-        km.fit(distanceMatrix[indices, :][: ,indices])
-
-        # return the labels as a list of integers
-        return km.labels_.astype(np.int)#, indices[km.medoid_indices_]
-
 
 class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10):
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None, distanceMatrix = None): #ml and cl not used
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None): #ml and cl not used
         init = 'k-means++' if centers is None else centers 
         
         if seed is not None:
@@ -86,17 +70,35 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
         # return the labels as a list of integers
         return km.labels_.astype(np.int)#, None
 
-class SpectralClusterAlgorithm(ClusterAlgorithm):
-    def __init__(self, n_runs=10): #TODO: properties as class variables
-        self.n_runs = n_runs
+# class SpectralClusterAlgorithm(ClusterAlgorithm):
+#     def __init__(self, n_runs=10): #TODO: properties as class variables
+#         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None, distanceMatrix = None):
+#     def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None, distanceMatrix = None):
 
-        n_neighbours = min(10, len(indices)) # werkt niet voor split_level estimation
+#         n_neighbours = min(10, len(indices)) # werkt niet voor split_level estimation
 
-        sp = SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='nearest_neighbors', random_state=seed, n_neighbors=n_neighbours).fit(data[indices, :]) if affinity is None else SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='precomputed', random_state=seed).fit(affinity[indices, :][:,indices])
+#         sp = SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='nearest_neighbors', random_state=seed, n_neighbors=n_neighbours).fit(data[indices, :]) if affinity is None else SpectralClustering(n_clusters=k, eigen_solver="arpack", affinity='precomputed', random_state=seed).fit(affinity[indices, :][:,indices])
 
 
-        # return the labels as a list of integers
-        return sp.labels_.astype(np.int)#, None
+#         # return the labels as a list of integers
+#         return sp.labels_.astype(np.int)#, None
 
+
+# class KMedoidsCLusteringAlgorithm(ClusterAlgorithm):
+#     def __init__(self, n_runs=10):
+#         self.n_runs = n_runs
+
+#     def cluster(self, data, indices, k, ml, cl, seed=None, affinity = None, centers = None, distanceMatrix = None): #ml and cl not used
+#         init = 'k-means++' if centers is None else centers 
+        
+#         if seed is not None:
+#             km = KMedoids(n_clusters=k, random_state=seed, metric='precomputed') # precomputed distance
+#         else:
+#             km = KMedoids(n_clusters=k, metric='precomputed')
+
+#         # only cluster the given indices
+#         km.fit(distanceMatrix[indices, :][: ,indices])
+
+#         # return the labels as a list of integers
+#         return km.labels_.astype(np.int)#, indices[km.medoid_indices_]
