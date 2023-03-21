@@ -2,7 +2,6 @@
 
 from abc import abstractmethod
 import numpy as np
-from noise_robust_cobras.metric_learning.metriclearning import *
 
 
 class MetricLearningAlgorithm: # abstract class

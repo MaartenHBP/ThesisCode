@@ -11,9 +11,6 @@ from datetime import datetime
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQuerier
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
-from noise_robust_cobras.metric_learning.rebuildInstance import *
-from noise_robust_cobras.metric_learning.metriclearning import *
 from noise_robust_cobras.metric_learning.module.metriclearners import *
 from noise_robust_cobras.metric_learning.module.metriclearning_algorithms import *
 from noise_robust_cobras.clustering_algorithms.clustering_algorithms import *
@@ -52,7 +49,7 @@ ABSOLUTE = 200
 RELATIVE = 0.3
 
 ABSOLUTE_TEST = [30, 50, 80, 120, 170]
-RELATIVE_TEST = [0.05, 0.1, 0.15, 0.2, 0.25]
+RELATIVE_TEST = [0.1, 0.2, 0.4, 0.6, 0.9] # percentage of the constriaints it has
 
 # eerste testen werken enkel met NCA en daarna met ITML en NCA+ITML (keep it simple)
 
@@ -96,9 +93,9 @@ def runCOBRAS(seed, dataName):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
-def Experiment1(seed, dataName, metricLearner, metriclearner_arguments, amountNormal, amountRandom, supervisedAmount, superviseCOBRASAmount): # want er is ook een supervised mogelijkheid
+def Experiment1(seed, dataName, metricLearner, expand, index, relative = False, random = False): # momenteel alleen met semisupervised
     """This is the code to be called for the first experiment:
-        - learn a metric beforehand and then run COBRAS, ask randomconstraints already to COBRAS TODO
+        - learn a metric beforehand using piarzise constraints and then run COBRAS, ask randomconstraints already to COBRAS 
         - for seedsForTSNE calculate the TSNE, to see what the transformation does
     """
     import warnings
@@ -112,19 +109,26 @@ def Experiment1(seed, dataName, metricLearner, metriclearner_arguments, amountNo
 
     querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
 
-    # first learn the transformation
-    path = Path(f'experimenten/COBRAS/all_constraints/{dataName}/{seed}.data').absolute()
-    constraints = np.loadtxt(path, delimiter=',')
-    repres = loadDict(f'experimenten/COBRAS/repres/{dataName}', seed)
-    repres_labels =loadDict(f'experimenten/COBRAS/repres_labels/{dataName}', seed)
-
     querier = LabelQuerier(None, target, querylimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
+    clusterer.tokenFit(data, -1, None, querier)
 
-    metric = metricLearner(preprocessor = np.copy(data),**metriclearner_arguments)
+    # first learn the transformation
+    amount = math.floor(math.floor(RELATIVE_TEST[index] * math.floor(len(data)*RELATIVE))) if relative else ABSOLUTE_TEST[index]
+    path = Path(f'experimenten/COBRAS/all_constraints/{dataName}/{seed}.data').absolute()
+    pairs, constraints = (np.loadtxt(path, delimiter=',', dtype=int)[:, :2], np.loadtxt(path, delimiter=',', dtype=int)[:, 2]) if not random else clusterer.query_random_points(options=np.arange(len(data)),count = amount)
+    
+
+    metric = metricLearner(preprocessor = np.copy(data), seed = seeds[seed], expand = expand)
+    newData = metric.fit_transform(pairs[:amount], constraints[:amount], None, None)
+
+    if seed in seedsForTSNE:
+        path_TSNE = Path(f'experimenten/TSNE/{dataName}_{seed}_{random}_{amount}').absolute()
+        data_TSNE = TSNE(n_components=2, learning_rate='auto',init='random', perplexity=3).fit_transform(newData)
+        np.savetxt(path_TSNE, data_TSNE, delimiter=',')  
     # choose the constraints and make them
 
-    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+    all_clusters, _, _, _, _, _, _ = clusterer.fit(newData, -1, None, querier)
 
     if len(all_clusters) < querylimit:
         diff = querylimit - len(all_clusters)
@@ -184,6 +188,38 @@ def normalCOBRAS():
     
     saveDict(cobras, f"experimenten/COBRAS", "total")
 
+
+def initialTransformation():
+    print("==Running Initial transformation==")
+    makeFolders("experimenten", ["initial"])
+    for expand in [True, False]:
+        for random in [True, False]:
+            for index in range(len(ABSOLUTE_TEST)):
+                for relative in [True, False]:
+                    exp1(ITML_wrapper, expand, index, random, relative)
+    
+    
+    ##########################################################
+
+def exp1(metricLearner, expand, index, random, relative):
+    path = Path(f"experimenten/initial/total_{metricLearner.__name__})_expand{str(expand)}_random{str(random)}_index{str(index)})_(relatitve{str(relative)}).json")
+    if  os.path.exists(path):
+        return
+    print(f"(Experiment1) ({metricLearner.__name__}) (expand:{str(expand)}) (random:{str(random)}) (index:{str(index)}) (relatitve:{str(relative)})\t Running")
+    with LocalCluster() as cluster, Client(cluster) as client:
+        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+        datasets = os.listdir(path_datasets)
+        cobras = dict()
+        for j in range(len(datasets)):
+            nameData = datasets[j][:len(datasets[j]) - 5]
+            print(f"(Experiment1) ({metricLearner.__name__}) (expand:{str(expand)}) (random:{str(random)}) (index:{str(index)}) ({nameData})\t Running")
+            parallel_func = functools.partial(Experiment1, dataName = nameData, metricLearner = metricLearner, expand = expand, index = index, random = random, relative = relative)
+            futures = client.map(parallel_func, ARGUMENTS)
+            results = np.array(client.gather(futures))
+            cobras[nameData] = np.mean(results, axis=0).tolist()
+    print(f"(Experiment1)\t Saving results")
+    
+    saveDict(cobras, f"experimenten/initial", f"total_{metricLearner.__name__})_expand{str(expand)}_random{str(random)}_index{str(index)})_(relatitve{str(relative)})")
 
 ####################
 # Helper functions #
@@ -252,5 +288,7 @@ if __name__ == "__main__":
         warnings.simplefilter(action='ignore', category=Warning)
 
     ignore_warnings() # moet meegegeven worden met de workers tho
-    normalCOBRAS()
+    # normalCOBRAS()
     # runCOBRAS(19,"breast-cancer-wisconsin")
+    # Experiment1(25, "parkinsons", ITML_wrapper, {}, 2, random = True)
+    initialTransformation()

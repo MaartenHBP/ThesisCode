@@ -38,8 +38,6 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 )
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import *
-from noise_robust_cobras.metric_learning.rebuildInstance import *
 import random 
 
 
@@ -165,6 +163,44 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     @property
     def clustering_logger(self):
         return self._cobras_log   
+    
+
+    def tokenFit(self, X, nb_clusters, train_indices, querier):
+        self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
+        self._cobras_log.log_start_clustering()
+        self.data = X
+
+
+        self.train_indices = (
+            train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
+        )
+        self.split_superinstance_selection_heur.set_clusterer(self) # nadenken over dit design
+        self.splitlevel_strategy.set_clusterer(self)
+        self.querier = querier
+
+        # self.initialData = np.copy(X) -> not needed anymore
+
+        # initial clustering: all instances in one superinstance in one cluster
+        initial_superinstance = self.create_superinstance(
+            list(range(self.data.shape[0]))
+        )
+        initial_clustering = Clustering([Cluster([initial_superinstance])])
+        self.clustering = initial_clustering
+
+        # ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
+        # self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+        # self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+
+        # last valid clustering keeps the last completely merged clustering
+        last_valid_clustering = None
+
+
+
+
+        # during this iteration store the current clustering
+        self._cobras_log.update_clustering_to_store(self.clustering, self.clustering.get_superinstances())
+        self.clustering_to_store = self.clustering.construct_cluster_labeling()
+
 
 
     def fit(self, X, nb_clusters, train_indices, querier):
@@ -184,10 +220,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
         self._cobras_log.log_start_clustering()
         self.data = X
-        #######################
-        # Initializing metric #
-        #######################
-        self.metric.setOriginal(self.data)
 
 
         self.train_indices = (
@@ -801,15 +833,15 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     
     def query_random_points(self, options = None, count = 0):
         opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
-        gen = pair_generator(opt) 
+        gen = self.pair_generator(opt) 
         pairs = []
         labels = []
  
         # Get 10 pairs: 
         for i in range(count): 
-            pair = gen.next() 
+            pair = next(gen)
             pairs.append(pair)
-            cstr = self.query_querier(pairs[0], pair[1], "random_points")
+            cstr = self.query_querier(pair[0], pair[1], "random_points")
             if cstr.is_ML():
                 labels.append(1)
             else:
@@ -865,9 +897,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         return new_constraint
 
 
-def pair_generator(numbers): 
+    def pair_generator(self, numbers): 
         """Return an iterator of random pairs from a list of numbers.""" 
         # Keep track of already generated pairs 
+        random.seed(self.seed) # dezelfde seed gebruiken
         used_pairs = set() 
         
         while True: 

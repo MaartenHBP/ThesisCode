@@ -22,13 +22,9 @@ from sklearn.decomposition import KernelPCA
 
 import itertools
 
-# Moeten seed nog doen!
-
-
 
 class MetricLearner:
     def __init__(self, preprocessor = None, expand = False):
-        self.affinity = None
         self.preprocessor = preprocessor
         self.expand = expand
     @abstractmethod
@@ -94,36 +90,38 @@ class kernelbased(MetricLearner): # TODO: check de implementatie
         return self.ensemble, self.affinity
 
 class ITML_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None, expand = False):
+    def __init__(self, preprocessor=None, expand = False, seed = 42):
         self.fitted = None
+        self.seed = seed
         super().__init__(preprocessor, expand) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, points, labels):
         if self.expand:
             pairs, y = expand(pairs, y)
-        self.fitted = ITML(preprocessor=self.preprocessor, max_iter=100)
+        self.fitted = ITML(random_state=self.seed, preprocessor=self.preprocessor, max_iter=100)
         self.fitted.fit(pairs, y)
         return self
 
     def transform(self, data):
-        return self.fitted.transform(data), self.affinity
+        return self.fitted.transform(data)
     
-    def fit_transform(self, pairs, y):
-        self.fit(pairs, y, None, None, None, None)
+    def fit_transform(self, pairs, y, points, labels):
+        self.fit(pairs, y, points, labels)
         return self.transform(self.preprocessor)
 
 class NCA_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None):
+    def __init__(self, preprocessor=None, seed = 42):
         self.fitted = None
+        self.seed = seed
         super().__init__(preprocessor) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, points, labels):
-        self.fitted = NCA()
+        self.fitted = NCA(random_state= self.seed)
         self.fitted.fit(self.preprocessor[np.array(points)], labels) # perfect amai
         return self
 
     def transform(self, data):
-        return self.fitted.transform(data), self.affinity
+        return self.fitted.transform(data)
     
 class RCA_wrapper(MetricLearner):
     def __init__(self, preprocessor = None, n_components = None, kernel = False):

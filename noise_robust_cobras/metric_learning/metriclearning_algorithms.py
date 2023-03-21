@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 import numpy as np
-from noise_robust_cobras.metric_learning.metriclearning import *
+from noise_robust_cobras.metric_learning.module.metriclearners import *
 
 
 class MetricLearningAlgorithm: # abstract class
