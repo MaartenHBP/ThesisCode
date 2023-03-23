@@ -5,6 +5,8 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import SpectralClustering
 from sklearn_extra.cluster import KMedoids
 
+from noise_robust_cobras.metric_learning.module.metriclearners import *
+
 # Deze class is voor als er ingewikkeldere dingen moeten gebeuren in hoe de metric wordt geleerd -> gaan aan de cluster class er ook toevoegen
 
 
@@ -56,7 +58,7 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10):
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None): #ml and cl not used
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
         init = 'k-means++' if centers is None else centers 
         
         if seed is not None:
@@ -66,6 +68,44 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
 
         # only cluster the given indices
         km.fit(data[indices, :])
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int)#, None
+    
+class KMeansITMLClusterAlgorithm(ClusterAlgorithm):
+    def __init__(self, percentage, n_runs=10):
+        self.percentage = percentage
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
+        pairs, labels = cobras.constraint_index(local = indices, both = True)
+        needed = math.floor(len(indices)*self.percentage)
+        newdata = np.copy(data)
+
+        # learn a bloody metric
+        if needed > 1:
+            have = len(labels)
+            
+            if have < needed:
+                extrapairs, extralabels = cobras.query_random_points(self, options = indices, count = needed - have)
+                newpairs = np.append(pairs, extrapairs, axis = 0)
+                newlabels = np.append(pairs, extralabels)
+            else:
+                newpairs = np.copy(pairs)
+                newlabels = np.copy(labels)
+
+            newdata = ITML_wrapper(preprocessor=data, expand=True, seed=seed).fit_transform(newpairs, newlabels, None, None)
+
+
+        init = 'k-means++' if centers is None else centers 
+        
+        if seed is not None:
+            km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
+        else:
+            km = KMeans(k, n_init=self.n_runs, init = init)
+
+        # only cluster the given indices
+        km.fit(newdata[indices, :])
 
         # return the labels as a list of integers
         return km.labels_.astype(np.int)#, None

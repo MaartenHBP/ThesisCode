@@ -498,7 +498,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
         # cluster the instances of the superinstance
         clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
-            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000) # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
 
         )
 
@@ -840,6 +840,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # Get 10 pairs: 
         for i in range(count): 
             pair = next(gen)
+            
+            while True:
+                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None:
+                    break
+                else: pair = next(gen) # niks reusen
             pairs.append(pair)
             cstr = self.query_querier(pair[0], pair[1], "random_points")
             if cstr.is_ML():

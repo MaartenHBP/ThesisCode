@@ -88,6 +88,28 @@ class kernelbased(MetricLearner): # TODO: check de implementatie
 
     def transform(self, data):
         return self.ensemble, self.affinity
+    
+class ITMLNCA(MetricLearner):
+    def __init__(self, preprocessor=None, expand = False, seed = 42):
+        self.fitted = None
+        self.seed = seed
+        super().__init__(preprocessor, expand) # TODO: dit uitbereiden
+
+    def fit(self, pairs, y, points, labels):
+        if self.expand:
+            pairs, y = expand(pairs, y)
+        supervised = NCA(random_state= self.seed)
+        supervised.fit(self.preprocessor[np.array(points)], labels)
+        self.fitted = ITML(random_state=self.seed, preprocessor=self.preprocessor, max_iter=100, prior=supervised.get_mahalanobis_matrix())
+        self.fitted.fit(pairs, y)
+        return self
+
+    def transform(self, data):
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        self.fit(pairs, y, points, labels)
+        return self.transform(self.preprocessor)
 
 class ITML_wrapper(MetricLearner):
     def __init__(self, preprocessor=None, expand = False, seed = 42):
@@ -214,7 +236,7 @@ def heursitcSearch(Sw, Sb, d, errorterm):
         return Z @ W
         # return W1 @ W @ W.T @ W1.T
 
-def expand(pairs, y):
+def expand(pairs, y): # dit moeten kunnen toevoegen aan aan de index, of daar gewoon al direct expanden
     newpairs = []
     newy = []
     blobs = createBlobs(pairs[y == 1])
