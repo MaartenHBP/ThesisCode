@@ -125,11 +125,11 @@ class ITML_wrapper(MetricLearner):
         return self
 
     def transform(self, data):
-        return self.fitted.transform(data)
+        return self.fitted.transform(np.copy(data))
     
     def fit_transform(self, pairs, y, points, labels):
         self.fit(pairs, y, points, labels)
-        return self.transform(self.preprocessor)
+        return self.transform(np.copy(self.preprocessor))
 
 class NCA_wrapper(MetricLearner):
     def __init__(self, preprocessor=None, seed = 42):

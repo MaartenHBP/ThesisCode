@@ -89,6 +89,31 @@ def viz():
 # Parallel code #
 #################
 
+def plsTest(seed, dataName):
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querylimit = 200
+
+    querier = LabelQuerier(None, target, querylimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], after=True, cluster_algo=KMeansClusterAlgorithm)
+
+    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+
+
+    if len(all_clusters) < querylimit:
+        diff = querylimit - len(all_clusters)
+        for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
+
 def runCOBRAS(seed, dataName):
     """This is the code to be called for the running COBRAS:
         - COBRAS 
@@ -103,10 +128,10 @@ def runCOBRAS(seed, dataName):
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
+    querylimit = 200
 
     querier = LabelQuerier(None, target, querylimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], cluster_algo=KMeansClusterAlgorithm, cluster_algo_parameters={"askExtraConstraints" : False})
 
     all_clusters, _, _, repres, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
 
@@ -125,7 +150,33 @@ def runCOBRAS(seed, dataName):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
-def Experiment1(seed, dataName, metricLearner, expand, index, relative = False, random = False, before =True, after = False): # momenteel alleen met semisupervised
+def metricBeforeSplit(seed, dataName, absolute = True):
+    """This is the code to be called for the running COBRAS where a metric learning is used for the split:
+    """
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querylimit = math.floor(len(data)*RELATIVE)
+
+    querier = LabelQuerier(None, target, querylimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], cluster_algo=KMeansITMLClusterAlgorithm)
+
+    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+
+
+    if len(all_clusters) < querylimit:
+        diff = querylimit - len(all_clusters)
+        for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
+def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, index = 1, relative = False, random = True, before =True, after = True): # momenteel alleen met semisupervised
     """This is the code to be called for the first experiment:
         - learn a metric beforehand using piarzise constraints and then run COBRAS, ask randomconstraints already to COBRAS 
         - for seedsForTSNE calculate the TSNE, to see what the transformation does
@@ -139,7 +190,6 @@ def Experiment1(seed, dataName, metricLearner, expand, index, relative = False, 
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
     querylimit = 200
 
     querier = LabelQuerier(None, target, querylimit)
@@ -165,6 +215,8 @@ def Experiment1(seed, dataName, metricLearner, expand, index, relative = False, 
     else: newData = data
 
     all_clusters, _, _, repres, _, _, all_constraints = clusterer.fit(newData, -1, None, querier)
+
+    # dit in een function gooien
 
     if after:
         new_clusters = []
@@ -204,8 +256,11 @@ def Experiment1(seed, dataName, metricLearner, expand, index, relative = False, 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
 def test_function():
-    plt.plot(Experiment1(16, "spambase", ITML_wrapper, False, 0, False, True, False, True), label = "test")
+    # cobras = loadDict("experimenten/COBRAS", "total")["spambase"][:200]
+    plt.plot(Experiment1(16, "spambase"), label = "test")
     plt.plot(runCOBRAS(16, "spambase"), label = "COBRAS")
+
+    plt.legend()
     
 
     plt.show()

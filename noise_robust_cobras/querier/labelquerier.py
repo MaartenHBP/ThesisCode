@@ -26,7 +26,7 @@ class LabelQuerier(Querier):
             return False
         return self.queries_asked >= self.max_queries
 
-    def getRandomConstraints(self, nbConstraints):
+    def getRandomConstraints(self, nbConstraints): # obsolete
         indices = np.arange(len(self.labels))
         all_pairs = np.array(list(combinations(indices, 2)))
 

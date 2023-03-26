@@ -38,6 +38,8 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 )
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
+from noise_robust_cobras.metric_learning.module.metriclearners import *
+
 import random 
 
 
@@ -73,6 +75,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
+        after = False,
+
+        # rebuild nog even achterwege laten
+        rebuild = False,
+        rebuildAfter = 50
 
         # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
         # metric_parameters = {},
@@ -101,7 +108,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # init cobras_cluster_algo
         self.cluster_algo = cluster_algo(**cluster_algo_parameters)
         self.superinstance_builder = superinstance_builder
-        self.splitlevel_cluster = KMeansClusterAlgorithm() # SPLITCLUSTER CLUSTERING ALGO
+        self.splitlevel_cluster = KMeansClusterAlgorithm(askExtraConstraints=False) # SPLITCLUSTER CLUSTERING ALGO, die werkt op een anderes manier
         ###################
         # METRIC LEARNING #
         ###################
@@ -109,6 +116,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # self.metric =  metric(**metric_parameters)
         # self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
         # self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
+        self.doAfter = after
 
 
         ###################
@@ -248,6 +256,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
 
         while not self.querier.query_limit_reached():
+
+            print(self.querier.queries_asked)
 
             ######################
             # Metric learn phase #
@@ -394,7 +404,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # split to_split into new clusters
         split_level = self.determine_split_level(to_split)
                 
-        new_super_instances = self.split_superinstance(to_split, split_level)
+        new_super_instances = self.split_superinstance(to_split, split_level, determination=False)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
@@ -483,7 +493,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         return self.splitlevel_strategy.estimate_splitting_level(superinstance)
 
-    def split_superinstance(self, si, k): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
+    def split_superinstance(self, si, k, determination = True): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
         """
             Actually split the given super-instance si in k (the splitlevel) new super-instances
 
@@ -498,6 +508,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
         # cluster the instances of the superinstance
         clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+
+        ) if determination else self.cluster_algo.cluster( # ML and CL meegeven
             np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
 
         )
@@ -832,13 +845,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     
     
     def query_random_points(self, options = None, count = 0):
+        print("asking random constraints")
         opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
         gen = self.pair_generator(opt) 
         pairs = []
         labels = []
  
         # Get 10 pairs: 
-        for i in range(count): 
+        for i in range(count):
+            if self.querier.query_limit_reached():
+                print("did not have enough")
+                return np.array(pairs), np.array(labels)
             pair = next(gen)
             
             while True:
@@ -915,3 +932,38 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             if pair not in used_pairs: 
                 used_pairs.add(pair) 
                 yield pair
+
+
+    def after(self):
+        
+        clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
+        repres = [s.get_representative_idx() for s in r]
+        if not self.doAfter:
+            return np.array(clust), r
+
+        new = []
+        print("started after")
+        
+        target = np.array(clust)
+        pairs, labels = self.constraint_index.getLearningConstraints()
+
+        if (len(labels) < 20): # pas vanop een bepaald moment proberen verbeteren
+            return np.array(clust), r
+        if len(np.unique(target[np.array(repres)])) == 1:
+            newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+        else:
+            newD = ITMLNCA(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+
+        for idx in range(len(self.data)):
+            if idx in repres:
+                new.append(target[idx])
+                continue
+            closest = min(
+                repres,
+                key=lambda x: np.linalg.norm(
+                    newD[x] - newD[idx]
+                ),
+            )
+            new.append(target[closest])
+
+        return np.array(new), r
