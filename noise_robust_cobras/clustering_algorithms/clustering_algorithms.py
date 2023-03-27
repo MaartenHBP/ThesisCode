@@ -57,16 +57,8 @@ class ClusterAlgorithm:
 class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10, askExtraConstraints = False): # true for now
         self.n_runs = n_runs
-        self.askExtraConstraints = askExtraConstraints
-        self.do = True
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
-        if self.askExtraConstraints and len(indices) >= 4 and self.do:
-            pairs, constraints = cobras.query_random_points(options = indices, count = 50) # telkens 5 constraints vragen per superinstance
-            cobras.data = ITML_wrapper(preprocessor=data, seed = cobras.seed).fit_transform(pairs, constraints, None, None)
-            self.do = False
-
-        
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):  
 
         init = 'k-means++' if centers is None else centers 
         
@@ -76,7 +68,7 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
             km = KMeans(k, n_init=self.n_runs, init = init)
 
         # only cluster the given indices
-        km.fit(cobras.data[indices, :])
+        km.fit(data[indices, :])
 
         # return the labels as a list of integers
         return km.labels_.astype(np.int)#, None

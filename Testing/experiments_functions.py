@@ -190,7 +190,7 @@ def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, ind
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    querylimit = 200
+    querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
 
     querier = LabelQuerier(None, target, querylimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
