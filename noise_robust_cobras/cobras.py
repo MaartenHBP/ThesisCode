@@ -42,6 +42,8 @@ from noise_robust_cobras.metric_learning.module.metriclearners import *
 
 import random 
 
+from sklearn.neighbors import KNeighborsClassifier
+
 
 class SplitResult(Enum):
     SUCCESS = 1
@@ -75,6 +77,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
+        keepSupervised = False,
         after = False,
 
         # rebuild nog even achterwege laten
@@ -117,6 +120,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
         # self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
         self.doAfter = after
+        self.keepSupervised = keepSupervised
+        self.gen = None
 
 
         ###################
@@ -206,7 +211,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
 
         # during this iteration store the current clustering
-        self._cobras_log.update_clustering_to_store(self.clustering, self.clustering.get_superinstances())
+        self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
         self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
 
@@ -257,15 +262,18 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
 
-            print(self.querier.queries_asked)
+            # print(self.querier.queries_asked)
 
             ######################
             # Metric learn phase #
             ######################
 
             # during this iteration store the current clustering
-            self._cobras_log.update_clustering_to_store(self.clustering, self.clustering.get_superinstances())
+            self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
+
+            # if self.doAfter:
+            #     self.query_random_points(count = 5)
 
             #################################
             # Test for CL in zelfde cluster #
@@ -331,7 +339,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             # correctly log intermediate results
             if fully_merged:
-                self._cobras_log.update_last_intermediate_result(self.clustering, self.clustering.get_superinstances())
+                self._cobras_log.update_last_intermediate_result(*self.after(), self.keepSupervised)
 
             # fill in the last_valid_clustering whenever appropriate
             # after initialisation or after that the current clustering is fully merged
@@ -397,6 +405,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return SplitResult.NO_SPLIT_POSSIBLE
 
         # remove to_split from the clustering
+        # if self.keepSupervised:
+        #     originating_cluster.super_instances.remove(to_split)
+        #     originating_cluster.super_instances.append(self.create_superinstance([to_split.representative_idx], parent=to_split))
+        #     to_split.indices.remove(to_split.representative_idx)
+        #     to_split.train_indices.remove(to_split.representative_idx)
+            
+        # else:
         originating_cluster.super_instances.remove(to_split)
         if len(originating_cluster.super_instances) == 0:
             self.clustering.clusters.remove(originating_cluster)
@@ -847,7 +862,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def query_random_points(self, options = None, count = 0):
         print("asking random constraints")
         opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
-        gen = self.pair_generator(opt) 
+        if self.gen is None:
+            self.gen = self.pair_generator(opt) 
         pairs = []
         labels = []
  
@@ -856,12 +872,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             if self.querier.query_limit_reached():
                 print("did not have enough")
                 return np.array(pairs), np.array(labels)
-            pair = next(gen)
+            pair = next(self.gen)
             
             while True:
-                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None:
+                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None: # gaan er ffkes vanuit dat elke superinstance minstens zoveel nodig heeft
                     break
-                else: pair = next(gen) # niks reusen
+                else: pair = next(self.gen) # niks reusen
             pairs.append(pair)
             cstr = self.query_querier(pair[0], pair[1], "random_points")
             if cstr.is_ML():
@@ -940,30 +956,41 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         repres = [s.get_representative_idx() for s in r]
         if not self.doAfter:
             return np.array(clust), r
+        
+        clust = np.array(clust)
+        founded = 0
+        for blob in self._cobras_log.blobs:
+            for elem in repres:
+                if elem in blob:                
+                    clust[np.array(blob)] = clust[elem]
+                    repres.extend(blob)
+                    founded += 1
+                    break
 
-        new = []
-        print("started after")
+        # print(f'blobs not used: {len(self._cobras_log.blobs) - founded}')
+
+
+        repres = list(set(repres)) # hiervan hebben we labelled information
+
+        # print("started after")
         
         target = np.array(clust)
         pairs, labels = self.constraint_index.getLearningConstraints()
 
-        if (len(labels) < 20): # pas vanop een bepaald moment proberen verbeteren
+
+        if (len(labels) < 100): # pas vanop een bepaald moment proberen verbeteren
             return np.array(clust), r
         if len(np.unique(target[np.array(repres)])) == 1:
-            newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+            return np.array(clust), r
+            # newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
         else:
-            newD = ITMLNCA(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+            newD = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+            # newD = np.copy(self.data)
 
-        for idx in range(len(self.data)):
-            if idx in repres:
-                new.append(target[idx])
-                continue
-            closest = min(
-                repres,
-                key=lambda x: np.linalg.norm(
-                    newD[x] - newD[idx]
-                ),
-            )
-            new.append(target[closest])
+        model = KNeighborsClassifier(n_neighbors=3)
+        model.fit(np.array(newD)[np.array(repres)], target[np.array(repres)])
+        new = model.predict(np.array(newD))
+
+        new[np.array(repres)] = target[np.array(repres)]
 
         return np.array(new), r

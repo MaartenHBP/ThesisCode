@@ -145,6 +145,38 @@ class NCA_wrapper(MetricLearner):
     def transform(self, data):
         return self.fitted.transform(data)
     
+    def fit_transform(self, pairs, y, points, labels):
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+class LMNN_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42):
+        self.fitted = None
+        self.seed = seed
+        super().__init__(preprocessor) # TODO: dit uitbereiden
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+            
+
+        self.fitted = LMNN(random_state= self.seed)
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) # perfect amai
+        return self
+
+    def transform(self, data):
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+    
 class RCA_wrapper(MetricLearner):
     def __init__(self, preprocessor = None, n_components = None, kernel = False):
         self.ensemble = None

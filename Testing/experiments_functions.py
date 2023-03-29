@@ -39,7 +39,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
 nbRUNS = 100
-ARGUMENTS = range(100)
+ARGUMENTS = range(10)
 SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
@@ -57,8 +57,10 @@ RELATIVE_TEST = [0.1, 0.2, 0.4, 0.6, 0.9] # percentage of the constriaints it ha
 # Visualization #
 ################# 
 def viz():
-    results = loadDict(f"experimenten/initial", f"total_{ITML_wrapper.__name__})_expand{str(True)}_random{str(True)}_index{str(0)})_(relatitve{str(True)})")
-    cobras = loadDict(f"experimenten/COBRAS", "total")
+    lmnn = loadDict(f"experimenten/presentatie3", f"after_LMNN_3knn_COBRAS")
+    knn = loadDict(f"experimenten/presentatie3", f"after_3knn_COBRAS")
+    cobras = loadDict(f"experimenten/presentatie3", "COBRAS")
+    # cobras = loadDict(f"experimenten//COBRAS", "total")
     # absolute_total = np.zeros(200)
     # cobras_total = np.zeros(200)
     # absolute_len = np.arange(200)
@@ -70,18 +72,77 @@ def viz():
     #     cobras_total += np.array(value)[:200]
     # cobras_total /= 200
 
-    for key in cobras.keys():
+    LMNn = pd.DataFrame()
+    kNN = pd.DataFrame()
+    cobraspd = pd.DataFrame()
 
-        plt.plot(results[key], label = "0.2")
-        plt.plot(cobras[key],  label = "COBRAS")
+
+    for key, item in lmnn.items():
+
+        LMNn[key] = np.array(item)
+        cobraspd[key] = np.array(cobras[key])
+        kNN[key] = np.array(knn[key])
+        
+        plt.plot(cobraspd[key], label = "COBRAS")
+        plt.plot(LMNn[key], label = "kNN_LMNN")
+        plt.plot(kNN[key], label = "kNN")
+
 
         plt.title(key)
-        plt.xlabel("queries")
+        plt.xlabel("#queries")
         plt.ylabel("ARI")
         plt.legend()
-
-        plt.savefig(f"experimenten/initial/initial_pictures/{key}.png")
+        plt.savefig(f"experimenten/presentatie3/LMNN_k3_pictures/{key}.png")
         plt.clf()
+
+    all_results = pd.DataFrame()
+    all_results["COBRAS"] = cobraspd.mean(axis=1)
+    all_results["LMNN_3NN"] = LMNn.mean(axis=1)
+    all_results["3NN"] = kNN.mean(axis=1)
+
+    all_results.plot(xlabel="#queries", ylabel="ARI")
+    plt.savefig(f"experimenten/presentatie3/LMNN_k3_pictures/total.png")
+
+    
+
+
+        # plt.plot(results[key], label = "0.2")
+        # plt.plot(cobras[key],  label = "COBRAS")
+
+        # plt.title(key)
+        # plt.xlabel("queries")
+        # plt.ylabel("ARI")
+        # plt.legend()
+
+        # plt.savefig(f"experimenten/initial/initial_pictures/{key}.png")
+        # plt.clf()
+
+def extaViz():
+    cobras = loadDict(f"experimenten//COBRAS", "total")
+    plt.plot(cobras["dermatology"], label = "kNN")
+
+
+    plt.title("dermatology")
+    plt.xlabel("#queries")
+    plt.ylabel("ARI")
+    # plt.legend()
+    plt.savefig(f"experimenten/presentatie3/relative_dermatology.png")
+    plt.clf()
+
+def lastViz():
+    path = Path("experimenten/februari/ITML_baseline_random/results").absolute()
+    all = pd.read_csv(path, index_col=0)
+
+    alls = pd.DataFrame()
+    alls["COBRAS"] = all["Cobras"]
+    alls["Initial ITML (120 random)"] = all["120"]
+
+    alls.plot(xlabel="#queries", ylabel="ARI")
+    plt.savefig(f"experimenten/presentatie3/ITML_random.png")
+    
+
+
+
 
 
 
@@ -89,32 +150,32 @@ def viz():
 # Parallel code #
 #################
 
-def plsTest(seed, dataName):
-    import warnings
-    warnings.simplefilter(action='ignore', category=FutureWarning)
-    warnings.simplefilter(action='ignore', category=Warning)
+# def plsTest(seed, dataName):
+#     import warnings
+#     warnings.simplefilter(action='ignore', category=FutureWarning)
+#     warnings.simplefilter(action='ignore', category=Warning)
 
-    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
-    dataset = np.loadtxt(path, delimiter=',')
-    data = dataset[:, 1:]
-    target = dataset[:, 0]
+#     path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+#     dataset = np.loadtxt(path, delimiter=',')
+#     data = dataset[:, 1:]
+#     target = dataset[:, 0]
 
-    querylimit = 200
+#     querylimit = 500
 
-    querier = LabelQuerier(None, target, querylimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], after=True, cluster_algo=KMeansClusterAlgorithm)
+#     querier = LabelQuerier(None, target, querylimit)
+#     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], after=True, cluster_algo=KMeansClusterAlgorithm)
 
-    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
-
-
-    if len(all_clusters) < querylimit:
-        diff = querylimit - len(all_clusters)
-        for ex in range(diff): all_clusters.append(all_clusters[-1])
-
-    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+#     all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
 
 
-def runCOBRAS(seed, dataName):
+#     if len(all_clusters) < querylimit:
+#         diff = querylimit - len(all_clusters)
+#         for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+#     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
+
+def runCOBRAS(seed, dataName, keepSupervised = False, after = False):
     """This is the code to be called for the running COBRAS:
         - COBRAS 
         - Saving the repres with their clustering label and constraints for later use
@@ -128,53 +189,58 @@ def runCOBRAS(seed, dataName):
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
+    # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
     querylimit = 200
+    runlimit = min(querylimit, len(data)) # niet meer dan de lengte van de data runnen bro
 
-    querier = LabelQuerier(None, target, querylimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], cluster_algo=KMeansClusterAlgorithm, cluster_algo_parameters={"askExtraConstraints" : False})
+
+    querier = LabelQuerier(None, target, runlimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], keepSupervised=keepSupervised, after=after)
+    # clusterer = COBRAS(correct_noise=False, seed=seeds[seed], keepSupervised=keepSupervised, after=after)
 
     all_clusters, _, _, repres, _, _, all_constraints = clusterer.fit(data, -1, None, querier)
 
-    def labelRepres(v,k):
-        return np.array(all_clusters[k])[np.array(v)].tolist()
+    # def labelRepres(v,k):
+    #     return np.array(all_clusters[k])[np.array(v)].tolist()
     
-    repres_labels = {k:labelRepres(v,k) for k,v in repres.items()}
+    # repres_labels = {k:labelRepres(v,k) for k,v in repres.items()}
 
 
-    saveNumpy("experimenten/COBRAS", [all_constraints], dataName, ["all_constraints"], seed)
-    saveDicts("experimenten/COBRAS", [repres_labels, repres], dataName, ["repres_labels", "repres"], seed)
-
-    if len(all_clusters) < querylimit:
-        diff = querylimit - len(all_clusters)
-        for ex in range(diff): all_clusters.append(all_clusters[-1])
-
-    return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
-
-def metricBeforeSplit(seed, dataName, absolute = True):
-    """This is the code to be called for the running COBRAS where a metric learning is used for the split:
-    """
-    import warnings
-    warnings.simplefilter(action='ignore', category=FutureWarning)
-    warnings.simplefilter(action='ignore', category=Warning)
-
-    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
-    dataset = np.loadtxt(path, delimiter=',')
-    data = dataset[:, 1:]
-    target = dataset[:, 0]
-
-    querylimit = math.floor(len(data)*RELATIVE)
-
-    querier = LabelQuerier(None, target, querylimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], cluster_algo=KMeansITMLClusterAlgorithm)
-
-    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
-
+    # saveNumpy("experimenten/COBRAS", [all_constraints], dataName, ["all_constraints"], seed)
+    # saveDicts("experimenten/COBRAS", [repres_labels, repres], dataName, ["repres_labels", "repres"], seed)
 
     if len(all_clusters) < querylimit:
         diff = querylimit - len(all_clusters)
         for ex in range(diff): all_clusters.append(all_clusters[-1])
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
+
+# def metricBeforeSplit(seed, dataName, absolute = True):
+#     """This is the code to be called for the running COBRAS where a metric learning is used for the split:
+#     """
+#     import warnings
+#     warnings.simplefilter(action='ignore', category=FutureWarning)
+#     warnings.simplefilter(action='ignore', category=Warning)
+
+#     path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+#     dataset = np.loadtxt(path, delimiter=',')
+#     data = dataset[:, 1:]
+#     target = dataset[:, 0]
+
+#     # querylimit = math.floor(len(data)*RELATIVE)
+#     querylimit = 700
+
+#     querier = LabelQuerier(None, target, querylimit)
+#     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], cluster_algo=KMeansITMLClusterAlgorithm)
+
+#     all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+
+
+#     if len(all_clusters) < querylimit:
+#         diff = querylimit - len(all_clusters)
+#         for ex in range(diff): all_clusters.append(all_clusters[-1])
+
+#     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
 def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, index = 1, relative = False, random = True, before =True, after = True): # momenteel alleen met semisupervised
     """This is the code to be called for the first experiment:
@@ -190,7 +256,8 @@ def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, ind
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
+    # querylimit = math.floor(len(data)*RELATIVE)
+    querylimit = 700
 
     querier = LabelQuerier(None, target, querylimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed])
@@ -201,7 +268,8 @@ def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, ind
     # first learn the transformation
     amount = math.floor(math.floor(RELATIVE_TEST[index] * math.floor(len(data)*RELATIVE))) if relative else ABSOLUTE_TEST[index]
     path = Path(f'experimenten/COBRAS/all_constraints/{dataName}/{seed}.data').absolute()
-    pairs, constraints = (np.loadtxt(path, delimiter=',', dtype=int)[:, :2], np.loadtxt(path, delimiter=',', dtype=int)[:, 2]) if not random else clusterer.query_random_points(options=np.arange(len(data)),count = amount)
+    if before:
+        pairs, constraints = (np.loadtxt(path, delimiter=',', dtype=int)[:, :2], np.loadtxt(path, delimiter=',', dtype=int)[:, 2]) if not random else clusterer.query_random_points(options=np.arange(len(data)),count = amount)
     
     if before:
         metric = metricLearner(preprocessor = np.copy(data), seed = seeds[seed], expand = expand)
@@ -232,7 +300,7 @@ def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, ind
                 newD = ITMLNCA(preprocessor = np.copy(newData), seed = seeds[seed]).fit_transform(np.array(all_constraints)[:i, :2], np.array(all_constraints)[:i, 2], np.array(r), target[np.array(r)])
 
             for idx in range(len(data)):
-                if idx in repres:
+                if idx in r:
                     clusterI.append(target[idx])
                     continue
                 closest = min(
@@ -257,8 +325,8 @@ def Experiment1(seed, dataName, metricLearner = ITML_wrapper, expand = True, ind
 
 def test_function():
     # cobras = loadDict("experimenten/COBRAS", "total")["spambase"][:200]
-    plt.plot(Experiment1(16, "spambase"), label = "test")
-    plt.plot(runCOBRAS(16, "spambase"), label = "COBRAS")
+    plt.plot(runCOBRAS(20, "ecoli", after=True), label = "test")
+    plt.plot(runCOBRAS(20, "ecoli"), label = "COBRAS")
 
     plt.legend()
     
@@ -349,6 +417,22 @@ def exp1(metricLearner, expand, index, random, relative):
     
     saveDict(cobras, f"experimenten/initial", f"total_{metricLearner.__name__})_expand{str(expand)}_random{str(random)}_index{str(index)})_(relatitve{str(relative)})")
 
+def afterExperiment():
+    with LocalCluster() as cluster, Client(cluster) as client:
+        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+        datasets = os.listdir(path_datasets)
+        cobras = dict()
+        saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+        for j in range(len(datasets)):
+            nameData = datasets[j][:len(datasets[j]) - 5]
+            print(f"({nameData})\t Running")
+            parallel_func = functools.partial(runCOBRAS, dataName = nameData, after = True)
+            futures = client.map(parallel_func, ARGUMENTS)
+            results = np.array(client.gather(futures))
+            cobras[nameData] = np.mean(results, axis=0).tolist()
+            saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+        saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+
 ####################
 # Helper functions #
 ####################
@@ -420,5 +504,6 @@ if __name__ == "__main__":
     # runCOBRAS(19,"breast-cancer-wisconsin")
     # Experiment1(25, "parkinsons", ITML_wrapper, {}, 2, random = True)
     # initialTransformation()
-    # viz()
-    test_function()
+    # lastViz()
+    # test_function()
+    afterExperiment()

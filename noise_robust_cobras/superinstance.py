@@ -14,7 +14,7 @@ class SuperInstance:
                 "Should give a list of indices as input to SuperInstance..."
             )
 
-        self.data = data
+        self.data = data # dit is useful voor data verder door te dragen
         self.indices = indices
         self.train_indices = [x for x in indices if x in train_indices]
         self.tried_splitting = False
