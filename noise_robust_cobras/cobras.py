@@ -984,13 +984,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return np.array(clust), r
             # newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
         else:
-            newD = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
-            # newD = np.copy(self.data)
+            # newD = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+            newD = np.copy(self.data)
 
         model = KNeighborsClassifier(n_neighbors=3)
         model.fit(np.array(newD)[np.array(repres)], target[np.array(repres)])
-        new = model.predict(np.array(newD))
+        # new = model.predict(np.array(newD)) TODO
 
-        new[np.array(repres)] = target[np.array(repres)]
+
+        # new[np.array(repres)] = target[np.array(repres)]
+
+        new = target
 
         return np.array(new), r

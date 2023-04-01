@@ -57,9 +57,10 @@ RELATIVE_TEST = [0.1, 0.2, 0.4, 0.6, 0.9] # percentage of the constriaints it ha
 # Visualization #
 ################# 
 def viz():
-    lmnn = loadDict(f"experimenten/presentatie3", f"after_LMNN_3knn_COBRAS")
-    knn = loadDict(f"experimenten/presentatie3", f"after_3knn_COBRAS")
-    cobras = loadDict(f"experimenten/presentatie3", "COBRAS")
+    lmnn = loadDict(f"experimenten/presentatie3", f"NORMAL_LMNN")
+    knn = loadDict(f"experimenten/presentatie3", f"NORMAL_knn")
+    cobras = loadDict(f"experimenten/presentatie3", "NORMAL_COBRAS")
+    labels = loadDict(f"experimenten/presentatie3", "NORMAL_labels")
     # cobras = loadDict(f"experimenten//COBRAS", "total")
     # absolute_total = np.zeros(200)
     # cobras_total = np.zeros(200)
@@ -75,6 +76,7 @@ def viz():
     LMNn = pd.DataFrame()
     kNN = pd.DataFrame()
     cobraspd = pd.DataFrame()
+    lab = pd.DataFrame()
 
 
     for key, item in lmnn.items():
@@ -82,26 +84,29 @@ def viz():
         LMNn[key] = np.array(item)
         cobraspd[key] = np.array(cobras[key])
         kNN[key] = np.array(knn[key])
+        lab[key] = np.array(labels[key])
         
         plt.plot(cobraspd[key], label = "COBRAS")
         plt.plot(LMNn[key], label = "kNN_LMNN")
         plt.plot(kNN[key], label = "kNN")
+        plt.plot(lab[key], label = "labels")
 
 
         plt.title(key)
         plt.xlabel("#queries")
         plt.ylabel("ARI")
         plt.legend()
-        plt.savefig(f"experimenten/presentatie3/LMNN_k3_pictures/{key}.png")
+        plt.savefig(f"experimenten/presentatie3/normal/{key}.png")
         plt.clf()
 
     all_results = pd.DataFrame()
     all_results["COBRAS"] = cobraspd.mean(axis=1)
     all_results["LMNN_3NN"] = LMNn.mean(axis=1)
     all_results["3NN"] = kNN.mean(axis=1)
+    all_results["labels"] = lab.mean(axis=1)
 
     all_results.plot(xlabel="#queries", ylabel="ARI")
-    plt.savefig(f"experimenten/presentatie3/LMNN_k3_pictures/total.png")
+    plt.savefig(f"experimenten/presentatie3/normal/total.png")
 
     
 
@@ -417,21 +422,29 @@ def exp1(metricLearner, expand, index, random, relative):
     
     saveDict(cobras, f"experimenten/initial", f"total_{metricLearner.__name__})_expand{str(expand)}_random{str(random)}_index{str(index)})_(relatitve{str(relative)})")
 
+
+# DIT IS DE JUSITE CODE
 def afterExperiment():
+    name = "labels"
     with LocalCluster() as cluster, Client(cluster) as client:
         path_datasets = Path('datasets/cobras-paper/UCI').absolute()
         datasets = os.listdir(path_datasets)
         cobras = dict()
-        saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+        p = Path(f'experimenten/presentatie3/NORMAL_{name}').absolute()
+        if os.path.exists(p):
+            cobras = loadDict(f"experimenten/presentatie3", f"NORMAL_{name}")
+        # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
         for j in range(len(datasets)):
             nameData = datasets[j][:len(datasets[j]) - 5]
+            if nameData in cobras:
+                continue
             print(f"({nameData})\t Running")
-            parallel_func = functools.partial(runCOBRAS, dataName = nameData, after = True)
+            parallel_func = functools.partial(runCOBRAS, dataName = nameData, after = True) # TODO: after staat op false
             futures = client.map(parallel_func, ARGUMENTS)
             results = np.array(client.gather(futures))
             cobras[nameData] = np.mean(results, axis=0).tolist()
-            saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
-        saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+            saveDict(cobras, f"experimenten/presentatie3", f"NORMAL_{name}")
+        saveDict(cobras, f"experimenten/presentatie3", f"NORMAL_{name}")
 
 ####################
 # Helper functions #
@@ -504,6 +517,6 @@ if __name__ == "__main__":
     # runCOBRAS(19,"breast-cancer-wisconsin")
     # Experiment1(25, "parkinsons", ITML_wrapper, {}, 2, random = True)
     # initialTransformation()
-    # lastViz()
+    viz()
     # test_function()
-    afterExperiment()
+    # afterExperiment()
