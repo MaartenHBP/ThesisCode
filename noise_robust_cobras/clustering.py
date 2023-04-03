@@ -5,6 +5,9 @@ class Clustering:
     def __init__(self, clusters):
         self.clusters = clusters
 
+    def reset(self): # for rebuilding the superinstances (not needed wanneer de representatives niet veranderen)
+        self.clusters = []
+
     def construct_cluster_labeling(self):
 
         pts_per_cluster = [cluster.get_all_points() for cluster in self.clusters]

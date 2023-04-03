@@ -3,18 +3,11 @@
         "NCA": {
             "init": "auto",
             "n_components": null,
-            "max_iter": {
-                "type": "int",
-                "min": 0,
-                "max": 500,
-                "standard": 100
-            },
+            "max_iter": 100,
             "tol": null,
             "verbose": false,
             "preprocessor": null,
-            "random_state": {
-                "type": "number"
-            }
+            "random_state": 42
         },
         "gb_lmnn_class":{
             "k": 3, 
@@ -28,18 +21,33 @@
     "semisupervised": {
         "ITML": {
             "gamma": 1.0,
-            "max_iter": {
-                "type": "int",
-                "min": 0,
-                "max": 500,
-                "standard": 100
-            },
+            "max_iter": 100,
             "convergence_threshold": 0.001,
             "prior": "identity",
             "verbose": false,
-            "random_state": {
-                "type": "number"
-            }
+            "random_state": 42
+        },
+        "RCA_wrapper": {
+            "n_components": null
+        },
+        "laplacian_semi": {
+            "dim": 2
+        },
+        "SpectralEmbedding_class": {
+            "nb_neigh": 10
+        },
+        "ssSpectralClust": {
+            "nb_neigh": 10
+        },
+        "kernel": {
+            "nb_neigh": 10
+        },
+        "KITML": {
+            "default_cost": 1
+        },
+        "KITML2": {
+            "n_components": 2
         }
     }
+    
 }

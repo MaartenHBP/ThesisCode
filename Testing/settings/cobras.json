@@ -1,0 +1,20 @@
+{
+    "Description": "COBRAS",
+    "fitparam": {
+        "preprocessor": "supervised",
+        "preprocestraining": false,
+        "baseline": false
+    },
+    "cobrasparam": {
+        "metric": ["EuclidianDistance", "SemiSupervisedMetric"],
+        "metric_parameters": {},
+        "cluster_algo": ["KMeansClusterAlgorithm"],
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":["None"],
+        "rebuild_cluster_parameters": {},
+        "rebuilder": ["None"],
+        "rebuilder_parameters": {}
+
+
+    }
+}

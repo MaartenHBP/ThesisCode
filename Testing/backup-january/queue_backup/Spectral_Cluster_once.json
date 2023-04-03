@@ -1,0 +1,18 @@
+{
+    "Description": "After 20 constraints cluster the data via spectralclustering",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "QueriesLearning",
+        "metric_parameters": {"metric": {"value": "Spectral",
+                                        "parameters":{}},
+                                "once": true},
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":"ClusterAgain",
+        "rebuild_cluster_parameters": {},
+        "rebuilder": "SpectralClusterAlgorithm",
+        "rebuilder_parameters": {"k_strategy": "clusters"}
+    }
+}

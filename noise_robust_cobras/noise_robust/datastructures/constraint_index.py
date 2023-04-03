@@ -1,4 +1,5 @@
 from collections import defaultdict
+import numpy as np
 
 
 class ConstraintComponent:
@@ -202,6 +203,24 @@ class ConstraintIndex:
             else:
                 cl.append(con.get_instance_tuple())
         return ml, cl
+
+    # new function!
+    def getLearningConstraints(self,local = None, both = False):
+        ml, cl = self.get_ml_and_cl_tuple_lists()
+        pairs = np.vstack((ml, cl)) if len(ml) > 0 and len(cl) > 0 else (np.array(ml) if len(ml) > 0 else np.array(cl))
+        constraints = np.full(len(ml) + len(cl), 1)
+        constraints[len(ml):] = np.full(len(cl), -1)
+
+        if not local is None:
+            left = np.isin(pairs[:,0], local)
+            right = np.isin(pairs[:,1], local)
+
+            selection = left & right if both else left | right
+
+            constraints = constraints[selection]
+            pairs = pairs[selection]
+
+        return pairs, constraints
 
     def get_all_mls(self):
         return [con for con in self.constraints if con.is_ML()]

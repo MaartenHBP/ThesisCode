@@ -5,6 +5,8 @@ import logging
 from enum import Enum
 from typing import Union
 
+from metric_learn import NCA
+
 import numpy as np
 
 from noise_robust_cobras.cluster import Cluster
@@ -36,7 +38,11 @@ from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
 )
 from noise_robust_cobras.querier.querier import MaximumQueriesExceeded
 
-from noise_robust_cobras.metric_learning.metriclearning_algorithms import EuclidianDistance
+from noise_robust_cobras.metric_learning.module.metriclearners import *
+
+import random 
+
+from sklearn.neighbors import KNeighborsClassifier
 
 
 class SplitResult(Enum):
@@ -45,13 +51,18 @@ class SplitResult(Enum):
     SPLIT_FAILED = 3
 
 
-class COBRAS:
+class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een random getal te genereren
     certainty_constraint_set: NewCertaintyConstraintSet
-    clustering: Union[Clustering, None]
+    clustering: Union[Clustering, None] # aha met die union (kan ook nuttig zijn voor bepaalde string opties TODO
 
     def __init__(
         self,
-        cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm(),
+        ###########################################################
+        cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm,
+        cluster_algo_parameters = {},
+        # rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm,
+        # rebuild_cluster_parameters = {},
+        ###########################################################
         superinstance_builder: SuperInstanceBuilder = KMeans_SuperinstanceBuilder(),
         split_superinstance_selection_heur: SuperinstanceSelectionHeuristic = None,
         splitlevel_strategy=None,
@@ -66,34 +77,29 @@ class COBRAS:
         ###################
         # METRIC LEARNING #
         ###################
-        metric_algo=None, # the matric_algo
-        end = False, # only for the baseline
-        localLearning = False, # learn locally
-        localClusterLearning = False, # learn locally on clusters, not instances
-        localTransformation = False, 
-        localOnALl = False, # each time you learn, it is done locally on all clusters/instances
-        # when to do it
-        beforeSplitting = False,
-        afterSplitting = False,
-        eachIteration = False, # Base case is no metric learning
-        # iterative keep results
-        iterative = False,
+        keepSupervised = False,
+        after = False,
 
-        # what to do with the instances after learning it
-        rebuildInstance = None, # A class that can remake the instances at any time, but it is used to do it after metric learning
+        # rebuild nog even achterwege laten
+        rebuild = False,
+        rebuildAfter = 50
 
-        ###########
-        # Logging #
-        ###########
+        # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
+        # metric_parameters = {},
+        # rebuilder: InstanceRebuilder = None,
+        # rebuilder_parameters = {},
+        # baseline = False,
 
-        logExtraInfo = False,
+        # ###########
+        # # Logging #
+        # ########### -> TODO
 
-        reset = False
+        # logExtraInfo = False
 
 
     ):
 
-        self.seed = seed
+        self.seed = seed # seed is belangrijk!!!!!!!!!!!!!!!!!!!!!  
 
         # init data, querier, max_questions, train_indices and store_intermediate results
         # already initialised so object size does not change during execution
@@ -103,29 +109,26 @@ class COBRAS:
         self.train_indices = None
 
         # init cobras_cluster_algo
-        self.cluster_algo = cluster_algo
+        self.cluster_algo = cluster_algo(**cluster_algo_parameters)
         self.superinstance_builder = superinstance_builder
+        self.splitlevel_cluster = KMeansClusterAlgorithm(askExtraConstraints=False) # SPLITCLUSTER CLUSTERING ALGO, die werkt op een anderes manier
         ###################
         # METRIC LEARNING #
         ###################
-        self.end = end
-        if metric_algo is None:
-            self.metric_algo = EuclidianDistance()
-        else:
-            self.metric_algo = metric_algo["value"](**metric_algo["parameters"])
-        self.localLearning = localLearning
-        self.localClusterLearning = localClusterLearning
-        self.localTransformation = localTransformation
-        self.localOnALl = localOnALl
-        self.beforeSplitting = beforeSplitting
-        self.afterSplitting = afterSplitting
-        self.eachIteration = eachIteration
-        self.rebuildInstance = rebuildInstance
-        self.iterative = iterative,
-        self.reset = reset
+        # self.baseline = baseline
+        # self.metric =  metric(**metric_parameters)
+        # self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
+        # self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
+        self.doAfter = after
+        self.keepSupervised = keepSupervised
+        self.gen = None
 
-        self.logExtraInfo = logExtraInfo
 
+        ###################
+        # METRIC LEARNING #
+        ###################
+        # logging
+        # self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen TODO
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -169,59 +172,47 @@ class COBRAS:
 
         self.correct_noise = correct_noise
 
+    # LOGGER HERE!
     @property
     def clustering_logger(self):
-        return self._cobras_log
+        return self._cobras_log   
     
-    ############################
-    # Metric transfor function #
-    ############################
-    def metricPhase(self, end = False, # booleans are for when to do metriclearning
-        beforeSplitting = False,
-        afterSplitting = False,
-        eachIteration = False,
-        superinstance = None,
-        cluster = None):
-        perform = False
-        if (end and self.end):
-            perform = True
-            # self.metric_algo.learn(self)
-            # self.data = self.metric_algo.transformData(self.data)
-        if (beforeSplitting and self.beforeSplitting):
-            perform = True
-        if (afterSplitting and self.afterSplitting):
-            perform = True
-        if (eachIteration and self.eachIteration):
-            perform = True
-        if perform:
-            if self.localOnALl:
-                return # stil needs to be implementes
-                # for cluster in self.clustering.clusters:
-                #     for superinstance in cluster.super_instances:
-                #         pass
-            else:
-                local = None
-                if (self.localLearning):
-                    local = superinstance.train_indices
-                if self.localClusterLearning:
-                    local = cluster.get_all_points()
-                # Learn #
-                self.metric_algo.learn(self, local)
-                if (not self.localTransformation):
-                    local = None
-                # Transform #
-                if self.iterative:
-                    self.data = self.metric_algo.transformData(self.data, local)
-                else:
-                    self.data = self.metric_algo.transformData(self.initialData, local)
 
-            # if needed redo some super instances
-            if (self.rebuildInstance): # cluster meegeven voor als ge het enkel daar wilt (op level van die class gedaan) en mss de boolean
-                pass
-            if (self.iterative):
-                self.metric_algo.addData(self.data)
+    def tokenFit(self, X, nb_clusters, train_indices, querier):
+        self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
+        self._cobras_log.log_start_clustering()
+        self.data = X
 
-            
+
+        self.train_indices = (
+            train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
+        )
+        self.split_superinstance_selection_heur.set_clusterer(self) # nadenken over dit design
+        self.splitlevel_strategy.set_clusterer(self)
+        self.querier = querier
+
+        # self.initialData = np.copy(X) -> not needed anymore
+
+        # initial clustering: all instances in one superinstance in one cluster
+        initial_superinstance = self.create_superinstance(
+            list(range(self.data.shape[0]))
+        )
+        initial_clustering = Clustering([Cluster([initial_superinstance])])
+        self.clustering = initial_clustering
+
+        # ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
+        # self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+        # self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+
+        # last valid clustering keeps the last completely merged clustering
+        last_valid_clustering = None
+
+
+
+
+        # during this iteration store the current clustering
+        self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
+        self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
 
 
@@ -239,23 +230,19 @@ class COBRAS:
                 ml and cl are both lists of tuples representing the must-link and cannot-link constraints
                 note: these are the constraints that we got from the user! So there might be noisy constraints in these lists!
         """
-        self.random_generator = np.random.default_rng(self.seed)
+        self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
         self._cobras_log.log_start_clustering()
-        self.data = X # data = X, deze moeten we dan indien nodig transformere
+        self.data = X
+
+
         self.train_indices = (
             train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
         )
-        self.split_superinstance_selection_heur.set_clusterer(self)
+        self.split_superinstance_selection_heur.set_clusterer(self) # nadenken over dit design
         self.splitlevel_strategy.set_clusterer(self)
         self.querier = querier
 
-        self.initialData = np.copy(X)
-
-        ###############################
-        # Metric initialisation phase #
-        ###############################
-        self.metric_algo.addData(self.data)
-        self.metric_algo.addTrainigIndices(self.train_indices)
+        # self.initialData = np.copy(X) -> not needed anymore
 
         # initial clustering: all instances in one superinstance in one cluster
         initial_superinstance = self.create_superinstance(
@@ -264,20 +251,54 @@ class COBRAS:
         initial_clustering = Clustering([Cluster([initial_superinstance])])
         self.clustering = initial_clustering
 
-        ### SUPERINSTANCES ###
-        self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-        self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
+        # ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
+        # self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
+        # self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
 
         # last valid clustering keeps the last completely merged clustering
         last_valid_clustering = None
 
+
+
         while not self.querier.query_limit_reached():
 
+            # print(self.querier.queries_asked)
+
+            ######################
+            # Metric learn phase #
+            ######################
+
             # during this iteration store the current clustering
-            self._cobras_log.update_clustering_to_store(self.clustering)
+            self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
-            # splitting phase
+            # if self.doAfter:
+            #     self.query_random_points(count = 5)
+
+            #################################
+            # Test for CL in zelfde cluster #
+            #################################
+            # ml_wrong = 0
+            # cl_wrong = 0
+            # total = 0
+            # # go over the different constraints and chech ik they are wrong
+            # labels = np.array(self.clustering_to_store)
+            # for constraint in self.constraint_index:
+            #     total += 1
+            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) == 1:
+            #         if constraint.is_CL():
+            #             cl_wrong += 1
+            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) > 1:
+            #        if constraint.is_ML():
+            #             ml_wrong += 1 
+            # print(f"ml_wrong: {ml_wrong}")
+            # print(f"cl_wrong: {cl_wrong}")
+            # print(f"total: {total}")
+
+           
+            # only split when you are allowed to
+            
+                # splitting phase
             self._cobras_log.log_entering_phase("splitting")
             statuscode = self.split_next_superinstance()
             if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
@@ -318,47 +339,53 @@ class COBRAS:
 
             # correctly log intermediate results
             if fully_merged:
-                self._cobras_log.update_last_intermediate_result(self.clustering)
+                self._cobras_log.update_last_intermediate_result(*self.after(), self.keepSupervised)
 
             # fill in the last_valid_clustering whenever appropriate
             # after initialisation or after that the current clustering is fully merged
             if fully_merged or last_valid_clustering is None:
                 last_valid_clustering = copy.deepcopy(self.clustering)
 
-            ######################
-            # Metric learn phase #
-            ######################
-            self.metricPhase(eachIteration = True)
 
-            if self.logExtraInfo:
-            # after each iteration, keep the current data, so afterwards you can see all the transformations
-                self._cobras_log.addTransformation(self.data)
-                ### SUPERINSTANCES ###
-                self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-                self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
-
-            if self.reset:
-                self.data = np.copy(self.initialData)
-            # with an if statement
-            # 
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()
-
-        # collect results and return
         all_clusters = self._cobras_log.get_all_clusterings()
+
+
+
+        # if self.metric.executeNow('end'):
+        #     self.metric.learn(self, None, None)
+        #     transformed = self.metric.transformed
+        #     supers = self.clustering.get_superinstances()
+        #     repres = np.array([s.get_representative_idx() for s in supers])
+        #     indices = [i for i in range(len(self.data))]
+        #     closest_per_index = []
+        #     for idx in indices:
+        #         if idx in repres:
+        #             closest_per_index.append(idx)
+        #             continue
+        #         closest = min(
+        #             repres,
+        #             key=lambda x: np.linalg.norm(
+        #                 transformed[x] - transformed[idx]
+        #             ),
+        #         )
+        #         closest_per_index.append(closest)
+        #     all_clusters[-1] = np.array(all_clusters[-1])[closest_per_index]
+
+
+        # collect results and return TODO: fixing the logging
+        
+        
         runtimes = self._cobras_log.get_runtimes()
-        transformations = self._cobras_log.getTransformation
         superinstances = self._cobras_log.getSuperinstances()
-        clusterIteration = self._cobras_log.getClus()
+        repres = self._cobras_log.getRepres()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
+        all_constraints = self._cobras_log.getConstraints() # hoef je niet meerdere keren herrunnen om te zien wat
 
-        ######################
-        # Metric learn phase #
-        ######################
-        self.metricPhase(end = True)
 
-        return all_clusters, runtimes, superinstances, clusterIteration, transformations,  ml, cl # volgorde van returnen is van belang
+        return all_clusters, runtimes, superinstances, repres, ml, cl, all_constraints # volgorde van returnen is van belang
 
     ###########################
     #       SPLITTING         #
@@ -378,28 +405,24 @@ class COBRAS:
             return SplitResult.NO_SPLIT_POSSIBLE
 
         # remove to_split from the clustering
+        # if self.keepSupervised:
+        #     originating_cluster.super_instances.remove(to_split)
+        #     originating_cluster.super_instances.append(self.create_superinstance([to_split.representative_idx], parent=to_split))
+        #     to_split.indices.remove(to_split.representative_idx)
+        #     to_split.train_indices.remove(to_split.representative_idx)
+            
+        # else:
         originating_cluster.super_instances.remove(to_split)
         if len(originating_cluster.super_instances) == 0:
             self.clustering.clusters.remove(originating_cluster)
 
         # split to_split into new clusters
         split_level = self.determine_split_level(to_split)
-
-        ######################
-        # Metric learn phase #
-        ######################
-        self.dataPrevious = np.copy(self.data)
-        self.metricPhase(beforeSplitting = True, superinstance = to_split, cluster = originating_cluster)
-        
-        new_super_instances = self.split_superinstance(to_split, split_level)
+                
+        new_super_instances = self.split_superinstance(to_split, split_level, determination=False)
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
-
-        ######################
-        # Metric learn phase #
-        ######################
-        self.metricPhase(afterSplitting= True) # dees lijkt me de meest nutteloze
 
         new_clusters = self.add_new_clusters_from_split(new_super_instances)
 
@@ -485,7 +508,7 @@ class COBRAS:
         """
         return self.splitlevel_strategy.estimate_splitting_level(superinstance)
 
-    def split_superinstance(self, si, k):
+    def split_superinstance(self, si, k, determination = True): # data is for rebuildclustering to call it (askMetric kan nu in theorie ook weg)
         """
             Actually split the given super-instance si in k (the splitlevel) new super-instances
 
@@ -496,13 +519,19 @@ class COBRAS:
             :return:   A list with the resulting super-instances
             :rtype List[Superinstance]
         """
+
+        
         # cluster the instances of the superinstance
-        clusters = self.cluster_algo.cluster(
-            self.data, si.indices, k, [], [], seed=self.random_generator.integers(1,1000000)
+        clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+
+        ) if determination else self.cluster_algo.cluster( # ML and CL meegeven
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+
         )
 
         # based on the resulting clusters make new superinstances
-        # superinstances with no training instances are assigned to the closest superinstance with training instances
+        # superinstances with no training instances are assigned to the closest superinstance with training instances -> euhhh
         training = []
         no_training = []
         for new_si_idx in set(clusters):
@@ -512,7 +541,7 @@ class COBRAS:
 
             si_train_indices = [x for x in cur_indices if x in self.train_indices]
             if len(si_train_indices) != 0:
-                training.append(self.create_superinstance(cur_indices, si))
+                training.append(self.create_superinstance(cur_indices, si)) # hier wordt de parent gezet
             else:
                 no_training.append(
                     (cur_indices, np.mean(self.data[cur_indices, :], axis=0))
@@ -527,7 +556,7 @@ class COBRAS:
             )
             closest_train.indices.extend(indices)
 
-        si.children = training
+        si.children = training 
         return training
 
     @staticmethod
@@ -826,6 +855,39 @@ class COBRAS:
         # if reused_constraint is not None:
         #     self._cobras_log.log_reused_constraint_instances(reused_constraint.is_ML(), i1, i2)
         return reused_constraint
+    
+
+    
+    
+    def query_random_points(self, options = None, count = 0):
+        print("asking random constraints")
+        opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
+        if self.gen is None:
+            self.gen = self.pair_generator(opt) 
+        pairs = []
+        labels = []
+ 
+        # Get 10 pairs: 
+        for i in range(count):
+            if self.querier.query_limit_reached():
+                print("did not have enough")
+                return np.array(pairs), np.array(labels)
+            pair = next(self.gen)
+            
+            while True:
+                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None: # gaan er ffkes vanuit dat elke superinstance minstens zoveel nodig heeft
+                    break
+                else: pair = next(self.gen) # niks reusen
+            pairs.append(pair)
+            cstr = self.query_querier(pair[0], pair[1], "random_points")
+            if cstr.is_ML():
+                labels.append(1)
+            else:
+                labels.append(-1)
+        return np.array(pairs), np.array(labels)
+
+
+
 
     def query_querier(self, instance1, instance2, purpose):
         """
@@ -871,3 +933,67 @@ class COBRAS:
         )
 
         return new_constraint
+
+
+    def pair_generator(self, numbers): 
+        """Return an iterator of random pairs from a list of numbers.""" 
+        # Keep track of already generated pairs 
+        random.seed(self.seed) # dezelfde seed gebruiken
+        used_pairs = set() 
+        
+        while True: 
+            pair = random.sample(numbers, 2) 
+            # Avoid generating both (1, 2) and (2, 1) 
+            pair = tuple(sorted(pair)) 
+            if pair not in used_pairs: 
+                used_pairs.add(pair) 
+                yield pair
+
+
+    def after(self):
+        
+        clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
+        repres = [s.get_representative_idx() for s in r]
+        if not self.doAfter:
+            return np.array(clust), r
+        
+        clust = np.array(clust)
+        founded = 0
+        for blob in self._cobras_log.blobs:
+            for elem in repres:
+                if elem in blob:                
+                    clust[np.array(blob)] = clust[elem]
+                    repres.extend(blob)
+                    founded += 1
+                    break
+
+        # print(f'blobs not used: {len(self._cobras_log.blobs) - founded}')
+
+
+        repres = list(set(repres)) # hiervan hebben we labelled information
+
+        # print("started after")
+        
+        target = np.array(clust)
+        pairs, labels = self.constraint_index.getLearningConstraints()
+
+
+        if (len(labels) < 100): # pas vanop een bepaald moment proberen verbeteren
+            return np.array(clust), r
+        if len(np.unique(target[np.array(repres)])) == 1:
+            return np.array(clust), r
+            # newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+        else:
+            # newD = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
+            newD = np.copy(self.data)
+
+        model = KNeighborsClassifier(n_neighbors=3)
+        model.fit(np.array(newD)[np.array(repres)], target[np.array(repres)])
+        # new = model.predict(np.array(newD)) TODO
+
+
+        # new[np.array(repres)] = target[np.array(repres)]
+
+        new = target
+
+        return np.array(new), r

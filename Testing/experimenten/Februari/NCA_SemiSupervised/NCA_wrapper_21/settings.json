@@ -1,0 +1,21 @@
+{
+    "Description": "Baseline of NCA_wrapper with 21% of the elements",
+    "fitparam": {},
+    "cobrasparam": {
+        "metric": "SimpleLearning",
+        "metric_parameters": {
+            "metric": {
+                "value": "NCA_wrapper",
+                "parameters": {}
+            },
+            "when": "initial",
+            "nbConstraints": 21
+        },
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster": null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": null,
+        "rebuilder_parameters": {}
+    }
+}

@@ -1,4 +1,7 @@
 from noise_robust_cobras.querier.querier import Querier, MaximumQueriesExceeded
+import numpy as np
+import random
+from itertools import combinations
 
 
 class LabelQuerier(Querier):
@@ -22,3 +25,26 @@ class LabelQuerier(Querier):
         if self.max_queries is None:
             return False
         return self.queries_asked >= self.max_queries
+
+    def getRandomConstraints(self, nbConstraints): # obsolete
+        indices = np.arange(len(self.labels))
+        all_pairs = np.array(list(combinations(indices, 2)))
+
+        indi = np.arange(len(all_pairs))
+        random.shuffle(indi)
+
+        pairs =  all_pairs[indi][:nbConstraints]
+
+        constraints = np.ones(nbConstraints)
+
+        constraints[self.labels[pairs[:,0]] != self.labels[pairs[:, 1]]] = -1
+
+        return pairs, constraints
+    
+    def checkConstraints(self,constraints, y):
+        for i in range(len(constraints)):
+            if y[i] == 1 and self.labels[constraints[i][0]] != self.labels[constraints[i][1]]:
+                return False
+            if y[i] == -1 and self.labels[constraints[i][0]] == self.labels[constraints[i][1]]:
+                return False
+        return True

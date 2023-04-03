@@ -1,0 +1,21 @@
+{
+    "Description": "Baseline of ITML",
+    "fitparam": {},
+    "cobrasparam": {
+        "metric": "SimpleLearning",
+        "metric_parameters": {
+            "metric": {
+                "value": "ITML_wrapper",
+                "parameters": {}
+            },
+            "when": "end"
+        },
+        "cluster_algo": "KMeansClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster": null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": null,
+        "rebuilder_parameters": {},
+        "baseline": true
+    }
+}

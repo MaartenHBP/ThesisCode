@@ -1,0 +1,19 @@
+{
+    "Description": "Spectral clustering with ML and CL for the local ",
+    "fitparam": {
+
+    },
+    "cobrasparam": {
+        "metric": "BasicLearning",
+        "metric_parameters": {"metric": {"value": "Spectral",
+                                        "parameters":{}},
+                                "local": true,
+                            "when": "before_splitting"},
+        "cluster_algo": "SpectralClusterAlgorithm",
+        "cluster_algo_parameters": {},
+        "rebuild_cluster":null,
+        "rebuild_cluster_parameters": {},
+        "rebuilder": null,
+        "rebuilder_parameters": {}
+    }
+}

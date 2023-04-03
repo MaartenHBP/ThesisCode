@@ -17,7 +17,7 @@ class SplitLevelEstimationStrategy(ABC):
         self.cobras_clusterer = cobras_clusterer
 
 
-class ConstantSplitLevelEstimationStrategy(SplitLevelEstimationStrategy):
+class ConstantSplitLevelEstimationStrategy(SplitLevelEstimationStrategy): # kan nu wel interessant zijn om een aantal queries altijd te krijgen, ah nee
     def __init__(self, constant_split_level):
         super().__init__()
         self.constaint_split_level = constant_split_level
