@@ -49,15 +49,15 @@ class ClusteringLogger:
 
         self.seen_indices = []
 
-        self.allSeenSuperinstances = set()
+        # self.allSeenSuperinstances = set()
 
-        self.currentSuperinstances = []
+        # self.currentSuperinstances = []
 
-        self.superinstances = []
+        # self.superinstances = []
 
-        self.currentrepres = []
+        # self.currentrepres = []
 
-        self.repres = [] 
+        # self.repres = [] 
 
     #########################
     # information retrieval #
@@ -81,24 +81,24 @@ class ClusteringLogger:
                 cl.append(constraint.get_instance_tuple())
         return ml, cl
 
-    def getConstraints(self):
-        pairs = []
-        labels = []
-        for constraint in self.all_user_constraints:
-            pairs.append(constraint.get_instance_tuple())
-            if constraint.is_ML():
-               labels.append(1)
-            else:
-                labels.append(-1)
-        return np.c_[ np.array(pairs), np.array(labels) ]
+    # def getConstraints(self):
+    #     pairs = []
+    #     labels = []
+    #     for constraint in self.all_user_constraints:
+    #         pairs.append(constraint.get_instance_tuple())
+    #         if constraint.is_ML():
+    #            labels.append(1)
+    #         else:
+    #             labels.append(-1)
+    #     return np.c_[ np.array(pairs), np.array(labels) ]
     
-    def getSuperinstances(self):
-        return np.array(self.superinstances)
+    # def getSuperinstances(self):
+    #     return np.array(self.superinstances)
     
-    def getRepres(self):
-        l1=list(range(len(self.repres)))
-        d1=zip(l1,self.repres)
-        return dict(d1)
+    # def getRepres(self):
+    #     l1=list(range(len(self.repres)))
+    #     d1=zip(l1,self.repres)
+    #     return dict(d1)
 
     def add_mistake_information(self, ground_truth_querier):
         for i, (constraint_number, constraint_copy) in enumerate(
@@ -157,9 +157,9 @@ class ClusteringLogger:
         self.all_user_constraints.append(constraint)
 
         # remember the superinstances and repres
-        self.allSeenSuperinstances.update(self.currentSuperinstances) # houdt de de current superinstances bij
-        self.superinstances.append(self.currentSuperinstances)
-        self.repres.append(self.currentrepres)
+        # self.allSeenSuperinstances.update(self.currentSuperinstances) # houdt de de current superinstances bij
+        # self.superinstances.append(self.currentSuperinstances)
+        # self.repres.append(self.currentrepres)
 
         # keep algorithm phases up to date
         self.algorithm_phases.append(self.current_phase)
@@ -205,20 +205,20 @@ class ClusteringLogger:
             self.clustering_to_store = clustering.construct_cluster_labeling()
 
         currentrepres = []
-        currentSuperinstances = np.zeros(len(self.clustering_to_store))
+        # currentSuperinstances = np.zeros(len(self.clustering_to_store))
 
         for i, super in enumerate(superinstances): # oh wauw
             currentrepres.append(super.get_representative_idx())
-            currentSuperinstances[np.array(super.indices)] = i
+            # currentSuperinstances[np.array(super.indices)] = i
 
 
-        self.currentrepres = currentrepres
-        self.currentSuperinstances = currentSuperinstances.tolist()
+        # self.currentrepres = currentrepres
+        # self.currentSuperinstances = currentSuperinstances.tolist()
 
         if blobThing:
             self.clustering_to_store = np.array(self.clustering_to_store)
             for blob in self.blobs:
-                for elem in self.currentrepres:
+                for elem in currentrepres:
                     if elem in blob:                
                         self.clustering_to_store[np.array(blob)] = self.clustering_to_store[elem]
                         break
@@ -247,11 +247,11 @@ class ClusteringLogger:
 
         for i, super in enumerate(superinstances): # oh wauw
             currentrepres.append(super.get_representative_idx())
-            currentSuperinstances[np.array(super.indices)] = i
+            # currentSuperinstances[np.array(super.indices)] = i
 
 
-        self.repres[-1] = currentrepres
-        self.superinstances[-1] = currentSuperinstances.tolist()
+        # self.repres[-1] = currentrepres
+        # self.superinstances[-1] = currentSuperinstances.tolist()
 
         if blobThing:
             clustering_to_store = np.array(self.intermediate_results[-1][0])
