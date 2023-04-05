@@ -220,7 +220,7 @@ class ConstraintIndex:
             constraints = constraints[selection]
             pairs = pairs[selection]
 
-        return pairs, constraints
+        return np.copy(pairs), np.copy(constraints)
 
     def get_all_mls(self):
         return [con for con in self.constraints if con.is_ML()]

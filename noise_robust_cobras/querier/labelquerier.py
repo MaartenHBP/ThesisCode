@@ -25,8 +25,17 @@ class LabelQuerier(Querier):
         if self.max_queries is None:
             return False
         return self.queries_asked >= self.max_queries
+    
+    ###################
+    # Metric Learning #
+    ###################
 
-    def getRandomConstraints(self, nbConstraints): # obsolete
+    def getConstraints(self, points):
+        return np.array(self.labels)[np.array(points)]
+
+    def getRandomConstraints(self, nbConstraints):
+        if nbConstraints == 0:
+            return [], []
         indices = np.arange(len(self.labels))
         all_pairs = np.array(list(combinations(indices, 2)))
 
@@ -41,6 +50,18 @@ class LabelQuerier(Querier):
 
         return pairs, constraints
     
+    def getRandomLabels(self, nbContraints):
+        if nbContraints == 0:
+            return [], []
+        indices = np.arange(len(self.labels))
+
+        random.shuffle(indices)
+
+        indi = indices[:nbContraints]
+
+        return indi, np.array(self.labels)[indi]  
+
+    
     def checkConstraints(self,constraints, y):
         for i in range(len(constraints)):
             if y[i] == 1 and self.labels[constraints[i][0]] != self.labels[constraints[i][1]]:
@@ -48,3 +69,6 @@ class LabelQuerier(Querier):
             if y[i] == -1 and self.labels[constraints[i][0]] == self.labels[constraints[i][1]]:
                 return False
         return True
+    
+    def createCopy(self, maxQueries):
+        return LabelQuerier(None, self.labels, maxQueries)

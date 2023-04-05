@@ -77,12 +77,23 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
+        metricLearner = None,
+        metricLearer_arguments = {},
+
+        ###########
+        # Initial #
+        ###########
+        initial = False,
+        initialSupervised = 0, # is een percentage
+        initialSemisupervised = 0,
+        initialRandom = True, # if false and supervised, gebruik supervised info na initialsemisupervised constraints
+
+
+        #########
+        # After #
+        #########
         keepSupervised = False,
         after = False,
-
-        # rebuild nog even achterwege laten
-        rebuild = False,
-        rebuildAfter = 50
 
         # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
         # metric_parameters = {},
@@ -115,13 +126,22 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        # self.baseline = baseline
-        # self.metric =  metric(**metric_parameters)
-        # self.rebuild_cluster = rebuild_cluster(**rebuild_cluster_parameters) if rebuild_cluster else None
-        # self.rebuilder = rebuilder(**rebuilder_parameters) if rebuilder else None
+        self.metricLearner = metricLearner
+        self.metricLearer_arguments = metricLearer_arguments
+
+        ###########
+        # Initial #
+        ###########
+        self.initial = initial
+        self.initialSupervised = initialSupervised # is een percentage
+        self.initialSemisupervised = initialSemisupervised
+        self.initialRandom = initialRandom
+
+        #########
+        # After #
+        #########
         self.doAfter = after
         self.keepSupervised = keepSupervised
-        self.gen = None
 
 
         ###################
@@ -262,43 +282,18 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
 
-            # print(self.querier.queries_asked)
-
-            ######################
-            # Metric learn phase #
-            ######################
 
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
-
-            # if self.doAfter:
-            #     self.query_random_points(count = 5)
-
-            #################################
-            # Test for CL in zelfde cluster #
-            #################################
-            # ml_wrong = 0
-            # cl_wrong = 0
-            # total = 0
-            # # go over the different constraints and chech ik they are wrong
-            # labels = np.array(self.clustering_to_store)
-            # for constraint in self.constraint_index:
-            #     total += 1
-            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) == 1:
-            #         if constraint.is_CL():
-            #             cl_wrong += 1
-            #     if len(np.unique(labels[[constraint.i1, constraint.i2]])) > 1:
-            #        if constraint.is_ML():
-            #             ml_wrong += 1 
-            # print(f"ml_wrong: {ml_wrong}")
-            # print(f"cl_wrong: {cl_wrong}")
-            # print(f"total: {total}")
-
-           
-            # only split when you are allowed to
             
-                # splitting phase
+            ################
+            # Metric learn #
+            ################
+            self.initial_transform()
+
+            
+            # splitting phase
             self._cobras_log.log_entering_phase("splitting")
             statuscode = self.split_next_superinstance()
             if statuscode == SplitResult.NO_SPLIT_POSSIBLE:
@@ -350,42 +345,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         self.clustering = last_valid_clustering
         self._cobras_log.log_end_clustering()
-        all_clusters = self._cobras_log.get_all_clusterings()
-
-
-
-        # if self.metric.executeNow('end'):
-        #     self.metric.learn(self, None, None)
-        #     transformed = self.metric.transformed
-        #     supers = self.clustering.get_superinstances()
-        #     repres = np.array([s.get_representative_idx() for s in supers])
-        #     indices = [i for i in range(len(self.data))]
-        #     closest_per_index = []
-        #     for idx in indices:
-        #         if idx in repres:
-        #             closest_per_index.append(idx)
-        #             continue
-        #         closest = min(
-        #             repres,
-        #             key=lambda x: np.linalg.norm(
-        #                 transformed[x] - transformed[idx]
-        #             ),
-        #         )
-        #         closest_per_index.append(closest)
-        #     all_clusters[-1] = np.array(all_clusters[-1])[closest_per_index]
-
-
-        # collect results and return TODO: fixing the logging
-        
+        all_clusters = self._cobras_log.get_all_clusterings() 
         
         runtimes = self._cobras_log.get_runtimes()
-        superinstances = self._cobras_log.getSuperinstances()
-        repres = self._cobras_log.getRepres()
         ml, cl = self._cobras_log.get_ml_cl_constraint_lists()
-        all_constraints = self._cobras_log.getConstraints() # hoef je niet meerdere keren herrunnen om te zien wat
 
 
-        return all_clusters, runtimes, superinstances, repres, ml, cl, all_constraints # volgorde van returnen is van belang
+        return all_clusters, runtimes, ml, cl # volgorde van returnen is van belang
 
     ###########################
     #       SPLITTING         #
@@ -855,38 +821,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # if reused_constraint is not None:
         #     self._cobras_log.log_reused_constraint_instances(reused_constraint.is_ML(), i1, i2)
         return reused_constraint
-    
-
-    
-    
-    def query_random_points(self, options = None, count = 0):
-        print("asking random constraints")
-        opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
-        if self.gen is None:
-            self.gen = self.pair_generator(opt) 
-        pairs = []
-        labels = []
- 
-        # Get 10 pairs: 
-        for i in range(count):
-            if self.querier.query_limit_reached():
-                print("did not have enough")
-                return np.array(pairs), np.array(labels)
-            pair = next(self.gen)
-            
-            while True:
-                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None: # gaan er ffkes vanuit dat elke superinstance minstens zoveel nodig heeft
-                    break
-                else: pair = next(self.gen) # niks reusen
-            pairs.append(pair)
-            cstr = self.query_querier(pair[0], pair[1], "random_points")
-            if cstr.is_ML():
-                labels.append(1)
-            else:
-                labels.append(-1)
-        return np.array(pairs), np.array(labels)
-
-
 
 
     def query_querier(self, instance1, instance2, purpose):
@@ -933,6 +867,36 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         )
 
         return new_constraint
+    
+    #######################
+    # QUERY RANDOM POINTS #
+    ####################### - worden toegevoegd aan de reeds gevraagde constraints TODO
+    def query_random_points(self, options = None, count = 0):
+        print("asking random constraints")
+        opt = np.array(options).tolist() if options is not None else np.arange(len(self.data)).tolist()
+        if self.gen is None:
+            self.gen = self.pair_generator(opt) 
+        pairs = []
+        labels = []
+ 
+        # Get 10 pairs: 
+        for i in range(count):
+            if self.querier.query_limit_reached():
+                print("did not have enough")
+                return np.array(pairs), np.array(labels)
+            pair = next(self.gen)
+            
+            while True:
+                if self.check_constraint_reuse_between_instances(pair[0], pair[1]) is None: # gaan er ffkes vanuit dat elke superinstance minstens zoveel nodig heeft
+                    break
+                else: pair = next(self.gen) # niks reusen
+            pairs.append(pair)
+            cstr = self.query_querier(pair[0], pair[1], "random_points")
+            if cstr.is_ML():
+                labels.append(1)
+            else:
+                labels.append(-1)
+        return np.array(pairs), np.array(labels)
 
 
     def pair_generator(self, numbers): 
@@ -949,7 +913,54 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 used_pairs.add(pair) 
                 yield pair
 
+    def getAllLabelled(self):
+        r = self.clustering.get_superinstances()
+        repres = [s.get_representative_idx() for s in r]
 
+        for blob in self._cobras_log.blobs:
+            for elem in repres:
+                if elem in blob:                
+                    repres.extend(blob)
+                    break
+
+
+        repres = list(set(repres)) # hiervan hebben we labelled information
+
+        return np.array(repres)
+
+
+
+    ###########
+    # Initial #
+    ###########
+    def initial_transform(self):
+        if not self.initial:
+            return
+        pairs = None
+        y = None
+        points = None
+        labels = None
+
+        if self.initialRandom:  
+            pairs, y = self.querier.getRandomConstraints(self.initialSemisupervised)
+            points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)))
+        else:
+            querier = self.querier.createCopy(self.initialSemisupervised) # gaan ervan uit dat dit groter dan nul is
+            clusterer = COBRAS(correct_noise=False, seed=self.seed)
+            clusterer.fit(np.copy(self.data), -1, None, querier)
+
+            pairs, y = clusterer.constraint_index.getLearningConstraints()
+
+            points = clusterer.getAllLabelled()
+            labels = clusterer.querier.getConstraints(points)
+            
+        self.data = self.metricLearner(preprocessor = np.copy(self.data, **self.metricLearer_arguments), seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
+
+
+    #########
+    # AFTER #
+    #########
+    # What to do afterwards, heeft een default TODO
     def after(self):
         
         clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()

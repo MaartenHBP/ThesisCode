@@ -47,9 +47,12 @@ seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation
 ABSOLUTE = 200
 RELATIVE = 0.3
 
+absolute_testing = np.arange(20, 200, step = 20)
+relative_testing = np.arange(0.1, 1, 0.1)
+
 PATH_COBRAS = "experimenten/COBRAS"
 
-def createFolds(labels, index:int):
+def createFolds(labels, index:int): # gaan eerst zonder folds testen, een goeie methode gaat deze test ook krijgen
     fold = StratifiedKFold(n_splits = 10, shuffle = True, random_state = seeds[index])
 
     training_indices = []
@@ -57,7 +60,7 @@ def createFolds(labels, index:int):
     
     for fold_nb, (train_indices, test_indices) in enumerate(fold.split(np.zeros(len(labels)), labels)):
         training_indices.append(train_indices.tolist())
-        testing_indices.append(train_indices.tolist())
+        testing_indices.append(test_indices.tolist())
 
 #################
 # Parallel code #
@@ -73,14 +76,15 @@ def runCOBRAS(dataName, seed, arguments):
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
+    # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
+    querylimit = 200
     runlimit = min(querylimit, len(data))
 
 
     querier = LabelQuerier(None, target, runlimit)
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **arguments)
 
-    all_clusters, _, _, _, _, _, _ = clusterer.fit(data, -1, None, querier)
+    all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
 
     if len(all_clusters) < querylimit:
         diff = querylimit - len(all_clusters)
@@ -100,7 +104,7 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
         name_algo = path
 
 
-    for key, item in testpd.items():
+    for key, item in test.items():
 
         testpd[key] = np.array(item)[:200]
         cobraspd[key] = np.array(cobras[key])[:200]
@@ -123,7 +127,34 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
     all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0,1))
     plt.savefig(f"{path}/plots/total.png")
 
-def makeDifferencePlot(path, name_algo = "")
+def makeDifferencePlot(path, name_algo = ""):
+    test = loadDict(path, "total")
+    cobras = loadDict(PATH_COBRAS, "total")
+    
+    total = np.zeros()
+
+    if not name_algo:
+        name_algo = path
+
+
+    for key, item in test.items():
+
+        test_item = np.array(item)[:200]
+        cobras_item = np.array(cobras[key])[:200]
+        
+        bools = test_item > cobras_item
+
+        total += bools
+
+    
+    plt.plot(total, label = name_algo)
+
+    plt.title("Better per dataset")
+    plt.xlabel("#queries")
+    plt.ylabel("#better")
+    plt.legend()
+    plt.savefig(f"{path}/plots/better.png")
+
 
 
 
