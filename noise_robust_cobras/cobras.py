@@ -279,6 +279,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         last_valid_clustering = None
 
 
+        ################
+        # Metric learn #
+        ################
+        self.initial_transform()
+
+
 
         while not self.querier.query_limit_reached():
 
@@ -286,11 +292,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
-            
-            ################
-            # Metric learn #
-            ################
-            self.initial_transform()
 
             
             # splitting phase
@@ -942,8 +943,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         labels = None
 
         if self.initialRandom:  
-            pairs, y = self.querier.getRandomConstraints(self.initialSemisupervised)
-            points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)))
+            pairs, y = self.querier.getRandomConstraints(self.initialSemisupervised, self.seed)
+            points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)), self.seed)
         else:
             querier = self.querier.createCopy(self.initialSemisupervised) # gaan ervan uit dat dit groter dan nul is
             clusterer = COBRAS(correct_noise=False, seed=self.seed)
@@ -954,7 +955,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             points = clusterer.getAllLabelled()
             labels = clusterer.querier.getConstraints(points)
             
-        self.data = self.metricLearner(preprocessor = np.copy(self.data, **self.metricLearer_arguments), seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
+        self.data = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
 
 
     #########

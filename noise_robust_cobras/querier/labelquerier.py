@@ -33,13 +33,16 @@ class LabelQuerier(Querier):
     def getConstraints(self, points):
         return np.array(self.labels)[np.array(points)]
 
-    def getRandomConstraints(self, nbConstraints):
+    def getRandomConstraints(self, nbConstraints, seed):
         if nbConstraints == 0:
             return [], []
         indices = np.arange(len(self.labels))
         all_pairs = np.array(list(combinations(indices, 2)))
 
         indi = np.arange(len(all_pairs))
+
+        random.seed(seed)
+
         random.shuffle(indi)
 
         pairs =  all_pairs[indi][:nbConstraints]
@@ -50,10 +53,12 @@ class LabelQuerier(Querier):
 
         return pairs, constraints
     
-    def getRandomLabels(self, nbContraints):
+    def getRandomLabels(self, nbContraints, seed):
         if nbContraints == 0:
             return [], []
         indices = np.arange(len(self.labels))
+
+        random.seed(seed)
 
         random.shuffle(indices)
 

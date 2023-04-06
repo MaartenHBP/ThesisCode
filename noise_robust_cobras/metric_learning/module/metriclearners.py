@@ -138,14 +138,27 @@ class NCA_wrapper(MetricLearner):
         super().__init__(preprocessor) # TODO: dit uitbereiden
 
     def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2: # safety_checks
+            return self
         self.fitted = NCA(random_state= self.seed)
-        self.fitted.fit(self.preprocessor[np.array(points)], labels) # perfect amai
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) # perfect amai
         return self
 
     def transform(self, data):
+        if self.fitted is None:
+            return data
         return self.fitted.transform(data)
     
     def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
         self.fit(pairs, y, points, labels)
         return self.transform(np.copy(self.preprocessor))
     
@@ -163,6 +176,8 @@ class LMNN_wrapper(MetricLearner):
         if (len(problem) > 0):
             select = np.invert(np.in1d(labels, problem))
             newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
             
 
         self.fitted = LMNN(random_state= self.seed)
@@ -170,9 +185,13 @@ class LMNN_wrapper(MetricLearner):
         return self
 
     def transform(self, data):
+        if self.fitted is None:
+            return data
         return self.fitted.transform(data)
     
     def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
         self.fit(pairs, y, points, labels)
         return self.transform(np.copy(self.preprocessor))
     

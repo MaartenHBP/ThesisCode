@@ -47,8 +47,8 @@ seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation
 ABSOLUTE = 200
 RELATIVE = 0.3
 
-absolute_testing = np.arange(20, 200, step = 20)
-relative_testing = np.arange(0.1, 1, 0.1)
+absolute_testing = np.arange(20, 200, step = 20).tolist()
+relative_testing = np.arange(0.1, 1, 0.1).tolist()
 
 PATH_COBRAS = "experimenten/COBRAS"
 
@@ -66,7 +66,7 @@ def createFolds(labels, index:int): # gaan eerst zonder folds testen, een goeie 
 # Parallel code #
 #################
 
-def runCOBRAS(dataName, seed, arguments):
+def runCOBRAS(seed, dataName, arguments):
     import warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
     warnings.simplefilter(action='ignore', category=Warning)
@@ -92,6 +92,88 @@ def runCOBRAS(dataName, seed, arguments):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
+###############
+# Experiments #
+###############
+
+def createCOBRAS():
+    pass
+
+def initial():
+    makeFolders("experimenten", ["initial"])
+    learners = [LMNN_wrapper, NCA_wrapper, ITML_wrapper]
+    isSupervised = [True, True, False]
+
+    args = {
+        "metricLearner" : None,
+        "initial" : True,
+        "initialSupervised" : 0, # is een percentage
+        "initialSemisupervised" : 0,
+        "initialRandom" : True, 
+    }
+
+    for i, learner in enumerate(learners):
+        makeFolders("experimenten/initial", [learner.__name__])
+        args["metricLearner"] = learner
+        for random in [False, True]:
+            makeFolders(f"experimenten/initial/{learner.__name__}", [f"random_{str(random)}"])
+            args["initialRandom"] = random
+
+            for k in range(len(relative_testing)):
+                supervised = random and isSupervised[i]
+
+                if not supervised:
+                    amount = absolute_testing[k]
+                    args["initialSemisupervised"] = amount
+
+                else:
+                    amount = relative_testing[k]
+                    args["initialSupervised"] = amount
+
+                makeFolders(f"experimenten/initial/{learner.__name__}/random_{str(random)}", ['%.1f' % amount])
+
+                path = f"experimenten/initial/{learner.__name__}/random_{str(random)}/{'%.1f' % amount}"
+                args["metricLearner"] = learner.__name__
+                saveDict(args, path, "settings")
+                args["metricLearner"] = learner
+
+                try:
+                    with LocalCluster() as cluster, Client(cluster) as client:
+                        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+                        datasets = os.listdir(path_datasets)
+                        run = dict()
+                        p = Path(f'{path}/total.json').absolute()
+                        if os.path.exists(p):
+                            run = loadDict(path, f"total")
+                        # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+                        for j in range(len(datasets)):
+                            nameData = datasets[j][:len(datasets[j]) - 5]
+                            if nameData in run:
+                                continue
+                            print(f"({path})\t ({nameData})\t Running")
+                            parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
+                            futures = client.map(parallel_func, ARGUMENTS)
+                            # parallel_func(16)
+                            results = np.array(client.gather(futures))
+                            run[nameData] = np.mean(results, axis=0).tolist()
+                            saveDict(run, path, "total")
+                        saveDict(run, path, "total")
+                except Exception as x:
+                    print("error cccured:" + path)
+                    errordict = {"problem": str(x)}
+                    saveDict(errordict, path, "error")
+
+                
+    
+    
+    
+    
+    
+
+
+###############
+# Plot makers #
+###############
 
 def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
     test = loadDict(path, "total")
@@ -156,7 +238,9 @@ def makeDifferencePlot(path, name_algo = ""):
     plt.savefig(f"{path}/plots/better.png")
 
 
-
+####################
+# Helper functions #
+####################
 
 # loadData
 def loadDict(path, name):
@@ -167,3 +251,42 @@ def loadDict(path, name):
     with open(f'{path}/{name}.json') as json_file:
         # ga verder met een experiment of start
         return json.load(json_file)
+    
+def saveDict(dict, path, name):
+    with open(f"{path}/{name}.json", "w") as outfile:
+        json.dump(dict, outfile, indent=4)
+
+def makeFolders(initial, where):
+    path = Path(initial).absolute()
+    CHECK_FOLDER = os.path.isdir(path)
+    if not CHECK_FOLDER:
+        os.makedirs(path)
+        print("created folder : ", path)
+
+    for place in where:
+        path = Path(f"{initial}/{place}").absolute()
+        CHECK_FOLDER = os.path.isdir(path)
+        if not CHECK_FOLDER:
+            os.makedirs(path)
+            print("created folder : ", path)
+
+
+if __name__ == "__main__":
+    def ignore_warnings():
+        import warnings
+        warnings.simplefilter(action='ignore', category=FutureWarning)
+        warnings.simplefilter(action='ignore', category=Warning)
+
+    ignore_warnings() 
+
+    # args = {
+    #     "metricLearner" : LMNN_wrapper,
+    #     "initial" : True,
+    #     "initialSupervised" : 0.5, # is een percentage
+    #     "initialSemisupervised" : 20,
+    #     "initialRandom" : False, 
+    # }
+    # runCOBRAS(67 ,"hepatitis", arguments=args)
+
+    initial()
+    
