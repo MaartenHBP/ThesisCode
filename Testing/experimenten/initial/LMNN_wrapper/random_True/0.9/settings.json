@@ -1,0 +1,7 @@
+{
+    "metricLearner": "LMNN_wrapper",
+    "initial": true,
+    "initialSupervised": 0.9,
+    "initialSemisupervised": 180,
+    "initialRandom": true
+}

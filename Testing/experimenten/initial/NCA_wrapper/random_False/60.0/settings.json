@@ -1,0 +1,7 @@
+{
+    "metricLearner": "NCA_wrapper",
+    "initial": true,
+    "initialSupervised": 0.9,
+    "initialSemisupervised": 60,
+    "initialRandom": false
+}
