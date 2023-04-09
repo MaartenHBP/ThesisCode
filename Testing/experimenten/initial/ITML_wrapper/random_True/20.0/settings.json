@@ -1,0 +1,7 @@
+{
+    "metricLearner": "ITML_wrapper",
+    "initial": true,
+    "initialSupervised": 0.9,
+    "initialSemisupervised": 20,
+    "initialRandom": true
+}
