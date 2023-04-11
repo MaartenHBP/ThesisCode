@@ -33,8 +33,16 @@ class SuperInstance:
             raise ValueError("Super instances without training instances")
 
     @abc.abstractmethod
-    def distance_to(self, other_superinstance): # hier moeten we aan foefelen
+    def distance_to(self, other_superinstance): # hier moeten we aan foefelen, nooit meer aangekoem lol
         return
+    
+    def get_childeren(self):
+        if self.children is None:
+            print("te diep")
+            return [self]
+        else:
+            return self.children
+
 
     def get_leaves(self):
 

@@ -20,6 +20,7 @@ from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
     ClosestRebuild,
     Rebuilder
 )
+from sklearn.cluster import KMeans
 from noise_robust_cobras.cobras_logger import ClusteringLogger
 from noise_robust_cobras.strategies.splitlevel_estimation import (
     StandardSplitLevelEstimationStrategy,
@@ -100,8 +101,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuildLevel = "all", # different levels are all, cluster, superinstance
         # pas belangrijk als er voor verfijningslevel superinstance is gekozen
         rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
-        rebuildAmountQueriesAsked = 100, # vanaf hoeveel queries gevraagd voeren we dit uit  
-        rebuilder = ClosestRebuild,
+        rebuildAmountQueriesAsked = 50, # vanaf hoeveel queries gevraagd voeren we dit uit  
+        rebuilder = SemiCluster,
+        rebuildMetric = False,
 
 
 
@@ -161,7 +163,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # pas belangrijk als er voor verfijningslevel superinstance is gekozen
         self.rebuildSuperInstanceLevel = rebuildSuperInstanceLevel # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
         self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
-        self.rebuilder: Rebuilder = rebuilder() 
+        self.rebuilder: Rebuilder = rebuilder()
+        self.rebuildMetric = rebuildMetric
 
         #########
         # After #
@@ -314,13 +317,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
 
+            # rebuild phase
+            self.rebuild()
+
 
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
-
-            # rebuild phase
-            self.rebuild()
 
             
             # splitting phase
@@ -997,11 +1000,27 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # get superinstances per finegrained level #
     ############################################
     def getFinegrainedLevel(self,level:str):
-        if str == "all":
+        if level == "all":
             return [self.clustering.get_superinstances()]
-        if str == "cluster": 
+        if level == "cluster": 
             return self.clustering.get_superinstances_per_cluster()
-        # if str == "superinstance"
+        if level == "superinstance":
+            if self.rebuildSuperInstanceLevel == 0:
+                return [[x] for x in self.clustering.get_superinstances()]
+            
+            supers = [self.clustering.get_superinstances()[0].get_root()]
+            for i in range(self.rebuildSuperInstanceLevel):
+                new = []
+                for s in supers:
+                    new.extend(s.get_childeren())
+                supers = new
+            
+            superchilds = []
+            for j in supers:
+                superchilds.append(j.get_leaves())
+            return superchilds
+
+                
         else:
             return [self.clustering.get_superinstances()]
 
@@ -1009,14 +1028,68 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     ##############
     # Rebuilding #
     ##############
+
+    def superinstanceRedfining(self, superinstances, labelledPoints):
+        """
+        In this function, superinstances are redifined in smaller portions,
+        the retutn are smaller kind of superinstances,
+        divided: one list where they have one labelled point, which will be the representative
+        one list where they have none
+        """
+        newsupers = []
+        labelledSupers = []
+        for super in superinstances:
+            k = 20 # dit moet nog procentueel bepaald worden ofzo TODO
+            km = KMeans(k, n_init=self.n_runs, random_state=self.random_generator.integers(1,1000000), init = 'k-means++')
+
+            km.fit(self.data[np.array(super.indices), :])
+            labels = km.labels_.astype(np.int)
+
+            for i in np.unique(labels):
+                indi = np.array(super.indices)[labels == i]
+                labelled = np.in1d(indi,labelledPoints)
+
+                if len(labelled == 0):
+                    newsupers.append(self.superinstance_builder.makeSuperInstance( # die geeft automatisch een repres
+                        self.data, indi.tolist(), self.train_indices, None
+                    ))
+                
+                else if len(labelled == 1):
+                    newsuperinstance = self.superinstance_builder.makeSuperInstance( # die geeft automatisch een repres
+                        self.data, indi.tolist(), self.train_indices, None
+                    )
+                    newsuperinstance.representative_idx = labelled[0]
+                    labelledSupers.append(newsuperinstance)
+
+                else:
+                    labels_repres = self.rebuilder.rebuild(labelled, indi, self.data) # hergebruik van code
+                    for i in range(len(indi)):
+                        idx = indi[i]
+                        if idx in labelled:
+                            points = np.array(indi)[labels_repres == labels_repres[i]]
+                            superinstance = self.superinstance_builder.makeSuperInstance(
+                                self.data, points.tolist(), self.train_indices, None
+                            )
+                            superinstance.representative_idx = idx
+                            labelledSupers.append(superinstance)
+
+            return newsupers, labelledSupers
+
+                    
+            
+
+
+
     def rebuild(self):
-        if not self.rebuildPhase:
+        if not self.rebuildPhase or len(self._cobras_log.all_user_constraints) < self.rebuildAmountQueriesAsked:
             return
         levels = self.getFinegrainedLevel(self.rebuildLevel)
 
         labelled, clust = self.getAllLabelled()
 
         clusters = [Cluster([]) for i in np.unique(clust)]
+
+        data = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(labelled), clust[np.array(labelled)]) if self.rebuildMetric else self.data
 
         for level in levels:
             # nu begint het echte werk
@@ -1029,26 +1102,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     if idx in labelled:
                         repres.append(idx)
 
-            labels_repres = self.rebuilder.rebuild(repres, indices, self.data)
-            for idx in indices:
+            labels_repres = self.rebuilder.rebuild(repres, indices, data)
+            for i in range(len(indices)):
+                idx = indices[i]
                 if idx in repres:
-                    points = indices[labels_repres == labels_repres[idx]]
+                    points = np.array(indices)[labels_repres == labels_repres[i]]
                     superinstance = self.superinstance_builder.makeSuperInstance(
-                        self.data, points, self.train_indices, None
+                        self.data, points.tolist(), self.train_indices, None
                     )
                     superinstance.representative_idx = idx
                     clusters[clust[idx]].super_instances.append(superinstance)
-        
+        self.rebuildPhase = False
         self.clustering.clusters = clusters
-
-
-
-
-
-                
-
-            
-        
+        print("done")
 
 
     #########

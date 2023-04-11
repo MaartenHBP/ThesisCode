@@ -8,6 +8,12 @@ from pathlib import Path
 import json
 from datetime import datetime
 
+from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
+    SemiCluster,
+    ClosestRebuild,
+    Rebuilder
+)
+
 from noise_robust_cobras.cobras import COBRAS
 from noise_robust_cobras.querier.noisy_labelquerier import ProbabilisticNoisyQuerier
 from noise_robust_cobras.querier.labelquerier import LabelQuerier
@@ -164,7 +170,18 @@ def initial():
                     saveDict(errordict, path, "error")
 
                 
+def test():
+    dataset = "dermatology"
+    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
+        "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
+    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
+        "rebuildAmountQueriesAsked" : 100, "rebuildMetric":False, "rebuildSuperInstanceLevel": 3}), label = "test")
+    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True}), label = "COBRAS")
+
+    plt.legend()
     
+
+    plt.show()    
     
     
     
@@ -288,5 +305,5 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    initial()
+    test()
     

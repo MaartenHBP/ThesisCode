@@ -17,6 +17,7 @@ class SuperInstance_kmeans(SuperInstance): # hoe wordt de medoid bepaald
         super(SuperInstance_kmeans, self).__init__(data, indices, train_indices, None)
         self.centroid = np.mean(data[indices, :], axis=0)
         self.si_train_indices = [x for x in indices if x in train_indices]
+        self.parent = parent # jow wel nodig
 
         if len(set(self.si_train_indices)) < len(self.si_train_indices):
             print("something goes wrong!")
