@@ -957,6 +957,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             
         self.data = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
 
+    ##############
+    # Rebuilding #
+    ##############
+
 
     #########
     # AFTER #
