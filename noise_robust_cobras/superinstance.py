@@ -46,7 +46,7 @@ class SuperInstance:
                 d.extend(s.get_leaves())
             return d
 
-    def get_root(self):
+    def get_root(self): # aha
         if self.parent is None:
             return self
         else:
@@ -60,3 +60,4 @@ class SuperInstance:
 
     def copy(self):
         pass
+

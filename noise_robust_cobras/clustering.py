@@ -50,6 +50,12 @@ class Clustering:
         for cluster in self.clusters:
             result.extend(cluster.super_instances)
         return result
+    
+    def get_superinstances_per_cluster(self):
+        result = []
+        for cluster in self.clusters:
+            result.append(cluster.super_instances)
+        return result
 
     def create_generalized_super_instances(self, si):
         """

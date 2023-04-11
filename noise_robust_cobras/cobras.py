@@ -15,6 +15,11 @@ from noise_robust_cobras.clustering_algorithms.clustering_algorithms import (
     KMeansClusterAlgorithm,
     ClusterAlgorithm,
 )
+from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
+    SemiCluster,
+    ClosestRebuild,
+    Rebuilder
+)
 from noise_robust_cobras.cobras_logger import ClusteringLogger
 from noise_robust_cobras.strategies.splitlevel_estimation import (
     StandardSplitLevelEstimationStrategy,
@@ -88,6 +93,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         initialSemisupervised = 0,
         initialRandom = True, # if false and supervised, gebruik supervised info na initialsemisupervised constraints
 
+        ###########
+        # Rebuild #
+        ###########
+        rebuildPhase = False,
+        rebuildLevel = "all", # different levels are all, cluster, superinstance
+        # pas belangrijk als er voor verfijningslevel superinstance is gekozen
+        rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
+        rebuildAmountQueriesAsked = 100, # vanaf hoeveel queries gevraagd voeren we dit uit  
+        rebuilder = ClosestRebuild,
+
+
 
         #########
         # After #
@@ -136,6 +152,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.initialSupervised = initialSupervised # is een percentage
         self.initialSemisupervised = initialSemisupervised
         self.initialRandom = initialRandom
+
+        ###########
+        # Rebuild #
+        ###########
+        self.rebuildPhase = rebuildPhase
+        self.rebuildLevel = rebuildLevel # different levels are all, cluster, superinstance
+        # pas belangrijk als er voor verfijningslevel superinstance is gekozen
+        self.rebuildSuperInstanceLevel = rebuildSuperInstanceLevel # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
+        self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
+        self.rebuilder: Rebuilder = rebuilder() 
 
         #########
         # After #
@@ -292,6 +318,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             # during this iteration store the current clustering
             self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
+
+            # rebuild phase
+            self.rebuild()
 
             
             # splitting phase
@@ -914,20 +943,27 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 used_pairs.add(pair) 
                 yield pair
 
+    ################################
+    # Get all labelled information #
+    ################################
+
     def getAllLabelled(self):
-        r = self.clustering.get_superinstances()
+        clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
         repres = [s.get_representative_idx() for s in r]
 
-        for blob in self._cobras_log.blobs:
+        clust = np.array(clust)
+
+        for blob in self._cobras_log.blobs: # staan momenteel gestored in de logger
             for elem in repres:
                 if elem in blob:                
                     repres.extend(blob)
+                    clust[np.array(blob)] = clust[elem]
                     break
 
 
         repres = list(set(repres)) # hiervan hebben we labelled information
 
-        return np.array(repres)
+        return np.array(repres), np.array(clust)
 
 
 
@@ -952,14 +988,67 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             pairs, y = clusterer.constraint_index.getLearningConstraints()
 
-            points = clusterer.getAllLabelled()
-            labels = clusterer.querier.getConstraints(points)
+            points, _ = clusterer.getAllLabelled() # TODO: nog fixen
+            labels = clusterer.querier.getConstraints(points) # is dit zo hmmmm, moeten we testen
             
         self.data = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
+
+    ############################################
+    # get superinstances per finegrained level #
+    ############################################
+    def getFinegrainedLevel(self,level:str):
+        if str == "all":
+            return [self.clustering.get_superinstances()]
+        if str == "cluster": 
+            return self.clustering.get_superinstances_per_cluster()
+        # if str == "superinstance"
+        else:
+            return [self.clustering.get_superinstances()]
+
 
     ##############
     # Rebuilding #
     ##############
+    def rebuild(self):
+        if not self.rebuildPhase:
+            return
+        levels = self.getFinegrainedLevel(self.rebuildLevel)
+
+        labelled, clust = self.getAllLabelled()
+
+        clusters = [Cluster([]) for i in np.unique(clust)]
+
+        for level in levels:
+            # nu begint het echte werk
+            indices = []
+            repres = []
+
+            for superinstance in level:
+                for idx in superinstance.indices:
+                    indices.append(idx)
+                    if idx in labelled:
+                        repres.append(idx)
+
+            labels_repres = self.rebuilder.rebuild(repres, indices, self.data)
+            for idx in indices:
+                if idx in repres:
+                    points = indices[labels_repres == labels_repres[idx]]
+                    superinstance = self.superinstance_builder.makeSuperInstance(
+                        self.data, points, self.train_indices, None
+                    )
+                    superinstance.representative_idx = idx
+                    clusters[clust[idx]].super_instances.append(superinstance)
+        
+        self.clustering.clusters = clusters
+
+
+
+
+
+                
+
+            
+        
 
 
     #########
