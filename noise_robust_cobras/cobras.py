@@ -101,9 +101,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuildLevel = "all", # different levels are all, cluster, superinstance
         # pas belangrijk als er voor verfijningslevel superinstance is gekozen
         rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
+
         rebuildAmountQueriesAsked = 50, # vanaf hoeveel queries gevraagd voeren we dit uit  
+
         rebuilder = SemiCluster,
         rebuildMetric = False,
+        rebuilderKeepTransformed = False,
+
+        # partition
+        rebuildPartition = False,
+        rebuildPartitionDecider = "all", # verschillede manieren om kleine deeltjes te verplaatsen, all, repres, vote
+        rebuildPartitionUseTransformed = False,
+        rebuildPartitionLevel = 4,
+
+
 
 
 
@@ -165,6 +176,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
         self.rebuilder: Rebuilder = rebuilder()
         self.rebuildMetric = rebuildMetric
+        self.rebuildPartition = rebuildPartition
+        self.rebuildPartitionDecider = rebuildPartitionDecider
+        self.rebuildPartitionUseTransformed = rebuildPartitionUseTransformed
+        self.rebuilderKeepTransformed = rebuilderKeepTransformed
+        self.rebuildPartitionLevel = rebuildPartitionLevel
 
         #########
         # After #
@@ -1029,7 +1045,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # Rebuilding #
     ##############
 
-    def superinstanceRedfining(self, superinstances, labelledPoints):
+    def superinstanceRedfining(self, superinstances, labelledPoints, data):
         """
         In this function, superinstances are redifined in smaller portions,
         the retutn are smaller kind of superinstances,
@@ -1038,42 +1054,43 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
         newsupers = []
         labelledSupers = []
+        labelled_in_supers = []
         for super in superinstances:
-            k = 20 # dit moet nog procentueel bepaald worden ofzo TODO
-            km = KMeans(k, n_init=self.n_runs, random_state=self.random_generator.integers(1,1000000), init = 'k-means++')
+            k = math.ceil(len(super.indices)/self.rebuildPartitionLevel) # TODO: een optie van maken
+            km = KMeans(k, n_init=10, random_state=self.random_generator.integers(1,1000000), init = 'k-means++')
 
-            km.fit(self.data[np.array(super.indices), :])
+            km.fit(data[np.array(super.indices), :])
             labels = km.labels_.astype(np.int)
 
             for i in np.unique(labels):
                 indi = np.array(super.indices)[labels == i]
-                labelled = np.in1d(indi,labelledPoints)
+                labelled = np.array(indi)[np.in1d(indi,labelledPoints)]
+                labelled_in_supers.extend(labelled)
 
-                if len(labelled == 0):
+                if len(labelled) == 0:
                     newsupers.append(self.superinstance_builder.makeSuperInstance( # die geeft automatisch een repres
-                        self.data, indi.tolist(), self.train_indices, None
+                        data, indi.tolist(), self.train_indices, None
                     ))
                 
-                else if len(labelled == 1):
+                elif len(labelled) == 1:
                     newsuperinstance = self.superinstance_builder.makeSuperInstance( # die geeft automatisch een repres
-                        self.data, indi.tolist(), self.train_indices, None
+                        data, indi.tolist(), self.train_indices, None
                     )
                     newsuperinstance.representative_idx = labelled[0]
                     labelledSupers.append(newsuperinstance)
 
                 else:
-                    labels_repres = self.rebuilder.rebuild(labelled, indi, self.data) # hergebruik van code
-                    for i in range(len(indi)):
-                        idx = indi[i]
+                    labels_repres = self.rebuilder.rebuild(labelled, indi, data) # hergebruik van code
+                    for j in range(len(indi)):
+                        idx = indi[j]
                         if idx in labelled:
-                            points = np.array(indi)[labels_repres == labels_repres[i]]
+                            points = np.array(indi)[labels_repres == labels_repres[j]]
                             superinstance = self.superinstance_builder.makeSuperInstance(
-                                self.data, points.tolist(), self.train_indices, None
+                                data, points.tolist(), self.train_indices, None
                             )
                             superinstance.representative_idx = idx
                             labelledSupers.append(superinstance)
-
-            return newsupers, labelledSupers
+        return newsupers, labelledSupers, labelled_in_supers
 
                     
             
@@ -1090,31 +1107,62 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         clusters = [Cluster([]) for i in np.unique(clust)]
 
         data = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(labelled), clust[np.array(labelled)]) if self.rebuildMetric else self.data
+        
+        if self.rebuilderKeepTransformed: # werk later verder met deze transformatie
+            self.data = data
 
+        rebuilder = ClosestRebuild() # enkel voor partition idee
         for level in levels:
+            if self.rebuildPartition:
+                partitions, labelledpartitions, repres = self.superinstanceRedfining(level, labelled, data if self.rebuildPartitionUseTransformed else self.data) # TODO: welke data gebruiken
+
+                labels_repres = []
+                indices = []
+
+                # hier werkt het via closest
+                for partition in partitions:
+                    labels_repres_all = rebuilder.rebuild(repres, partition.indices, data)
+                    # nu moeten we beslissen wat er mee te doen
+                    if self.rebuildPartitionDecider == "repres":
+                        repres_location = partition.indices.index(partition.representative_idx)
+                        labels_repres.extend([labels_repres_all[repres_location]] * len(labels_repres_all))
+                    elif self.rebuildPartitionDecider == "vote": # nog niet over tie-breakers nagedacht, is mss niet nodig TODO
+                        counts = np.bincount(labels_repres_all)
+                        labels_repres.extend([np.argmax(counts)] * len(labels_repres_all))
+                    else:
+                        labels_repres.extend(labels_repres_all.tolist())
+                    indices.extend(partition.indices)
+
+                for superinstance in labelledpartitions:
+                    represent = superinstance.representative_idx
+                    idx = repres.index(represent)
+                    superinstance.indices.extend(np.array(indices)[np.array(labels_repres) == idx]) # klein verschil
+                    clusters[clust[represent]].super_instances.append(superinstance)
+
+            else:
             # nu begint het echte werk
-            indices = []
-            repres = []
+                indices = []
+                repres = []
 
-            for superinstance in level:
-                for idx in superinstance.indices:
-                    indices.append(idx)
-                    if idx in labelled:
-                        repres.append(idx)
+                for superinstance in level:
+                    for idx in superinstance.indices:
+                        indices.append(idx)
+                        if idx in labelled:
+                            repres.append(idx)
 
-            labels_repres = self.rebuilder.rebuild(repres, indices, data)
-            for i in range(len(indices)):
-                idx = indices[i]
-                if idx in repres:
-                    points = np.array(indices)[labels_repres == labels_repres[i]]
-                    superinstance = self.superinstance_builder.makeSuperInstance(
-                        self.data, points.tolist(), self.train_indices, None
-                    )
-                    superinstance.representative_idx = idx
-                    clusters[clust[idx]].super_instances.append(superinstance)
+                labels_repres = self.rebuilder.rebuild(repres, indices, data)
+                for i in range(len(indices)):
+                    idx = indices[i]
+                    if idx in repres:
+                        points = np.array(indices)[labels_repres == labels_repres[i]]
+                        superinstance = self.superinstance_builder.makeSuperInstance(
+                            self.data, points.tolist(), self.train_indices, None
+                        )
+                        superinstance.representative_idx = idx
+                        clusters[clust[idx]].super_instances.append(superinstance)
         self.rebuildPhase = False
         self.clustering.clusters = clusters
-        print("done")
+        # print("done")
 
 
     #########

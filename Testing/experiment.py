@@ -83,8 +83,9 @@ def runCOBRAS(seed, dataName, arguments):
     target = dataset[:, 0]
 
     # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
-    querylimit = 200
-    runlimit = min(querylimit, len(data))
+    querylimit = 500
+    # runlimit = min(querylimit, len(data))
+    runlimit = querylimit
 
 
     querier = LabelQuerier(None, target, runlimit)
@@ -169,20 +170,88 @@ def initial():
                     errordict = {"problem": str(x)}
                     saveDict(errordict, path, "error")
 
+def rebuild():
+    makeFolders("experimenten", ["rebuild"])
+
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "all", # nog niet op superinstance zetten TODO
+        "rebuildAmountQueriesAsked" : 75, # gaan hier over loopen
+        "rebuildMetric":False, 
+        "rebuildSuperInstanceLevel": 3,
+        "rebuildPartition": False, # vanaf hier boeit het nog niet direct TODO
+        "rebuildPartitionDecider": "vote",
+        "rebuildPartitionLevel": 3}
+
+
+    for k in [50, 75, 100, 125, 150]:
+        args["rebuildAmountQueriesAsked"] = k
+
+        path = Path(f"experimenten/rebuild/no_metric/rebuildLevel_{str(args['rebuildLevel'])}/rebuildPartition_False/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+        CHECK_FOLDER = os.path.isdir(path)
+        if not CHECK_FOLDER:
+            os.makedirs(path)
+            print("created folder : ", path)
+        saveDict(args, path, "settings")
+
+        try:
+            with LocalCluster() as cluster, Client(cluster) as client:
+                path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+                datasets = os.listdir(path_datasets)
+                run = dict()
+                p = Path(f'{path}/total.json').absolute()
+                if os.path.exists(p):
+                    run = loadDict(path, f"total")
+                # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+                for j in range(len(datasets)):
+                    nameData = datasets[j][:len(datasets[j]) - 5]
+                    if nameData in run:
+                        continue
+                    print(f"({path})\t ({nameData})\t Running")
+                    parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
+                    futures = client.map(parallel_func, ARGUMENTS)
+                    # parallel_func(16)
+                    results = np.array(client.gather(futures))
+                    run[nameData] = np.mean(results, axis=0).tolist()
+                    saveDict(run, path, "total")
+                saveDict(run, path, "total")
+        except Exception as x:
+            print("error cccured:" + path)
+            errordict = {"problem": str(x)}
+            saveDict(errordict, path, "error")
                 
 def test():
-    dataset = "dermatology"
-    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
-        "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
-    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
-        "rebuildAmountQueriesAsked" : 100, "rebuildMetric":False, "rebuildSuperInstanceLevel": 3}), label = "test")
-    plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True}), label = "COBRAS")
+    dataset = "spambase"
+    # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
+    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
+    # plt.plot(runCOBRAS(55, dataset, {
+    #     "keepSupervised":True, 
+    #     "rebuildPhase": True, 
+    #     "rebuildLevel": "superinstace", 
+    #     "rebuilder" : SemiCluster,
+    #     "rebuildAmountQueriesAsked" : 75, 
+    #     "rebuildMetric":False, 
+    #     "rebuildSuperInstanceLevel": 3,
+    #     "rebuildPartition": True,
+    #     "rebuildPartitionDecider": "vote"}), label = "test")
+    # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True}), label = "COBRAS")
+
+    # plt.legend()
+    
+
+    # plt.show()    
+    dataset = "spambase"
+    # plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
+    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
+    # plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
+    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":False, "rebuildSuperInstanceLevel": 3}), label = "test")
+    plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True}), label = "COBRAS")
+    plt.plot(runCOBRAS(16, dataset, {"keepSupervised":False}), label = "COBRAS")
 
     plt.legend()
     
 
-    plt.show()    
-    
+    plt.show()
     
     
     
@@ -305,5 +374,6 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    test()
+    # test()
+    rebuild()
     

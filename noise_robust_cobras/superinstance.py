@@ -38,7 +38,7 @@ class SuperInstance:
     
     def get_childeren(self):
         if self.children is None:
-            print("te diep")
+            # print("te diep")
             return [self]
         else:
             return self.children

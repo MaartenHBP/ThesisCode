@@ -6,7 +6,7 @@ from sklearn.neighbors import NearestNeighbors
 # returns a list of labels, the labels are the indices of the repres it needs to belong to
 
 class Rebuilder:
-    @abc.abstractmethod
+    @abc.abstractmethod # idee van labelled nog mee werken TODO, todo in cobras.py file
     def rebuild(self, repres, indices, data, indi_super=[], labelled=[]): # indi_super is de inidex in repres die overeenkomt van waar het komt, labelled heeft als lengte n + 1 om zo de laatste aan te passen naar de repres
         pass
 
