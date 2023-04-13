@@ -2,16 +2,17 @@ import abc
 
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import KNeighborsClassifier
 
 # returns a list of labels, the labels are the indices of the repres it needs to belong to
 
 class Rebuilder:
     @abc.abstractmethod # idee van labelled nog mee werken TODO, todo in cobras.py file
-    def rebuild(self, repres, indices, data, indi_super=[], labelled=[]): # indi_super is de inidex in repres die overeenkomt van waar het komt, labelled heeft als lengte n + 1 om zo de laatste aan te passen naar de repres
+    def rebuild(self, repres, indices, data, indi_super=[], labelled=[], represLabels = []): # indi_super is de inidex in repres die overeenkomt van waar het komt, labelled heeft als lengte n + 1 om zo de laatste aan te passen naar de repres
         pass
 
 class ClosestRebuild(Rebuilder):
-    def rebuild(self, repres, indices, data, indi_super=[], labelled=[]): # werken via kNN, indices bevatten ook de represkes
+    def rebuild(self, repres, indices, data, indi_super=[], labelled=[], represLabels = []): # werken via kNN, indices bevatten ook de represkes, doen momenteel niks met closest
         if len(labelled) == 0:
             nbrs = NearestNeighbors(n_neighbors=1).fit(data[np.array(repres)])
             _, labels = nbrs.kneighbors(data[indices])
@@ -30,7 +31,7 @@ class ClosestRebuild(Rebuilder):
         return labels
     
 class SemiCluster(Rebuilder):
-    def rebuild(self, repres, indices, data, indi_super=[], labelled=[]):
+    def rebuild(self, repres, indices, data, indi_super=[], labelled=[], represLabels = []):
         # the inital centers
         centers = data[np.copy(repres)] # voor bestaande repres kan dit in theorie met de echte center (?)
 
@@ -75,6 +76,34 @@ class SemiCluster(Rebuilder):
             #     _, lab = nbrs.kneighbors(data[selection])
             #     indices[selection] = lab
             # return indices
+
+class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel laten we alle vrijhoud van naar waar te bewegen
+    """
+    Dit idee is echt geinspireerd door de resultaten van LMNN-kNN (zie after)
+    """
+    def rebuild(self, repres, indices, data, indi_super=[], labelled=[], represLabels = []): # represlabels enkel hier belangrijk
+        k = 3
+        if len(repres) < k:
+            k = len(repres)
+        model = KNeighborsClassifier(n_neighbors=k)
+        model.fit(data[np.array(repres)], represLabels)
+
+        predicted_label = model.predict(data[np.array(indices)])
+
+        # Find the indices of the k nearest neighbors for the test sample
+        _, n_indices = model.kneighbors(data[np.array(indices)])
+
+        # Retrieve the labels of the neighbors
+        neighbor_labels = np.array(represLabels)[n_indices]
+
+        selection = neighbor_labels == predicted_label[..., None]
+        selection[:,1:] *=(np.diff(selection,axis=1)!=0)
+
+        return n_indices[selection]
+
+
+
+
 
 
         

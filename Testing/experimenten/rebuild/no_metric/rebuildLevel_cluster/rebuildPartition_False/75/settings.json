@@ -1,0 +1,10 @@
+{
+    "rebuildPhase": true,
+    "rebuildLevel": "cluster",
+    "rebuildAmountQueriesAsked": 75,
+    "rebuildMetric": false,
+    "rebuildSuperInstanceLevel": 3,
+    "rebuildPartition": false,
+    "rebuildPartitionDecider": "vote",
+    "rebuildPartitionLevel": 3
+}

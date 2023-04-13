@@ -175,7 +175,7 @@ def rebuild():
 
     args = {
         "rebuildPhase": True, 
-        "rebuildLevel": "all", # nog niet op superinstance zetten TODO
+        "rebuildLevel": "cluster", # nog niet op superinstance zetten TODO
         "rebuildAmountQueriesAsked" : 75, # gaan hier over loopen
         "rebuildMetric":False, 
         "rebuildSuperInstanceLevel": 3,

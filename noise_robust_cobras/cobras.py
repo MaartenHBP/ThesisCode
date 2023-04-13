@@ -83,7 +83,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        metricLearner = None,
+        metricLearner = None, # wordt momenteel niet gebruikt
         metricLearer_arguments = {},
 
         ###########
@@ -123,6 +123,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         keepSupervised = False,
         after = False,
+        afterAmountQueriesAsked = 50,
+        afterMetric = False,
+        afterLevel = "all",
+        afterSuperInstanceLevel = 0,
 
         # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
         # metric_parameters = {},
@@ -187,6 +191,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         self.doAfter = after
         self.keepSupervised = keepSupervised
+        self.afterAmountQueriesAsked = afterAmountQueriesAsked
+        self.afterMetric = afterMetric
+        self.afterLevel = afterLevel
+        self.afterSuperInstanceLevel = afterSuperInstanceLevel
 
 
         ###################
@@ -1039,13 +1047,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 
         else:
             return [self.clustering.get_superinstances()]
-
+        
+    ###################### TODO
+    # Only change metric # hier is het belangrijk dat wanneer data gesplit wordt de juiste data wordt gebruikt
+    ###################### Andere optie is om voor het splitten enkel te leren zonder aan te passen
 
     ##############
     # Rebuilding #
     ##############
 
-    def superinstanceRedfining(self, superinstances, labelledPoints, data):
+    def superinstanceRedfining(self, superinstances, labelledPoints, data): # GAAN WE MSS TOCH NIET MEE WERKEN
         """
         In this function, superinstances are redifined in smaller portions,
         the retutn are smaller kind of superinstances,
@@ -1150,7 +1161,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         if idx in labelled:
                             repres.append(idx)
 
-                labels_repres = self.rebuilder.rebuild(repres, indices, data)
+                labels_repres = self.rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)])
                 for i in range(len(indices)):
                     idx = indices[i]
                     if idx in repres:
@@ -1168,6 +1179,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     #########
     # AFTER #
     #########
+    # def after(self):
+
     # What to do afterwards, heeft een default TODO
     def after(self):
         
@@ -1208,11 +1221,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         model = KNeighborsClassifier(n_neighbors=3)
         model.fit(np.array(newD)[np.array(repres)], target[np.array(repres)])
-        # new = model.predict(np.array(newD)) TODO
+        new = model.predict(np.array(newD))
 
 
-        # new[np.array(repres)] = target[np.array(repres)]
+        new[np.array(repres)] = target[np.array(repres)]
 
-        new = target
+        # new = target
 
         return np.array(new), r
