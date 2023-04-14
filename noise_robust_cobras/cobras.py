@@ -108,7 +108,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuildMetric = False,
         rebuilderKeepTransformed = False,
 
-        # partition
+        # partition: OBSOLETE
         rebuildPartition = False,
         rebuildPartitionDecider = "all", # verschillede manieren om kleine deeltjes te verplaatsen, all, repres, vote
         rebuildPartitionUseTransformed = False,

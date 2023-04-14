@@ -175,13 +175,10 @@ def rebuild():
 
     args = {
         "rebuildPhase": True, 
-        "rebuildLevel": "cluster", # nog niet op superinstance zetten TODO
+        "rebuildLevel": "superinstance", # nog niet op superinstance zetten TODO
         "rebuildAmountQueriesAsked" : 75, # gaan hier over loopen
         "rebuildMetric":False, 
-        "rebuildSuperInstanceLevel": 3,
-        "rebuildPartition": False, # vanaf hier boeit het nog niet direct TODO
-        "rebuildPartitionDecider": "vote",
-        "rebuildPartitionLevel": 3}
+        "rebuildSuperInstanceLevel": 0,}
 
 
     for k in [50, 75, 100, 125, 150]:
