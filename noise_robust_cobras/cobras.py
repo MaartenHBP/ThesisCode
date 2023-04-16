@@ -95,7 +95,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         ###########
         # Initial #
-        ###########
+        ########### OBSOLETE
         initial = False,
         initialSupervised = 0, # is een percentage
         initialSemisupervised = 0,
@@ -129,7 +129,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         # After #
         #########
-        keepSupervised = False,
+        keepSupervised = True, # hebben we standaard op True gezet
         after = False,
         afterAmountQueriesAsked = 50,
         afterMetric = False,
@@ -368,6 +368,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
 
         while not self.querier.query_limit_reached():
+            
+            # adapt metric phase
+            self.learnMetricDuring()
 
             # rebuild phase
             self.rebuild() # dit past de clustering potentieel aan
@@ -1016,7 +1019,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     break
 
 
-        repres = list(set(repres)) # hiervan hebben we labelled information
+        repres = list(set(repres)) # hiervan hebben we labelled information, list(set()) is omdat representatives er anders dubeel inzitten
 
         return np.array(repres), np.array(clust)
 
@@ -1038,7 +1041,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     indices.append(idx)
                     if idx in labelled:
                         repres.append(idx)
-            data[np.array(indices)] = LMNN_wrapper(preprocessor = np.copy(self.data)[np.array(indices)], seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)]) 
+            data[np.array(indices)] = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)]
 
         return data
 
@@ -1070,11 +1073,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
                 
         else:
-            return [self.clustering.get_superinstances()]
+            return [self.clustering.get_superinstances()] # is equivalent aan all
 
     ###########
     # Initial #
-    ###########
+    ########### TODO: het werkt zo niet meer hehe
     def initial_transform(self):
         if not self.initial:
             return
@@ -1100,11 +1103,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
     ##########
     # During # 
-    ##########
+    ########## TODO: nog in de code zetten
     def learnMetricDuring(self):
         if self.learnAMetric and len(self._cobras_log.all_user_constraints) < self.metricAmountQueriesAsked:
             self.data = self.learnMetric()
-            self.learnAMetric = False # momenteel doen we het zo
+            self.learnAMetric = False # momenteel doen we het zo, is ook zo bij rebuild, gewoon een keer uitvoeren
 
     ##############
     # Rebuilding #
@@ -1118,7 +1121,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         labelled, clust = self.getAllLabelled()
 
-        clusters = [Cluster([]) for i in np.unique(clust)]
+        clusters = [Cluster([]) for i in np.unique(clust)] # de nieuwe clusters, is evenveel als dat er labels zijn
 
         data = self.learnMetric() if self.rebuildMetric else self.data
         
@@ -1127,7 +1130,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels:
 
-            if self.rebuildAllOptions:
+            if self.rebuildAllOptions: # alles mag gebruikt worden
             # nu begint het echte werk
                 indices = []
                 repres = []
@@ -1142,8 +1145,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             else: # nu moet het per superinsatance worden gedaan
                 indices = []
-                repres = []
-                labelled_instances = []
+                repres = [] # alles waar rond kan gebouwd worden
+                labelled_instances = [] # hier kan sws alles naartoe
                 
                 for superinstance in level:
                      for idx in superinstance.indices: # TODO nog nakijken!
@@ -1153,11 +1156,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                             if idx != repres.representative_idx:
                                 labelled_instances.append(idx)
 
-                labelled_instances.append(0) #is voor de superinstances
+                labelled_instances.append(0) # is voor de representative van de superinstances
                 labels_repres = []
                 for superinstance in level:
-                    labelled_instances[-1] = repres.representative_idx
-                    local_labels_repres = self.rebuilder.rebuild(labelled_instances, indices, data, represLabels=np.array(clust)[np.array(labelled_instances)])
+                    labelled_instances[-1] = repres.representative_idx # dit is ook een optie
+                    local_labels_repres = self.rebuilder.rebuild(labelled_instances, indices, data, represLabels=np.array(clust)[np.array(labelled_instances)]) # nu enkel labelled instances
 
                     # nu nog omvormen naar de juiste labels
                     local_labels_repres = np.array(labelled_instances)[local_labels_repres]
@@ -1168,12 +1171,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             for i in range(len(indices)):
                 idx = indices[i]
                 if idx in repres:
-                    points = np.array(indices)[labels_repres == labels_repres[i]]
+                    points = np.array(indices)[labels_repres == labels_repres[i]] # zelfde label als een mogelijke representatieve volgen
                     superinstance = self.superinstance_builder.makeSuperInstance(
                         self.data, points.tolist(), self.train_indices, None
                     )
-                    superinstance.representative_idx = idx
-                    clusters[clust[idx]].super_instances.append(superinstance)
+                    superinstance.representative_idx = idx # manueeel repres zetten
+                    clusters[clust[idx]].super_instances.append(superinstance) # 
             
 
 
@@ -1199,7 +1202,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
         labelled, clust = self.getAllLabelled()
 
-        new = np.zeros(len(self.data))
+        new = np.zeros(len(self.data)) # de nieuwe labels
 
         for level in levels: # TODO: dit nakijken
 
@@ -1228,11 +1231,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
                 labelled_instances.append(0) #is voor de superinstances
                 for superinstance in level:
-                    labelled_instances[-1] = repres.representative_idx
+                    labelled_instances[-1] = repres.representative_idx # dit mag er ook bij
                     model = KNeighborsClassifier(n_neighbors=3)
                     model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
                     new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
 
+        new[np.array(labelled)] = clust[np.array(labelled)] # die zijn geweten en moeten zo blijven
         return new, self.clustering.get_superinstances()
 
         

@@ -45,7 +45,7 @@ class ClusteringLogger:
         # Metric learning #
         ###################
 
-        self.blobs = []
+        self.blobs = [] # dit moet eigenlijk op een andere manier, ma ja
 
         self.seen_indices = []
 
@@ -120,7 +120,7 @@ class ClusteringLogger:
     ###################
     # log constraints #
     ###################
-    def log_new_user_query(self, constraint):
+    def log_new_user_query(self, constraint): # dit is nagekeken
         # add it to the blob yeet
         if constraint.is_ML():
             ml = constraint.get_instance_tuple()
@@ -139,7 +139,7 @@ class ClusteringLogger:
                         blob2 = blob
                         break
 
-            if ind1 in blob2:
+            if ind1 in blob2: # dan zitten ze in dezelfde blob
                 pass
             elif len(blob1) > 0 and len(blob2) > 0:
                 blob1.extend(blob2)
