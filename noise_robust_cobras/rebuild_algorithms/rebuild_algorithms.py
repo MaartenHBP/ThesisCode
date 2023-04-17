@@ -17,7 +17,7 @@ class ClosestRebuild(Rebuilder):
         nbrs = NearestNeighbors(n_neighbors=1).fit(data[np.array(repres)])
         _, labels = nbrs.kneighbors(data[indices])
         for i in range(len(repres)): # repres wel nog altijd hun eigen nemen (dit is alleen nodig als twee repres overeenlappen)
-            labels[indices == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
+            labels[np.array(indices) == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
         return labels.flatten()
         # labels = np.zeros(len(indices))
         # for i in repres:
@@ -97,12 +97,13 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
         neighbor_labels = np.array(represLabels)[n_indices]
 
         selection = neighbor_labels == predicted_label[..., None]
-        selection[:,1:] *=(np.diff(selection,axis=1)!=0)
+        # selection[:,1:] *=(np.diff(selection,axis=1)!=0)
+        selection = selection.cumsum(axis=1).cumsum(axis=1) == 1 
 
         labels = n_indices[selection]
 
         for i in range(len(repres)): # repres wel nog altijd hun eigen nemen (dit is alleen nodig als twee repres overeenlappen)
-            labels[indices == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
+            labels[np.array(indices) == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
 
         return labels
 

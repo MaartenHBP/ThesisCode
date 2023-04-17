@@ -11,7 +11,8 @@ from datetime import datetime
 from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
     SemiCluster,
     ClosestRebuild,
-    Rebuilder
+    Rebuilder,
+    ClosestVote
 )
 
 from noise_robust_cobras.cobras import COBRAS
@@ -219,6 +220,12 @@ def rebuild():
                 
 def test():
     dataset = "spambase"
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "all", 
+        "rebuildAmountQueriesAsked" : 150,
+        "rebuildMetric": False,
+        "rebuilder": ClosestVote}
     # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
     #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
     # plt.plot(runCOBRAS(55, dataset, {
@@ -237,13 +244,10 @@ def test():
     
 
     # plt.show()    
-    dataset = "spambase"
-    # plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
-    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
-    # plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
-    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":False, "rebuildSuperInstanceLevel": 3}), label = "test")
+    plt.plot(runCOBRAS(16, dataset, args), label = "test")
+    args["rebuildMetric"] = True
+    plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True}), label = "COBRAS")
-    plt.plot(runCOBRAS(16, dataset, {"keepSupervised":False}), label = "COBRAS")
 
     plt.legend()
     
@@ -251,7 +255,109 @@ def test():
     plt.show()
     
     
-    
+######################
+# SImple_experiments #
+######################
+def normalCOBRAS():
+    path = Path(f"experimenten/rebuild/COBRAS").absolute()
+    run({}, path)
+def rebuilding():
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "all", 
+        "rebuildAmountQueriesAsked" : 100,
+        "rebuildMetric": False}
+
+
+    for k in [True, False]:
+        args["rebuildMetric"] = k
+        path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+        run(args, path)
+
+def rebuildingkNN(): # dit is het idee van kNN
+
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "all", 
+        "rebuildAmountQueriesAsked" : 100,
+        "rebuildMetric": False,
+        "rebuilder": ClosestVote}
+
+
+    for k in [True, False]:
+        args["rebuildMetric"] = k
+        path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+        run(args, path)
+
+def rebuildingSuperinstanceLevel():
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "superinstance",
+        "rebuildSuperInstanceLevel": 0,
+        "rebuildAmountQueriesAsked" : 100,
+        "rebuildMetric": False}
+
+
+    for k in [True, False]:
+        for instlvl in [0, 1, 2]:
+            args["rebuildMetric"] = k
+            args["rebuildSuperInstanceLevel"] = instlvl
+            path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildSuperInstanceLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+            run(args, path)
+def afterLabelling(): # nog doen
+    pass
+def simpleLearning():
+    args = {
+        "metricAmountQueriesAsked" : 100,
+        "learnAMetric" : True}
+
+    path = Path(f"experimenten/learnMetric/{str(args['metricAmountQueriesAsked'])}").absolute()
+    run(args, path) 
+
+def simpleRebuildLearning():
+    args = {
+        "rebuildPhase": True, 
+        "rebuildLevel": "all", 
+        "rebuildAmountQueriesAsked" : 100,
+        "rebuildMetric": True,
+        "rebuilderKeepTransformed": True}
+
+    path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/keepMetric_True/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+    run(args, path) 
+
+def run(args, path):
+    CHECK_FOLDER = os.path.isdir(path)
+    if not CHECK_FOLDER:
+        os.makedirs(path)
+        print("created folder : ", path)
+    saveDict(args, path, "settings")
+
+    try:
+        with LocalCluster() as cluster, Client(cluster) as client:
+            path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+            datasets = os.listdir(path_datasets)
+            run = dict()
+            p = Path(f'{path}/total.json').absolute()
+            if os.path.exists(p):
+                run = loadDict(path, f"total")
+            # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
+            for j in range(len(datasets)):
+                nameData = datasets[j][:len(datasets[j]) - 5]
+                if nameData in run:
+                    continue
+                print(f"({path})\t ({nameData})\t Running")
+                parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
+                futures = client.map(parallel_func, ARGUMENTS)
+                # parallel_func(16)
+                results = np.array(client.gather(futures))
+                run[nameData] = np.mean(results, axis=0).tolist()
+                saveDict(run, path, "total")
+            saveDict(run, path, "total")
+    except Exception as x:
+        print("error cccured:" + path)
+        errordict = {"problem": str(x)}
+        saveDict(errordict, path, "error")
+
 
 
 ###############
@@ -371,6 +477,6 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    # test()
-    rebuild()
+    test()
+    # rebuild()
     

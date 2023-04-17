@@ -1194,7 +1194,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def after(self):
         
         if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked:
-            return self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
+            return np.array(self.clustering.construct_cluster_labeling()), self.clustering.get_superinstances()
         
         levels = self.getFinegrainedLevel(self.afterLevel)
         
