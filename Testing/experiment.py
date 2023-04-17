@@ -259,7 +259,7 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/rebuild/COBRAS").absolute()
+    path = Path(f"experimenten/COBRAS").absolute()
     run({}, path)
 def rebuilding():
     args = {
@@ -281,12 +281,12 @@ def rebuildingkNN(): # dit is het idee van kNN
         "rebuildLevel": "all", 
         "rebuildAmountQueriesAsked" : 100,
         "rebuildMetric": False,
-        "rebuilder": ClosestVote}
+        "rebuilder": ClosestVote} # dit werkt via kNN
 
 
     for k in [True, False]:
         args["rebuildMetric"] = k
-        path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+        path = Path(f"experimenten/rebuild_knn/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
         run(args, path)
 
 def rebuildingSuperinstanceLevel():
@@ -320,9 +320,9 @@ def simpleRebuildLearning():
         "rebuildLevel": "all", 
         "rebuildAmountQueriesAsked" : 100,
         "rebuildMetric": True,
-        "rebuilderKeepTransformed": True}
+        "rebuilderKeepTransformed": True} # keep the transformed space
 
-    path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/keepMetric_True/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
+    path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}_keepMetric/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
     run(args, path) 
 
 def run(args, path):
@@ -330,7 +330,11 @@ def run(args, path):
     if not CHECK_FOLDER:
         os.makedirs(path)
         print("created folder : ", path)
+    value = args["rebuilder"]
+    if "rebuilder" in args:
+        args["rebuilder"] = str(args["rebuilder"])
     saveDict(args, path, "settings")
+    args["rebuilder"] = value
 
     try:
         with LocalCluster() as cluster, Client(cluster) as client:
@@ -357,6 +361,7 @@ def run(args, path):
         print("error cccured:" + path)
         errordict = {"problem": str(x)}
         saveDict(errordict, path, "error")
+
 
 
 
@@ -477,6 +482,13 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    test()
+    # test()
     # rebuild()
+    # normalCOBRAS()
+    # rebuilding() # Al gedaan
+    rebuildingkNN()
+    rebuildingSuperinstanceLevel()
+    simpleLearning()
+    simpleRebuildLearning()
+
     

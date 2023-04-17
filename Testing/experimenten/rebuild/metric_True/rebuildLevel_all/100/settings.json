@@ -1,0 +1,6 @@
+{
+    "rebuildPhase": true,
+    "rebuildLevel": "all",
+    "rebuildAmountQueriesAsked": 100,
+    "rebuildMetric": true
+}
