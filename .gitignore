@@ -131,4 +131,3 @@ dmypy.json
 # Results of experiments -> only batches need to be synced
 Testing/dask-worker-space
 
-Testing/experimenten/COBRAS/*
