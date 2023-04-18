@@ -385,8 +385,8 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
 
     for key, item in test.items():
 
-        testpd[key] = np.array(item)
-        cobraspd[key] = np.array(cobras[key])
+        testpd[key] = np.array(item)[:200]
+        cobraspd[key] = np.array(cobras[key])[:200]
         
         plt.plot(cobraspd[key], label = "COBRAS")
         plt.plot(testpd[key], label = name_algo)
@@ -403,7 +403,7 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
     all_results["COBRAS"] = cobraspd.mean(axis=1)
     all_results[name_algo] = testpd.mean(axis=1)
 
-    all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0,1))
+    all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
     # plt.show()
     plt.savefig(f"{path}/plots/total.png")
 
@@ -504,6 +504,15 @@ def makeFolders(initial, where):
             os.makedirs(path)
             print("created folder : ", path)
 
+def doAll(path):
+    newPath = path.joinpath("plots")
+    CHECK_FOLDER = os.path.isdir(newPath)
+    if not CHECK_FOLDER:
+        os.makedirs(newPath)
+        print("created folder : ", newPath)
+    makeARI(path, name_algo = "test")
+    makeDifferencePlot(path, name_algo = "test")
+
 
 if __name__ == "__main__":
     def ignore_warnings():
@@ -532,8 +541,15 @@ if __name__ == "__main__":
     # simpleRebuildLearning()
 
     # make plots
-    path = Path(f"experimenten/rebuild_knn/metric_True/rebuildLevel_all/100").absolute()
+    doAll(Path(f"experimenten/rebuild_knn/metric_True/rebuildLevel_all/100").absolute())
+
+    doAll(Path(f"experimenten/rebuild_knn/metric_False/rebuildLevel_all/100").absolute())
+
+    # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
+
+    # path = Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute()
     # makeARI(path, name_algo = "test")
-    makeDifferencePlot(path, name_algo = "test")
+    # makeDifferencePlot(path, name_algo = "test")
+
 
     
