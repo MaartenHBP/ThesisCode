@@ -86,6 +86,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         metricLearner = None, # wordt momenteel niet gebruikt OBSOLETE
         metricLearer_arguments = {},
         metricLevel = "all",
+        metricSuperInstanceLevel = 0,
 
         ##########
         # During #
@@ -171,6 +172,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.metricLearner = metricLearner # OBSOLETE
         self.metricLearer_arguments = metricLearer_arguments
         self.metricLevel = metricLevel
+        self.metricSuperInstanceLevel = metricSuperInstanceLevel
 
         ##########
         # During #
@@ -1028,7 +1030,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     ##################
 
     def learnMetric(self): # momenteel steken we alles in de grote data, er is toch geen overlap => is los het gemakkelijkste
-        levels = self.getFinegrainedLevel(self.metricLevel)
+        levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
         data = np.copy(self.data)
 
         labelled, clust = self.getAllLabelled()
@@ -1050,17 +1052,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     ############################################
     # get superinstances per finegrained level #
     ############################################
-    def getFinegrainedLevel(self,level:str):
+    def getFinegrainedLevel(self,level:str, superinstanceLevel):
         if level == "all":
             return [self.clustering.get_superinstances()]
         if level == "cluster": 
             return self.clustering.get_superinstances_per_cluster()
         if level == "superinstance":
-            if self.rebuildSuperInstanceLevel == 0:
+            if superinstanceLevel == 0:
                 return [[x] for x in self.clustering.get_superinstances()]
             
             supers = [self.clustering.get_superinstances()[0].get_root()]
-            for i in range(self.rebuildSuperInstanceLevel):
+            for i in range(superinstanceLevel):
                 new = []
                 for s in supers:
                     new.extend(s.get_childeren())
@@ -1117,13 +1119,15 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def rebuild(self):
         if not self.rebuildPhase or len(self._cobras_log.all_user_constraints) < self.rebuildAmountQueriesAsked:
             return
-        levels = self.getFinegrainedLevel(self.rebuildLevel)
+        levels = self.getFinegrainedLevel(self.rebuildLevel, self.rebuildSuperInstanceLevel)
 
         labelled, clust = self.getAllLabelled()
 
         clusters = [Cluster([]) for i in np.unique(clust)] # de nieuwe clusters, is evenveel als dat er labels zijn
 
         data = self.learnMetric() if self.rebuildMetric else self.data
+
+        rebuilder = ClosestRebuild()
         
         if self.rebuilderKeepTransformed: # werk later verder met deze transformatie
             self.data = data
@@ -1153,18 +1157,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         indices.append(idx)
                         if idx in labelled:
                             repres.append(idx)
-                            if idx != repres.representative_idx:
+                            if idx != superinstance.representative_idx:
                                 labelled_instances.append(idx)
 
                 labelled_instances.append(0) # is voor de representative van de superinstances
                 labels_repres = []
                 for superinstance in level:
-                    labelled_instances[-1] = repres.representative_idx # dit is ook een optie
-                    local_labels_repres = self.rebuilder.rebuild(labelled_instances, indices, data, represLabels=np.array(clust)[np.array(labelled_instances)]) # nu enkel labelled instances
+                    labelled_instances[-1] = superinstance.representative_idx # dit is ook een optie
+                    local_labels_repres = rebuilder.rebuild(labelled_instances, superinstance.indices, data, represLabels=np.array(clust)[np.array(labelled_instances)]) # nu enkel labelled instances
 
                     # nu nog omvormen naar de juiste labels
                     local_labels_repres = np.array(labelled_instances)[local_labels_repres]
-                    labels_repres.extend(np.where(np.in1d(repres, local_labels_repres))[0].tolist()) # TODO nog checken!
+                    labels_repres.extend(np.where(local_labels_repres[:, None] == np.array(repres)[None, :])[1].tolist()) # TODO nog checken!
+
+                labels_repres = np.array(labels_repres)
                                 
 
             # bouw de superinstances en voeg aan de juiste cluster toe
@@ -1196,7 +1202,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked:
             return np.array(self.clustering.construct_cluster_labeling()), self.clustering.get_superinstances()
         
-        levels = self.getFinegrainedLevel(self.afterLevel)
+        levels = self.getFinegrainedLevel(self.afterLevel, self.afterSuperInstanceLevel)
         
         data = self.learnMetric() if self.afterMetric else self.data
         
@@ -1226,12 +1232,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                      for idx in superinstance.indices:
                         if idx in labelled:
                             repres.append(idx)
-                            if idx != repres.representative_idx:
+                            if idx != superinstance.representative_idx:
                                 labelled_instances.append(idx)
 
                 labelled_instances.append(0) #is voor de superinstances
                 for superinstance in level:
-                    labelled_instances[-1] = repres.representative_idx # dit mag er ook bij
+                    labelled_instances[-1] = superinstance.representative_idx # dit mag er ook bij
                     model = KNeighborsClassifier(n_neighbors=3)
                     model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
                     new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
