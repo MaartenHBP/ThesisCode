@@ -385,8 +385,8 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
 
     for key, item in test.items():
 
-        testpd[key] = np.array(item)[:200]
-        cobraspd[key] = np.array(cobras[key])[:200]
+        testpd[key] = np.array(item)
+        cobraspd[key] = np.array(cobras[key])
         
         plt.plot(cobraspd[key], label = "COBRAS")
         plt.plot(testpd[key], label = name_algo)
@@ -404,13 +404,16 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
     all_results[name_algo] = testpd.mean(axis=1)
 
     all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0,1))
+    # plt.show()
     plt.savefig(f"{path}/plots/total.png")
+
+    plt.clf()
 
 def makeDifferencePlot(path, name_algo = ""):
     test = loadDict(path, "total")
     cobras = loadDict(PATH_COBRAS, "total")
     
-    total = np.zeros()
+    total = np.zeros(500)
 
     if not name_algo:
         name_algo = path
@@ -418,8 +421,8 @@ def makeDifferencePlot(path, name_algo = ""):
 
     for key, item in test.items():
 
-        test_item = np.array(item)[:200]
-        cobras_item = np.array(cobras[key])[:200]
+        test_item = np.array(item)
+        cobras_item = np.array(cobras[key])
         
         bools = test_item > cobras_item
 
@@ -431,8 +434,42 @@ def makeDifferencePlot(path, name_algo = ""):
     plt.title("Better per dataset")
     plt.xlabel("#queries")
     plt.ylabel("#better")
+    plt.ylim((0, 16))
     plt.legend()
     plt.savefig(f"{path}/plots/better.png")
+
+    plt.clf()
+
+def rank(paths): # nog afmaken
+    cobras = loadDict(PATH_COBRAS, "total")
+
+    mean = pd.DataFrame()
+
+
+    for key, item in cobras.items():
+        mean[key] = np.array(item)
+    
+    for path in paths:
+        test = loadDict(path, "total")
+        for key, item in test.items():
+            mean[key] += np.array(item)
+
+    for key, item in mean.items():
+        item /= len(paths)
+
+    cbr = []
+    for key, item in cobras.items():
+        cbr.append(item - mean[key])
+
+
+
+    all_results = pd.DataFrame()
+    all_results["COBRAS"] = cobraspd.mean(axis=1)
+    all_results[name_algo] = testpd.mean(axis=1)
+
+    all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0,1))
+    # plt.show()
+    plt.savefig(f"{path}/plots/total.png")
 
 
 ####################
@@ -489,9 +526,14 @@ if __name__ == "__main__":
     # rebuild()
     # normalCOBRAS()
     # rebuilding() # Al gedaan
-    rebuildingkNN()
-    rebuildingSuperinstanceLevel()
-    simpleLearning()
-    simpleRebuildLearning()
+    # rebuildingkNN()
+    # rebuildingSuperinstanceLevel()
+    # simpleLearning()
+    # simpleRebuildLearning()
+
+    # make plots
+    path = Path(f"experimenten/rebuild_knn/metric_True/rebuildLevel_all/100").absolute()
+    # makeARI(path, name_algo = "test")
+    makeDifferencePlot(path, name_algo = "test")
 
     
