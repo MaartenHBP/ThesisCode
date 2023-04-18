@@ -220,12 +220,17 @@ def rebuild():
                 
 def test():
     dataset = "spambase"
+    # args = {
+    #     "rebuildPhase": True, 
+    #     "rebuildLevel": "all", 
+    #     "rebuildAmountQueriesAsked" : 150,
+    #     "rebuildMetric": False,
+    #     "rebuilder": ClosestVote}
+
     args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "all", 
-        "rebuildAmountQueriesAsked" : 150,
-        "rebuildMetric": False,
-        "rebuilder": ClosestVote}
+    "metricAmountQueriesAsked": 100,
+    "learnAMetric": True
+}
     # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
     #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
     # plt.plot(runCOBRAS(55, dataset, {
@@ -245,8 +250,8 @@ def test():
 
     # plt.show()    
     plt.plot(runCOBRAS(16, dataset, args), label = "test")
-    args["rebuildMetric"] = True
-    plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
+    # args["rebuildMetric"] = True
+    # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True}), label = "COBRAS")
 
     plt.legend()
@@ -531,7 +536,7 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    # test()
+    test()
     # rebuild()
     # normalCOBRAS()
     # rebuilding() # Al gedaan
@@ -541,9 +546,9 @@ if __name__ == "__main__":
     # simpleRebuildLearning()
 
     # make plots
-    doAll(Path(f"experimenten/rebuild_knn/metric_True/rebuildLevel_all/100").absolute())
+    # doAll(Path(f"experimenten/rebuild/metric_True_keepMetric/rebuildLevel_all/100").absolute())
 
-    doAll(Path(f"experimenten/rebuild_knn/metric_False/rebuildLevel_all/100").absolute())
+    # doAll(Path(f"experimenten/rebuild_knn/metric_False/rebuildLevel_all/100").absolute())
 
     # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
 

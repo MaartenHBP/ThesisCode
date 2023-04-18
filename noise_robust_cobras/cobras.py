@@ -1029,7 +1029,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # Learn a metric # 
     ##################
 
-    def learnMetric(self): # momenteel steken we alles in de grote data, er is toch geen overlap => is los het gemakkelijkste
+    def learnMetric(self): # TODO: dit nog nakijke,é
         levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
         data = np.copy(self.data)
 
@@ -1043,8 +1043,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     indices.append(idx)
                     if idx in labelled:
                         repres.append(idx)
+            print(data[np.array(indices)])
             data[np.array(indices)] = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)]
-
+            print(LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)])
+            print(data[np.array(indices)])
         return data
 
 
@@ -1107,7 +1109,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # During # 
     ########## TODO: nog in de code zetten
     def learnMetricDuring(self):
-        if self.learnAMetric and len(self._cobras_log.all_user_constraints) < self.metricAmountQueriesAsked:
+        if self.learnAMetric and len(self._cobras_log.all_user_constraints) >= self.metricAmountQueriesAsked:
             self.data = self.learnMetric()
             self.learnAMetric = False # momenteel doen we het zo, is ook zo bij rebuild, gewoon een keer uitvoeren
 
