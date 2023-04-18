@@ -330,11 +330,14 @@ def run(args, path):
     if not CHECK_FOLDER:
         os.makedirs(path)
         print("created folder : ", path)
-    value = args["rebuilder"]
+    
     if "rebuilder" in args:
+        value = args["rebuilder"]
         args["rebuilder"] = str(args["rebuilder"])
-    saveDict(args, path, "settings")
-    args["rebuilder"] = value
+        saveDict(args, path, "settings")
+        args["rebuilder"] = value
+    else:
+        saveDict(args, path, "settings")
 
     try:
         with LocalCluster() as cluster, Client(cluster) as client:

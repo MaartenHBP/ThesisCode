@@ -1,0 +1,7 @@
+{
+    "rebuildPhase": true,
+    "rebuildLevel": "superinstance",
+    "rebuildSuperInstanceLevel": 2,
+    "rebuildAmountQueriesAsked": 100,
+    "rebuildMetric": true
+}
