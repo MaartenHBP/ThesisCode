@@ -561,15 +561,15 @@ if __name__ == "__main__":
     # rebuilding() # Al gedaan
     # rebuildingkNN()
     # rebuildingSuperinstanceLevel()
-    simpleLearning()
-    simpleLearningCluster()
-    simpleLearningSuperinstance()
+    # simpleLearning()
+    # simpleLearningCluster()
+    # simpleLearningSuperinstance()
     # simpleRebuildLearning()
 
     # make plots
-    # doAll(Path(f"experimenten/rebuild/metric_True_keepMetric/rebuildLevel_all/100").absolute())
+    # doAll(Path(f"experimenten/learnMetric/superinstance1/100").absolute())
 
-    # doAll(Path(f"experimenten/rebuild_knn/metric_False/rebuildLevel_all/100").absolute())
+    doAll(Path(f"experimenten/rebuild/metric_True/rebuildLevel_superinstance/0/100").absolute())
 
     # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
 
