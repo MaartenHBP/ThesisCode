@@ -1043,10 +1043,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     indices.append(idx)
                     if idx in labelled:
                         repres.append(idx)
-            print(data[np.array(indices)])
             data[np.array(indices)] = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)]
-            print(LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)])
-            print(data[np.array(indices)])
         return data
 
 

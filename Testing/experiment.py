@@ -319,6 +319,25 @@ def simpleLearning():
     path = Path(f"experimenten/learnMetric/{str(args['metricAmountQueriesAsked'])}").absolute()
     run(args, path) 
 
+def simpleLearningCluster():
+    args = {
+        "metricAmountQueriesAsked" : 100,
+        "learnAMetric" : True,
+        "metricLevel": "cluster"}
+
+    path = Path(f"experimenten/learnMetric/cluster/{str(args['metricAmountQueriesAsked'])}").absolute()
+    run(args, path) 
+
+def simpleLearningSuperinstance():
+    args = {
+        "metricAmountQueriesAsked" : 100,
+        "learnAMetric" : True,
+        "metricLevel": "superinstance",
+        "metricSuperInstanceLevel": 1}
+    
+    path = Path(f"experimenten/learnMetric/superinstance1/{str(args['metricAmountQueriesAsked'])}").absolute()
+    run(args, path)
+
 def simpleRebuildLearning():
     args = {
         "rebuildPhase": True, 
@@ -536,13 +555,15 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    test()
+    # test()
     # rebuild()
     # normalCOBRAS()
     # rebuilding() # Al gedaan
     # rebuildingkNN()
     # rebuildingSuperinstanceLevel()
-    # simpleLearning()
+    simpleLearning()
+    simpleLearningCluster()
+    simpleLearningSuperinstance()
     # simpleRebuildLearning()
 
     # make plots

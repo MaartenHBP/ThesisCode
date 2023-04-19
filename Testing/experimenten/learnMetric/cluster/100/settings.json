@@ -1,0 +1,5 @@
+{
+    "metricAmountQueriesAsked": 100,
+    "learnAMetric": true,
+    "metricLevel": "cluster"
+}
