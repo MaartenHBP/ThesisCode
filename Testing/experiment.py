@@ -309,8 +309,16 @@ def rebuildingSuperinstanceLevel():
             args["rebuildSuperInstanceLevel"] = instlvl
             path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildSuperInstanceLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
             run(args, path)
-def afterLabelling(): # nog doen
-    pass
+def afterLabelling(): # simpele after labelling
+    args = {"after" : True,
+        "afterAmountQueriesAsked" : 75,
+        "afterMetric" : False, # standaard geen metriek leren
+        "afterLevel" : "all",
+        "afterSuperInstanceLevel" : 0,
+        "afterAllOptions" : False}
+
+    path = Path(f"experimenten/thesis/after/not_all_options").absolute()
+    run(args, path) 
 def simpleLearning():
     args = {
         "metricAmountQueriesAsked" : 100,

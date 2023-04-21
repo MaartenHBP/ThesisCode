@@ -133,7 +133,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         keepSupervised = True, # hebben we standaard op True gezet
         after = False,
         afterAmountQueriesAsked = 50,
-        afterMetric = False,
+        afterMetric = False, # standaard geen metriek leren
         afterLevel = "all",
         afterSuperInstanceLevel = 0,
         afterAllOptions = True,
@@ -576,7 +576,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             :rtype List[Superinstance]
         """
 
-        
         # cluster the instances of the superinstance
         clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
             np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
@@ -1013,17 +1012,66 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         clust = np.array(clust)
 
+        # gaan een soort van merge fase moeten doen, gaat ingewikkeld zijn, tfoe
+        failed_blobs = []
+        correct_blobs = []
+        
+
         for blob in self._cobras_log.blobs: # staan momenteel gestored in de logger
+            found = False
             for elem in repres:
                 if elem in blob:                
                     repres.extend(blob)
                     clust[np.array(blob)] = clust[elem]
+                    correct_blobs.append(blob)
+                    found = True
                     break
+            # als ge hier komt is er nog geen break geweest
+            if not found:
+                failed_blobs.append(blob)
+
+
+        print("========")
+        print(len(failed_blobs))
+
+        viaCL = []
+        
+        for blob in failed_blobs:
+            founded = True
+            for blobC in correct_blobs:
+                if not self.checkIfConstraintBetweenBLobs(blob, blobC):
+                    founded = False
+                    constraint = self.query_querier(blob[0], blobC[1])
+                    if constraint.is_ML():
+                        
+
+            if founded:
+                correct_blobs.append(blob)
+                viaCL.append(blob)
+                
+
+            # hier moet ook nog een for_loop
+        
+        print(len(viaCL))
+
+        
+        
+
+        
 
 
         repres = list(set(repres)) # hiervan hebben we labelled information, list(set()) is omdat representatives er anders dubeel inzitten
 
         return np.array(repres), np.array(clust)
+    
+    def checkIfConstraintBetweenBLobs(self,blob1, blob2):
+        for el1 in blob1:
+            for el2 in blob2:
+                if self.check_constraint_reuse_between_instances(el1, el2) is not None:
+                    return True
+        return False
+
+
 
     ##################
     # Learn a metric # 
@@ -1237,7 +1285,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 labelled_instances.append(0) #is voor de superinstances
                 for superinstance in level:
                     labelled_instances[-1] = superinstance.representative_idx # dit mag er ook bij
-                    model = KNeighborsClassifier(n_neighbors=3)
+                    n_neighbors = 3 if len(labelled_instances) > 2 else len(labelled_instances)
+                    model = KNeighborsClassifier(n_neighbors=n_neighbors)
                     model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
                     new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
 
