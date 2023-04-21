@@ -84,7 +84,7 @@ def runCOBRAS(seed, dataName, arguments):
     target = dataset[:, 0]
 
     # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
-    querylimit = 500
+    querylimit = 200
     # runlimit = min(querylimit, len(data))
     runlimit = querylimit
 
@@ -219,7 +219,7 @@ def rebuild():
             saveDict(errordict, path, "error")
                 
 def test():
-    dataset = "spambase"
+    dataset = "glass"
     # args = {
     #     "rebuildPhase": True, 
     #     "rebuildLevel": "all", 
@@ -227,10 +227,12 @@ def test():
     #     "rebuildMetric": False,
     #     "rebuilder": ClosestVote}
 
-    args = {
-    "metricAmountQueriesAsked": 100,
-    "learnAMetric": True
-}
+    args = {"after" : True,
+        "afterAmountQueriesAsked" : 75,
+        "afterMetric" : False, # standaard geen metriek leren
+        "afterLevel" : "all",
+        "afterSuperInstanceLevel" : 0,
+        "afterAllOptions" : False}
     # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
     #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
     # plt.plot(runCOBRAS(55, dataset, {
@@ -249,10 +251,10 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "test")
+    plt.plot(runCOBRAS(39, dataset, args), label = "test")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
-    plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True}), label = "COBRAS")
+    plt.plot(runCOBRAS(39, dataset, {"keepSupervised":True}), label = "COBRAS")
 
     plt.legend()
     
@@ -309,8 +311,16 @@ def rebuildingSuperinstanceLevel():
             args["rebuildSuperInstanceLevel"] = instlvl
             path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildSuperInstanceLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
             run(args, path)
-def afterLabelling(): # nog doen
-    pass
+def afterLabelling(): # simpele after labelling
+    args = {"after" : True,
+        "afterAmountQueriesAsked" : 75,
+        "afterMetric" : False, # standaard geen metriek leren
+        "afterLevel" : "all",
+        "afterSuperInstanceLevel" : 0,
+        "afterAllOptions" : False}
+
+    path = Path(f"experimenten/thesis/after/not_all_options").absolute()
+    run(args, path) 
 def simpleLearning():
     args = {
         "metricAmountQueriesAsked" : 100,
@@ -437,7 +447,7 @@ def makeDifferencePlot(path, name_algo = ""):
     test = loadDict(path, "total")
     cobras = loadDict(PATH_COBRAS, "total")
     
-    total = np.zeros(500)
+    total = np.zeros(200)
 
     if not name_algo:
         name_algo = path
@@ -445,8 +455,8 @@ def makeDifferencePlot(path, name_algo = ""):
 
     for key, item in test.items():
 
-        test_item = np.array(item)
-        cobras_item = np.array(cobras[key])
+        test_item = np.array(item)[0:200]
+        cobras_item = np.array(cobras[key])[0:200]
         
         bools = test_item > cobras_item
 
@@ -546,6 +556,10 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
+    test()
+
+    # afterLabelling()
+
     # args = {
     #     "metricLearner" : LMNN_wrapper,
     #     "initial" : True,
@@ -567,9 +581,9 @@ if __name__ == "__main__":
     # simpleRebuildLearning()
 
     # make plots
-    # doAll(Path(f"experimenten/learnMetric/superinstance1/100").absolute())
+    # doAll(Path(f"experimenten/thesis/after/not_all_options").absolute())
 
-    doAll(Path(f"experimenten/rebuild/metric_True/rebuildLevel_superinstance/0/100").absolute())
+    # doAll(Path(f"experimenten/rebuild/metric_True/rebuildLevel_superinstance/0/100").absolute())
 
     # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
 

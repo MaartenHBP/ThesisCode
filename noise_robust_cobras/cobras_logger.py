@@ -153,6 +153,29 @@ class ClusteringLogger:
             else:
                 self.blobs.append([ind1, ind2])
                 self.seen_indices.extend([ind1, ind2])
+
+        else: # het is een CL, soms alleenstaand
+            ml = constraint.get_instance_tuple()
+            ind1 = ml[0]
+            ind2 = ml[1]
+            found1 = False
+            found2 = False
+            for blob in self.blobs:
+                if ind1 in blob:
+                    found1 = True
+                if ind2 in blob:
+                    found2 = True
+                if found1 and found2:
+                    break
+            if not found1:
+                # print("hier")
+                self.seen_indices.append(ind1)
+                self.blobs.append([ind1]) # maken zelf een blob
+            if not found2:
+                # print("hier")
+                self.seen_indices.append(ind2)
+                self.blobs.append([ind2])
+
         # add the constraint to all_user_constraints
         self.all_user_constraints.append(constraint)
 
@@ -253,7 +276,7 @@ class ClusteringLogger:
         # self.repres[-1] = currentrepres
         # self.superinstances[-1] = currentSuperinstances.tolist()
 
-        if blobThing:
+        if blobThing: # dit gaat obsolete worden
             clustering_to_store = np.array(self.intermediate_results[-1][0])
             for blob in self.blobs:
                 for elem in currentrepres:
