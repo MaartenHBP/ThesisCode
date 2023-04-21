@@ -38,6 +38,7 @@ from noise_robust_cobras.noise_robust.datastructures.certainty_constraint_set im
 from noise_robust_cobras.noise_robust.datastructures.constraint import Constraint
 from noise_robust_cobras.noise_robust.datastructures.constraint_index import (
     ConstraintIndex,
+    ConstraintBlobs
 )
 from noise_robust_cobras.noise_robust.noise_robust_possible_worlds import (
     gather_extra_evidence,
@@ -138,6 +139,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         afterSuperInstanceLevel = 0,
         afterAllOptions = True,
 
+        ####################
+        # Constraint_index #
+        ####################
+        useNewConstraintIndex = False,
+
         # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
         # metric_parameters = {},
         # rebuilder: InstanceRebuilder = None,
@@ -226,6 +232,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
         self.afterAllOptions = afterAllOptions
 
+        self.useNewConstraintIndex = useNewConstraintIndex
+
 
         ###################
         # METRIC LEARNING #
@@ -270,6 +278,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         else:
             self.certainty_constraint_set = None
             self.constraint_index = ConstraintIndex()
+
+        self.constraint_index_advanced = ConstraintBlobs()
 
         self.certainty_threshold = certainty_threshold
 
@@ -371,15 +381,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
             
-            # adapt metric phase
+            # adapt metric phase, vraagt constraints
             self.learnMetricDuring()
-
-            # rebuild phase
+            if self.querier.query_limit_reached():
+                break
+            # rebuild phase, vraagt constraints
             self.rebuild() # dit past de clustering potentieel aan
-
+            if self.querier.query_limit_reached():
+                break
 
             # during this iteration store the current clustering
-            self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
+            a, b = self.after() # after vraagt constraints wrs
+            if self.querier.query_limit_reached():
+                break
+            self._cobras_log.update_clustering_to_store(a, b, False) # das hier nog een artifact
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
             
@@ -424,7 +439,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             # correctly log intermediate results
             if fully_merged:
-                self._cobras_log.update_last_intermediate_result(*self.after(), self.keepSupervised)
+                a, b = self.after()
+                if self.querier.query_limit_reached():
+                    break
+                self._cobras_log.update_last_intermediate_result(a, b, False) # een artifact
 
             # fill in the last_valid_clustering whenever appropriate
             # after initialisation or after that the current clustering is fully merged
@@ -888,7 +906,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             si1.representative_idx, si2.representative_idx
         )
 
-    def check_constraint_reuse_between_instances(self, i1, i2):
+    def check_constraint_reuse_between_instances(self, i1, i2): # TODO aanpassen
         """
             Checks whether or not there is a known constraint between the instances i1 and i2
             if there is return this constraint otherwise return NOne
@@ -897,19 +915,34 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         :return: the existing constraint if there is one, none otherwise
         :rtype Union[Constraint, None]
         """
-        reused_constraint = None
-        ml_constraint = Constraint(i1, i2, True)
-        cl_constraint = Constraint(i1, i2, False)
-        constraint_index = self.constraint_index
 
-        if ml_constraint in constraint_index:
-            reused_constraint = ml_constraint
-        elif cl_constraint in constraint_index:
-            reused_constraint = cl_constraint
+        if self.useNewConstraintIndex:
+            return self.constraint_index_advanced.checkReuse(i1, i2)
 
-        # if reused_constraint is not None:
-        #     self._cobras_log.log_reused_constraint_instances(reused_constraint.is_ML(), i1, i2)
-        return reused_constraint
+        else:
+            reused_constraint = None
+            ml_constraint = Constraint(i1, i2, True)
+            cl_constraint = Constraint(i1, i2, False)
+            constraint_index = self.constraint_index
+
+            if ml_constraint in constraint_index:
+                reused_constraint = ml_constraint
+            elif cl_constraint in constraint_index:
+                reused_constraint = cl_constraint
+
+            # if reused_constraint is not None:
+            #     self._cobras_log.log_reused_constraint_instances(reused_constraint.is_ML(), i1, i2)
+            return reused_constraint
+    
+    def simple_query_querier(self, instance1, instance2): # Dit is voor de merging phase in constraint_index, moet enkel een con straint meegeven
+        if self.querier.query_limit_reached():
+            print("going over query limit! ", self.get_constraint_length())
+        # print("query ",self.get_constraint_length())
+        min_instance = min(instance1, instance2)
+        max_instance = max(instance1, instance2)
+        constraint_type = self.querier._query_points(min_instance, max_instance)
+
+        return Constraint(min_instance, max_instance, constraint_type)
 
 
     def query_querier(self, instance1, instance2, purpose):
@@ -931,31 +964,43 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
-        if self.correct_noise:
-            # add the new constraint to the certainty constraint set
-            self.certainty_constraint_set.add_constraint(
-                Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
+
+
+        if self.useNewConstraintIndex: # new advanced yeet
+            new_constraint = Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
+            self.constraint_index_advanced.addConstraints(new_constraint)
+
+            self._cobras_log.log_new_user_query(
+                Constraint(min_instance, max_instance, constraint_type, purpose=purpose) # voor de veiligheid een nieuwe aanmaken
             )
-            new_constraint = next(
-                self.certainty_constraint_set.constraint_index.find_constraints_between_instances(
-                    min_instance, max_instance
-                ).__iter__()
-            )
+            return new_constraint
+
         else:
-            self.constraint_index.add_constraint(
+            if self.correct_noise: # IS NIET BELANRGIJK VOOR DE THESIS
+                # add the new constraint to the certainty constraint set
+                self.certainty_constraint_set.add_constraint(
+                    Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
+                )
+                new_constraint = next(
+                    self.certainty_constraint_set.constraint_index.find_constraints_between_instances(
+                        min_instance, max_instance
+                    ).__iter__()
+                )
+            else:
+                self.constraint_index.add_constraint(
+                    Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
+                )
+                new_constraint = next(
+                    self.constraint_index.find_constraints_between_instances(
+                        min_instance, max_instance
+                    ).__iter__()
+                )
+
+            self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
             )
-            new_constraint = next(
-                self.constraint_index.find_constraints_between_instances(
-                    min_instance, max_instance
-                ).__iter__()
-            )
 
-        self._cobras_log.log_new_user_query(
-            Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
-        )
-
-        return new_constraint
+            return new_constraint
     
     #######################
     # QUERY RANDOM POINTS #
@@ -1006,7 +1051,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # Get all labelled information #
     ################################
 
-    def getAllLabelled(self):
+    def getAllLabelled(self): # gaat obsolete worden
         clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
         repres = [s.get_representative_idx() for s in r]
 
@@ -1043,7 +1088,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     founded = False
                     constraint = self.query_querier(blob[0], blobC[1])
                     if constraint.is_ML():
-                        
+                        pass
 
             if founded:
                 correct_blobs.append(blob)
@@ -1077,11 +1122,14 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # Learn a metric # 
     ##################
 
-    def learnMetric(self): # TODO: dit nog nakijke,é
+    def learnMetric(self): # TODO: dit nog nakijken
         levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
         data = np.copy(self.data)
 
-        labelled, clust = self.getAllLabelled()
+        labelled, clust, finished = self.constraint_index_advanced.cluster()
+
+        if finished: # tis gedaan, het boeit ni meer
+            return data
 
         for level in levels:
             indices = []
@@ -1168,7 +1216,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return
         levels = self.getFinegrainedLevel(self.rebuildLevel, self.rebuildSuperInstanceLevel)
 
-        labelled, clust = self.getAllLabelled()
+        labelled, clust, finished = self.constraint_index_advanced.cluster()
+
+        if finished:
+            return
 
         clusters = [Cluster([]) for i in np.unique(clust)] # de nieuwe clusters, is evenveel als dat er labels zijn
 
@@ -1245,16 +1296,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
     # What to do afterwards, heeft een default TODO
     def after(self):
+
+        labelled, clust, finished = self.constraint_index_advanced.cluster()
         
-        if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked:
-            return np.array(self.clustering.construct_cluster_labeling()), self.clustering.get_superinstances()
+        if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked or finished:
+            return clust, self.clustering.get_superinstances()
         
         levels = self.getFinegrainedLevel(self.afterLevel, self.afterSuperInstanceLevel)
         
         data = self.learnMetric() if self.afterMetric else self.data
         
-        labelled, clust = self.getAllLabelled()
-
         new = np.zeros(len(self.data)) # de nieuwe labels
 
         for level in levels: # TODO: dit nakijken

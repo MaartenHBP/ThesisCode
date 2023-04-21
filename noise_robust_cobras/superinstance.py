@@ -33,7 +33,7 @@ class SuperInstance:
             raise ValueError("Super instances without training instances")
 
     @abc.abstractmethod
-    def distance_to(self, other_superinstance): # hier moeten we aan foefelen, nooit meer aangekoem lol
+    def distance_to(self, other_superinstance): 
         return
     
     def get_childeren(self):
