@@ -131,7 +131,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         # After #
         #########
-        keepSupervised = True, # hebben we standaard op True gezet
+        keepSupervised = False, # hebben we standaard op True gezet
         after = False,
         afterAmountQueriesAsked = 50,
         afterMetric = False, # standaard geen metriek leren
@@ -291,7 +291,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         return self._cobras_log   
     
 
-    def tokenFit(self, X, nb_clusters, train_indices, querier):
+    def tokenFit(self, X, nb_clusters, train_indices, querier): # OBSSOLETE
         self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
         self._cobras_log.log_start_clustering()
         self.data = X
@@ -382,19 +382,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         while not self.querier.query_limit_reached():
             
             # adapt metric phase, vraagt constraints
-            self.learnMetricDuring()
-            if self.querier.query_limit_reached():
-                break
+            # self.learnMetricDuring()
+            # if self.querier.query_limit_reached():
+            #     break
             # rebuild phase, vraagt constraints
-            self.rebuild() # dit past de clustering potentieel aan
-            if self.querier.query_limit_reached():
-                break
+            # self.rebuild() # dit past de clustering potentieel aan
+            # if self.querier.query_limit_reached():
+            #     break
 
             # during this iteration store the current clustering
             a, b = self.after() # after vraagt constraints wrs
             if self.querier.query_limit_reached():
                 break
-            self._cobras_log.update_clustering_to_store(a, b, False) # das hier nog een artifact
+            self._cobras_log.update_clustering_to_store(a, b, self.keepSupervised) # das hier nog een artifact
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
             
@@ -442,7 +442,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 a, b = self.after()
                 if self.querier.query_limit_reached():
                     break
-                self._cobras_log.update_last_intermediate_result(a, b, False) # een artifact
+                self._cobras_log.update_last_intermediate_result(a, b, self.keepSupervised) # een artifact
 
             # fill in the last_valid_clustering whenever appropriate
             # after initialisation or after that the current clustering is fully merged
@@ -942,6 +942,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
 
+        self._cobras_log.log_new_user_query(
+                Constraint(min_instance, max_instance, constraint_type, purpose="simple")
+            )
+
         return Constraint(min_instance, max_instance, constraint_type)
 
 
@@ -1126,7 +1130,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
         data = np.copy(self.data)
 
-        labelled, clust, finished = self.constraint_index_advanced.cluster()
+        labelled, clust, finished = self.constraint_index_advanced.cluster(self)
 
         if finished: # tis gedaan, het boeit ni meer
             return data
@@ -1216,7 +1220,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return
         levels = self.getFinegrainedLevel(self.rebuildLevel, self.rebuildSuperInstanceLevel)
 
-        labelled, clust, finished = self.constraint_index_advanced.cluster()
+        labelled, clust, finished = self.constraint_index_advanced.cluster(self)
 
         if finished:
             return
@@ -1297,7 +1301,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     # What to do afterwards, heeft een default TODO
     def after(self):
 
-        labelled, clust, finished = self.constraint_index_advanced.cluster()
+        labelled, clust, finished = self.constraint_index_advanced.cluster(self)
         
         if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked or finished:
             return clust, self.clustering.get_superinstances()

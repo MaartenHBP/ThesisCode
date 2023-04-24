@@ -37,36 +37,40 @@ class ConstraintComponent:
         self.involved_instances.update(other_component.involved_instances)
         self.constraints.extend(other_component.constraints)
 
-class ConstraintBlobs:
+class ConstraintBlobs: # blobs zijn sets
     def __init__(self):
         self.blobs = defaultdict(set)
         self.CLs = defaultdict(set)
-        self.allBlobs = set()
+        self.allBlobs = []
 
     def addConstraints(self, constraint):
         # zichzelf toevoegen
         self.blobs[constraint.i1].add(constraint.i1) # om aan te tonen dat er daar constraints over bestaan
         self.blobs[constraint.i2].add(constraint.i2)
         # alle blobs ook bijhouden
-        self.allBlobs.add(self.blobs[constraint.i1])
-        self.allBlobs.add(self.blobs[constraint.i2])
+        if self.blobs[constraint.i1] not in self.allBlobs: self.allBlobs.append(self.blobs[constraint.i1]) 
+        if self.blobs[constraint.i2] not in self.allBlobs: self.allBlobs.append(self.blobs[constraint.i2]) 
         if constraint.is_ML():
            if not constraint.i1 in self.blobs[constraint.i2]: # ze zitten niet in dezelfde blob, dit zou nooit waar mogen zijn aangezien we kijken op voorhand of de constraint al geweten is
                 self.blobs[constraint.i1].update(self.blobs[constraint.i2])
-                self.allBlobs.remove(self.blobs[constraint.i2])
-                self.blobs[constraint.i2] = self.blobs[constraint.i1]
+                self.allBlobs.remove(self.blobs[constraint.i2]) # deze eruit halen
+                self.blobs.update(dict.fromkeys(self.blobs[constraint.i2], self.blobs[constraint.i1]))
+                # self.blobs[constraint.i2] = self.blobs[constraint.i1]
+                # for elem in self.blobs[constraint.i2]:
+                #         self.blobs[elem] = self.blobs[constraint.i1]
         else:
             self.CLs[constraint.i1].add(constraint.i2)
             self.CLs[constraint.i2].add(constraint.i1)
 
         
 
+    # dit is netween instances
     def checkReuse(self, i1, i2):
         if i1 in self.blobs[i2]:
             return Constraint(i1, i2, True)
-        if any(self.CLs[x] & self.blobs[i1]  for x in self.blobs[i2]):
+        if any(self.CLs[x] & self.blobs[i1] for x in self.blobs[i2]):
             return Constraint(i1, i2, False)
-        return False
+        return None
     
     def distance_between_blobs(self, blob1, blob2, data):
         # calculates the distance between 2 clusters by calculating the distance between the closest pair of super-instances
@@ -93,9 +97,9 @@ class ConstraintBlobs:
             cluster_pairs = [
                 x
                 for x in cluster_pairs
-                if not self.checkReuse(
-                    x[0], x[1],
-                )
+                if self.checkReuse(
+                    list(x[0])[0], list(x[1])[0],
+                ) is None
             ]
             cluster_pairs = sorted(cluster_pairs, key=lambda x: self.distance_between_blobs(x[0], x[1], cobras.data))
 
@@ -107,13 +111,13 @@ class ConstraintBlobs:
                     break
 
                 # we will reuse or get a new constraint
-                i1 = list(x)[0]
+                i1 = list(x)[0] # pak een random punt van de blob
                 i2 =  list(y)[0]
-                constraint = cobras.simple_query_querier(i1, i2, "merging")
+                constraint = cobras.simple_query_querier(i1, i2)
                 if constraint.is_ML(): # dan moet ge mergen
                     self.blobs[constraint.i1].update(self.blobs[constraint.i2])
                     self.allBlobs.remove(self.blobs[constraint.i2])
-                    self.blobs[constraint.i2] = self.blobs[constraint.i1]
+                    self.blobs.update(dict.fromkeys(self.blobs[constraint.i2], self.blobs[constraint.i1]))
                     merged = True # een cluster wordt gemerged, dus de overige paren moeten opnieuw worden gedaan
                     break
                 else:
@@ -123,7 +127,8 @@ class ConstraintBlobs:
 
         fully_merged = not query_limit_reached and not merged # updaten nu gaat niet meer nodig zijn
 
-        clust, r = np.array(cobras.clustering.construct_cluster_labeling()), set(cobras.clustering.get_superinstances()) # representatieven als set opslaan
+        clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
+        r = set([s.get_representative_idx() for s in repres])
 
         i = len(np.unique(clust))
 
@@ -134,10 +139,11 @@ class ConstraintBlobs:
                 clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
             else:
                 clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
+                i += 1
 
 
 
-        return clust, np.array(labelled), fully_merged
+        return np.array(labelled), clust, fully_merged
     
 
                

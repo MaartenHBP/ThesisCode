@@ -84,7 +84,7 @@ def runCOBRAS(seed, dataName, arguments):
     target = dataset[:, 0]
 
     # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
-    querylimit = 500
+    querylimit = 200
     # runlimit = min(querylimit, len(data))
     runlimit = querylimit
 
@@ -219,7 +219,7 @@ def rebuild():
             saveDict(errordict, path, "error")
                 
 def test():
-    dataset = "spambase"
+    dataset = "sonar"
     # args = {
     #     "rebuildPhase": True, 
     #     "rebuildLevel": "all", 
@@ -227,10 +227,14 @@ def test():
     #     "rebuildMetric": False,
     #     "rebuilder": ClosestVote}
 
+    # args = {
+    # "metricAmountQueriesAsked": 100,
+    # "learnAMetric": True
+    # }
+
     args = {
-    "metricAmountQueriesAsked": 100,
-    "learnAMetric": True
-}
+        "useNewConstraintIndex": True
+    }
     # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
     #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
     # plt.plot(runCOBRAS(55, dataset, {
@@ -249,10 +253,13 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "test")
+    plt.plot(runCOBRAS(20, dataset, args), label = "test")
+    print("next")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
-    plt.plot(runCOBRAS(16, dataset, {"keepSupervised":True}), label = "COBRAS")
+    plt.plot(runCOBRAS(20, dataset, {"keepSupervised":True}), label = "COBRASLabels")
+    # print("next")
+    # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
     plt.legend()
     
@@ -563,7 +570,7 @@ if __name__ == "__main__":
     # }
     # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    # test()
+    test()
     # rebuild()
     # normalCOBRAS()
     # rebuilding() # Al gedaan
@@ -577,7 +584,7 @@ if __name__ == "__main__":
     # make plots
     # doAll(Path(f"experimenten/learnMetric/superinstance1/100").absolute())
 
-    doAll(Path(f"experimenten/rebuild_notall/metric_True/rebuildLevel_all/100").absolute())
+    # doAll(Path(f"experimenten/rebuild_notall/metric_True/rebuildLevel_all/100").absolute())
 
     # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
 
