@@ -72,6 +72,8 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
 
         # return the labels as a list of integers
         return km.labels_.astype(np.int)#, None
+
+# OBSOLETE
     
 class KMeansITMLClusterAlgorithm(ClusterAlgorithm):  # TODO: aanpassen
     def __init__(self, percentage = 0.1, limit = 0.3, n_runs=10):

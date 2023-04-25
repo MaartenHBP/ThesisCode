@@ -90,7 +90,8 @@ def runCOBRAS(seed, dataName, arguments):
 
 
     querier = LabelQuerier(None, target, runlimit)
-    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **arguments)
+    # splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), doen dit gehardcoded
+    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(3), correct_noise=False, seed=seeds[seed], **arguments)
 
     all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
 
@@ -103,120 +104,6 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
 # Experiments #
 ###############
-
-def createCOBRAS():
-    pass
-
-def initial():
-    makeFolders("experimenten", ["initial"])
-    learners = [LMNN_wrapper, NCA_wrapper, ITML_wrapper]
-    isSupervised = [True, True, False]
-
-    args = {
-        "metricLearner" : None,
-        "initial" : True,
-        "initialSupervised" : 0, # is een percentage
-        "initialSemisupervised" : 0,
-        "initialRandom" : True, 
-    }
-
-    for i, learner in enumerate(learners):
-        makeFolders("experimenten/initial", [learner.__name__])
-        args["metricLearner"] = learner
-        for random in [False, True]:
-            makeFolders(f"experimenten/initial/{learner.__name__}", [f"random_{str(random)}"])
-            args["initialRandom"] = random
-
-            for k in range(len(relative_testing)):
-                supervised = random and isSupervised[i]
-
-                if not supervised:
-                    amount = absolute_testing[k]
-                    args["initialSemisupervised"] = amount
-
-                else:
-                    amount = relative_testing[k]
-                    args["initialSupervised"] = amount
-
-                makeFolders(f"experimenten/initial/{learner.__name__}/random_{str(random)}", ['%.1f' % amount])
-
-                path = f"experimenten/initial/{learner.__name__}/random_{str(random)}/{'%.1f' % amount}"
-                args["metricLearner"] = learner.__name__
-                saveDict(args, path, "settings")
-                args["metricLearner"] = learner
-
-                try:
-                    with LocalCluster() as cluster, Client(cluster) as client:
-                        path_datasets = Path('datasets/cobras-paper/UCI').absolute()
-                        datasets = os.listdir(path_datasets)
-                        run = dict()
-                        p = Path(f'{path}/total.json').absolute()
-                        if os.path.exists(p):
-                            run = loadDict(path, f"total")
-                        # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
-                        for j in range(len(datasets)):
-                            nameData = datasets[j][:len(datasets[j]) - 5]
-                            if nameData in run:
-                                continue
-                            print(f"({path})\t ({nameData})\t Running")
-                            parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
-                            futures = client.map(parallel_func, ARGUMENTS)
-                            # parallel_func(16)
-                            results = np.array(client.gather(futures))
-                            run[nameData] = np.mean(results, axis=0).tolist()
-                            saveDict(run, path, "total")
-                        saveDict(run, path, "total")
-                except Exception as x:
-                    print("error cccured:" + path)
-                    errordict = {"problem": str(x)}
-                    saveDict(errordict, path, "error")
-
-def rebuild():
-    makeFolders("experimenten", ["rebuild"])
-
-    args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "superinstance", # nog niet op superinstance zetten TODO
-        "rebuildAmountQueriesAsked" : 75, # gaan hier over loopen
-        "rebuildMetric":False, 
-        "rebuildSuperInstanceLevel": 0,}
-
-
-    for k in [50, 75, 100, 125, 150]:
-        args["rebuildAmountQueriesAsked"] = k
-
-        path = Path(f"experimenten/rebuild/no_metric/rebuildLevel_{str(args['rebuildLevel'])}/rebuildPartition_False/{str(args['rebuildAmountQueriesAsked'])}").absolute()
-        CHECK_FOLDER = os.path.isdir(path)
-        if not CHECK_FOLDER:
-            os.makedirs(path)
-            print("created folder : ", path)
-        saveDict(args, path, "settings")
-
-        try:
-            with LocalCluster() as cluster, Client(cluster) as client:
-                path_datasets = Path('datasets/cobras-paper/UCI').absolute()
-                datasets = os.listdir(path_datasets)
-                run = dict()
-                p = Path(f'{path}/total.json').absolute()
-                if os.path.exists(p):
-                    run = loadDict(path, f"total")
-                # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
-                for j in range(len(datasets)):
-                    nameData = datasets[j][:len(datasets[j]) - 5]
-                    if nameData in run:
-                        continue
-                    print(f"({path})\t ({nameData})\t Running")
-                    parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
-                    futures = client.map(parallel_func, ARGUMENTS)
-                    # parallel_func(16)
-                    results = np.array(client.gather(futures))
-                    run[nameData] = np.mean(results, axis=0).tolist()
-                    saveDict(run, path, "total")
-                saveDict(run, path, "total")
-        except Exception as x:
-            print("error cccured:" + path)
-            errordict = {"problem": str(x)}
-            saveDict(errordict, path, "error")
                 
 def test():
     dataset = "sonar"
@@ -271,98 +158,9 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/COBRAS").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/splittest/splitlevel3").absolute()
     run({}, path)
-def rebuilding():
-    args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "all", 
-        "rebuildAmountQueriesAsked" : 100,
-        "rebuildMetric": False}
 
-
-    for k in [True, False]:
-        args["rebuildMetric"] = k
-        path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
-        run(args, path)
-
-def rebuildingkNN(): # dit is het idee van kNN
-
-    args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "all", 
-        "rebuildAmountQueriesAsked" : 100,
-        "rebuildMetric": False,
-        "rebuilder": ClosestVote} # dit werkt via kNN
-
-
-    for k in [True, False]:
-        args["rebuildMetric"] = k
-        path = Path(f"experimenten/rebuild_knn/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
-        run(args, path)
-
-def rebuildingSuperinstanceLevel():
-    args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "superinstance",
-        "rebuildSuperInstanceLevel": 0,
-        "rebuildAmountQueriesAsked" : 100,
-        "rebuildMetric": False}
-
-
-    for k in [True, False]:
-        for instlvl in [0, 1, 2]:
-            args["rebuildMetric"] = k
-            args["rebuildSuperInstanceLevel"] = instlvl
-            path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildSuperInstanceLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
-            run(args, path)
-def afterLabelling(): # simpele after labelling
-    args = {"after" : True,
-        "afterAmountQueriesAsked" : 75,
-        "afterMetric" : False, # standaard geen metriek leren
-        "afterLevel" : "all",
-        "afterSuperInstanceLevel" : 0,
-        "afterAllOptions" : False}
-
-    path = Path(f"experimenten/thesis/after/not_all_options").absolute()
-    run(args, path) 
-def simpleLearning():
-    args = {
-        "metricAmountQueriesAsked" : 100,
-        "learnAMetric" : True}
-
-    path = Path(f"experimenten/learnMetric/{str(args['metricAmountQueriesAsked'])}").absolute()
-    run(args, path) 
-
-def simpleLearningCluster():
-    args = {
-        "metricAmountQueriesAsked" : 100,
-        "learnAMetric" : True,
-        "metricLevel": "cluster"}
-
-    path = Path(f"experimenten/learnMetric/cluster/{str(args['metricAmountQueriesAsked'])}").absolute()
-    run(args, path) 
-
-def simpleLearningSuperinstance():
-    args = {
-        "metricAmountQueriesAsked" : 100,
-        "learnAMetric" : True,
-        "metricLevel": "superinstance",
-        "metricSuperInstanceLevel": 1}
-    
-    path = Path(f"experimenten/learnMetric/superinstance1/{str(args['metricAmountQueriesAsked'])}").absolute()
-    run(args, path)
-
-def simpleRebuildLearning():
-    args = {
-        "rebuildPhase": True, 
-        "rebuildLevel": "all", 
-        "rebuildAmountQueriesAsked" : 100,
-        "rebuildMetric": True,
-        "rebuilderKeepTransformed": True} # keep the transformed space
-
-    path = Path(f"experimenten/rebuild/metric_{str(args['rebuildMetric'])}_keepMetric/rebuildLevel_{str(args['rebuildLevel'])}/{str(args['rebuildAmountQueriesAsked'])}").absolute()
-    run(args, path) 
 
 def run(args, path):
     CHECK_FOLDER = os.path.isdir(path)
@@ -452,7 +250,7 @@ def makeDifferencePlot(path, name_algo = ""):
     test = loadDict(path, "total")
     cobras = loadDict(PATH_COBRAS, "total")
     
-    total = np.zeros(500)
+    total = np.zeros(200)
 
     if not name_algo:
         name_algo = path
@@ -460,8 +258,8 @@ def makeDifferencePlot(path, name_algo = ""):
 
     for key, item in test.items():
 
-        test_item = np.array(item)
-        cobras_item = np.array(cobras[key])
+        test_item = np.array(item)[:200]
+        cobras_item = np.array(cobras[key])[:200]
         
         bools = test_item > cobras_item
 
@@ -479,36 +277,60 @@ def makeDifferencePlot(path, name_algo = ""):
 
     plt.clf()
 
-def rank(paths): # nog afmaken
-    cobras = loadDict(PATH_COBRAS, "total")
+def rank(paths, names, location):
+    # cobras = loadDict(PATH_COBRAS, "total")
 
     mean = pd.DataFrame()
 
+    ARI = pd.DataFrame()
 
-    for key, item in cobras.items():
-        mean[key] = np.array(item)
+
+    # for key, item in cobras.items():
+    #     mean[key] = np.array(item)
     
-    for path in paths:
+    for i in range(len(paths)):
+        path = paths[i]
+        testpd = pd.DataFrame()
         test = loadDict(path, "total")
         for key, item in test.items():
-            mean[key] += np.array(item)
+            if key in mean:
+                mean[key] += np.array(item)[:200]
+            else:
+                mean[key] = np.array(item)[:200]
+            testpd[key] = np.array(item)[:200]
+
+        ARI[names[i]] = testpd.mean(axis=1)
+
+    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
+
+    plt.savefig(f"{location}/ARI.png")
+
+    plt.clf()
 
     for key, item in mean.items():
         item /= len(paths)
 
     cbr = []
-    for key, item in cobras.items():
-        cbr.append(item - mean[key])
+    for path in paths:
+        test = loadDict(path, "total")
+        for key, item in test.items():
+            cbr.append(np.array(item)[:200] - mean[key])
 
+    cbr = np.array(cbr)
 
+    sorted = np.argsort(cbr, axis = 0)
 
     all_results = pd.DataFrame()
-    all_results["COBRAS"] = cobraspd.mean(axis=1)
-    all_results[name_algo] = testpd.mean(axis=1)
+    indii = np.tile(np.arange(90)[::-1], (200, 1)).T
 
-    all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0,1))
+    for i in range(len(names)):
+        indices = np.arange(start=i*15, stop=i*15+15)
+        positions = np.isin(sorted,indices)
+        all_results[names[i]] = np.where(positions, indii, 0).sum(axis=0) / positions.sum(axis=0)
+        
+    all_results.plot(xlabel="#queries", ylabel="Aligned rank")
     # plt.show()
-    plt.savefig(f"{path}/plots/total.png")
+    plt.savefig(f"{location}/rank.png")
 
 
 ####################
@@ -561,36 +383,18 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    # args = {
-    #     "metricLearner" : LMNN_wrapper,
-    #     "initial" : True,
-    #     "initialSupervised" : 0.5, # is een percentage
-    #     "initialSemisupervised" : 20,
-    #     "initialRandom" : False, 
-    # }
-    # runCOBRAS(67 ,"hepatitis", arguments=args)
 
-    test()
-    # rebuild()
-    # normalCOBRAS()
-    # rebuilding() # Al gedaan
-    # rebuildingkNN()
-    # rebuildingSuperinstanceLevel()
-    # simpleLearning()
-    # simpleLearningCluster()
-    # simpleLearningSuperinstance()
-    # simpleRebuildLearning()
+    # test()
+
+    normalCOBRAS()
+
 
     # make plots
-    # doAll(Path(f"experimenten/learnMetric/superinstance1/100").absolute())
+    # doAll(Path(f"experimenten/splitlevel4").absolute())
 
-    # doAll(Path(f"experimenten/rebuild_notall/metric_True/rebuildLevel_all/100").absolute())
+    # rank([Path(f"experimenten/splitlevel4"), Path(f"experimenten/splitlevel3"), Path(f"experimenten/newCOBRAS_splitlevel4"), Path(f"experimenten/newCOBRAS_splitlevel3"),
+        #   Path(f"experimenten/newCOBRAS"), Path(PATH_COBRAS)], ["splitlevel4", "splitlevel3", "newSPLT4", "newSPLT3", "new", "justlabels"], "experimenten/thesis/splittest")
 
-    # doAll(Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute())
-
-    # path = Path(f"experimenten/rebuild/metric_False/rebuildLevel_superinstance/0/100").absolute()
-    # makeARI(path, name_algo = "test")
-    # makeDifferencePlot(path, name_algo = "test")
 
 
     
