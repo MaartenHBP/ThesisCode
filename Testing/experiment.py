@@ -91,7 +91,7 @@ def runCOBRAS(seed, dataName, arguments):
 
     querier = LabelQuerier(None, target, runlimit)
     # splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), doen dit gehardcoded
-    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(3), correct_noise=False, seed=seeds[seed], **arguments)
+    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(2), correct_noise=False, seed=seeds[seed], **arguments)
 
     all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
 
@@ -158,7 +158,7 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/splittest/splitlevel3").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/splittest/splitlevel2").absolute()
     run({}, path)
 
 
@@ -321,7 +321,7 @@ def rank(paths, names, location):
     sorted = np.argsort(cbr, axis = 0)
 
     all_results = pd.DataFrame()
-    indii = np.tile(np.arange(90)[::-1], (200, 1)).T
+    indii = np.tile(np.arange(len(paths)*15)[::-1], (200, 1)).T
 
     for i in range(len(names)):
         indices = np.arange(start=i*15, stop=i*15+15)
@@ -386,14 +386,18 @@ if __name__ == "__main__":
 
     # test()
 
-    normalCOBRAS()
+    # normalCOBRAS()
 
 
     # make plots
     # doAll(Path(f"experimenten/splitlevel4").absolute())
 
-    # rank([Path(f"experimenten/splitlevel4"), Path(f"experimenten/splitlevel3"), Path(f"experimenten/newCOBRAS_splitlevel4"), Path(f"experimenten/newCOBRAS_splitlevel3"),
-        #   Path(f"experimenten/newCOBRAS"), Path(PATH_COBRAS)], ["splitlevel4", "splitlevel3", "newSPLT4", "newSPLT3", "new", "justlabels"], "experimenten/thesis/splittest")
+    rank([Path(f"experimenten/thesis/Chapter5/splittest/normalCobras"), 
+          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel2"),
+          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel3"), 
+          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel4")], 
+          ["dynamisch splitlevel", "splitlevel = 2","splitlevel = 3", "splitlevel = 4"], 
+          "experimenten/thesis/Chapter5/splittest")
 
 
 
