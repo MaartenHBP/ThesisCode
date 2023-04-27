@@ -84,14 +84,14 @@ def runCOBRAS(seed, dataName, arguments):
     target = dataset[:, 0]
 
     # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
-    querylimit = 200
+    querylimit = 500
     # runlimit = min(querylimit, len(data))
     runlimit = querylimit
 
 
     querier = LabelQuerier(None, target, runlimit)
     # splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), doen dit gehardcoded
-    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(2), correct_noise=False, seed=seeds[seed], **arguments)
+    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), correct_noise=False, seed=seeds[seed], **arguments)
 
     all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
 
@@ -158,7 +158,7 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/splittest/splitlevel2").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/variance_analysis/splitlevel4").absolute()
     run({}, path)
 
 
@@ -181,9 +181,11 @@ def run(args, path):
             path_datasets = Path('datasets/cobras-paper/UCI').absolute()
             datasets = os.listdir(path_datasets)
             run = dict()
+            variance = dict()
             p = Path(f'{path}/total.json').absolute()
             if os.path.exists(p):
                 run = loadDict(path, f"total")
+                variance = loadDict(path, f"variance")
             # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
             for j in range(len(datasets)):
                 nameData = datasets[j][:len(datasets[j]) - 5]
@@ -195,7 +197,9 @@ def run(args, path):
                 # parallel_func(16)
                 results = np.array(client.gather(futures))
                 run[nameData] = np.mean(results, axis=0).tolist()
+                variance[nameData] = np.std(results, axis=0).tolist()
                 saveDict(run, path, "total")
+                saveDict(variance, path, "variance")
             saveDict(run, path, "total")
     except Exception as x:
         print("error cccured:" + path)
@@ -277,10 +281,12 @@ def makeDifferencePlot(path, name_algo = ""):
 
     plt.clf()
 
-def rank(paths, names, location):
+def rank(paths, names, location, useVariance = False):
     # cobras = loadDict(PATH_COBRAS, "total")
 
     mean = pd.DataFrame()
+
+    variance = pd.DataFrame()
 
     ARI = pd.DataFrame()
 
@@ -291,15 +297,31 @@ def rank(paths, names, location):
     for i in range(len(paths)):
         path = paths[i]
         testpd = pd.DataFrame()
+        variancepd = pd.DataFrame()
         test = loadDict(path, "total")
+        var = loadDict(path, "variance")
         for key, item in test.items():
             if key in mean:
                 mean[key] += np.array(item)[:200]
             else:
                 mean[key] = np.array(item)[:200]
-            testpd[key] = np.array(item)[:200]
+            testpd[key] = np.array(item)
+            if useVariance:
+                variancepd[key] = np.array(var[key])
 
         ARI[names[i]] = testpd.mean(axis=1)
+
+        if useVariance:
+            allVariance = variancepd.mean(axis=1)
+            plt.plot(ARI[names[i]], label = "gemiddelde")
+            plt.plot(ARI[names[i]] - allVariance, alpha = 0.4)
+            plt.plot(ARI[names[i]] + allVariance, alpha = 0.4)
+            plt.ylim((0.4,1))
+            plt.xlabel("#queries")
+            plt.ylabel("ARI")
+            plt.title(f"Variantie-analyse {names[i]}")
+            plt.savefig(f"{location}/variance_{names[i]}.png")
+            plt.clf()
 
     ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
 
@@ -392,12 +414,10 @@ if __name__ == "__main__":
     # make plots
     # doAll(Path(f"experimenten/splitlevel4").absolute())
 
-    rank([Path(f"experimenten/thesis/Chapter5/splittest/normalCobras"), 
-          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel2"),
-          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel3"), 
-          Path(f"experimenten/thesis/Chapter5/splittest/splitlevel4")], 
-          ["dynamisch splitlevel", "splitlevel = 2","splitlevel = 3", "splitlevel = 4"], 
-          "experimenten/thesis/Chapter5/splittest")
+    rank([Path(f"experimenten/thesis/Chapter5/variance_analysis/normalCobras"), 
+          Path(f"experimenten/thesis/Chapter5/variance_analysis/splitlevel4")], 
+          ["Cobras met dynamisch splitniveau", "Cobras met constant splitniveau = 4"], 
+          "experimenten/thesis/Chapter5/variance_analysis", useVariance=True)
 
 
 
