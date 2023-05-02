@@ -83,67 +83,89 @@ class ConstraintBlobs: # blobs zijn sets
     def cluster(self, cobras):
         # begin eerst een soort merge phase
 
-        merged = True
-        query_limit_reached = False
-        
-        while merged and not cobras.querier.query_limit_reached(): # zoalng merged True is moet er gemerged worden
+        if cobras.mergeBlobs:
 
-            clusters_to_consider = [
-                cluster
-                for cluster in self.allBlobs
-            ]
+            merged = True
+            query_limit_reached = False
+            
+            while merged and not cobras.querier.query_limit_reached(): # zoalng merged True is moet er gemerged worden
 
-            cluster_pairs = itertools.combinations(clusters_to_consider, 2)
-            cluster_pairs = [
-                x
-                for x in cluster_pairs
-                if self.checkReuse(
-                    list(x[0])[0], list(x[1])[0],
-                ) is None
-            ]
-            cluster_pairs = sorted(cluster_pairs, key=lambda x: self.distance_between_blobs(x[0], x[1], cobras.data))
+                clusters_to_consider = [
+                    cluster
+                    for cluster in self.allBlobs
+                ]
 
-            merged = False
-            for x, y in cluster_pairs:
+                cluster_pairs = itertools.combinations(clusters_to_consider, 2)
+                cluster_pairs = [
+                    x
+                    for x in cluster_pairs
+                    if self.checkReuse(
+                        list(x[0])[0], list(x[1])[0],
+                    ) is None
+                ]
+                cluster_pairs = sorted(cluster_pairs, key=lambda x: self.distance_between_blobs(x[0], x[1], cobras.data))
 
-                if cobras.querier.query_limit_reached():
-                    query_limit_reached = True
-                    break
+                merged = False
+                for x, y in cluster_pairs:
 
-                # we will reuse or get a new constraint
-                i1 = list(x)[0] # pak een random punt van de blob
-                i2 =  list(y)[0]
-                constraint = cobras.simple_query_querier(i1, i2)
-                if constraint.is_ML(): # dan moet ge mergen
-                    self.blobs[constraint.i1].update(self.blobs[constraint.i2])
-                    self.allBlobs.remove(self.blobs[constraint.i2])
-                    self.blobs.update(dict.fromkeys(self.blobs[constraint.i2], self.blobs[constraint.i1]))
-                    merged = True # een cluster wordt gemerged, dus de overige paren moeten opnieuw worden gedaan
-                    break
+                    if cobras.querier.query_limit_reached():
+                        query_limit_reached = True
+                        break
+
+                    # we will reuse or get a new constraint
+                    i1 = list(x)[0] # pak een random punt van de blob
+                    i2 =  list(y)[0]
+                    constraint = cobras.simple_query_querier(i1, i2)
+                    if constraint.is_ML(): # dan moet ge mergen
+                        self.blobs[constraint.i1].update(self.blobs[constraint.i2])
+                        self.allBlobs.remove(self.blobs[constraint.i2])
+                        self.blobs.update(dict.fromkeys(self.blobs[constraint.i2], self.blobs[constraint.i1]))
+                        merged = True # een cluster wordt gemerged, dus de overige paren moeten opnieuw worden gedaan
+                        break
+                    else:
+                        self.CLs[constraint.i1].add(constraint.i2)
+                        self.CLs[constraint.i2].add(constraint.i1)
+
+
+            finished = not (not query_limit_reached and not merged) # updaten nu gaat niet meer nodig zijn
+
+            clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
+            r = set([s.get_representative_idx() for s in repres])
+
+            i = len(np.unique(clust))
+
+            labelled = list(self.blobs.keys())
+
+            for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
+                if blob & r:
+                    clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
                 else:
-                    self.CLs[constraint.i1].add(constraint.i2)
-                    self.CLs[constraint.i2].add(constraint.i1)
-
-
-        fully_merged = not query_limit_reached and not merged # updaten nu gaat niet meer nodig zijn
-
-        clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
-        r = set([s.get_representative_idx() for s in repres])
-
-        i = len(np.unique(clust))
-
-        labelled = list(self.blobs.keys())
-
-        for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
-            if blob & r:
-                clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
-            else:
-                clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
-                i += 1
+                    clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
+                    i += 1
 
 
 
-        return np.array(labelled), clust, fully_merged
+            return np.array(labelled), clust, finished
+        else:
+            clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
+            r = set([s.get_representative_idx() for s in repres])
+
+            i = len(np.unique(clust))
+
+            labelled = list(self.blobs.keys())
+
+            for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
+                if blob & r:
+                    clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
+                # else:, dit kan nu niet worden gedaan
+                #     clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
+                #     i += 1
+
+
+
+            return np.array(labelled), clust, finished
+
+
     
 
                

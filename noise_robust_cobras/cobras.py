@@ -131,7 +131,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         # After #
         #########
-        keepSupervised = False, # hebben we standaard op True gezet
+        keepSupervised = False, # deze nu standaard op false, want OBSOLETE
         after = False,
         afterAmountQueriesAsked = 50,
         afterMetric = False, # standaard geen metriek leren
@@ -143,6 +143,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # Constraint_index #
         ####################
         useNewConstraintIndex = False,
+        mergeBlobs = False, # dit is voor wanneer er niet gemerged wordt op het niveau
 
         # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
         # metric_parameters = {},
@@ -232,7 +233,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
         self.afterAllOptions = afterAllOptions
 
+        ####################
+        # Constraint_index #
+        ####################
         self.useNewConstraintIndex = useNewConstraintIndex
+        self.mergeBlobs = mergeBlobs
 
 
         ###################
@@ -279,7 +284,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             self.certainty_constraint_set = None
             self.constraint_index = ConstraintIndex()
 
-        self.constraint_index_advanced = ConstraintBlobs()
+        self.constraint_index_advanced = ConstraintBlobs() # new constraint index
 
         self.certainty_threshold = certainty_threshold
 
@@ -1053,7 +1058,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
     ################################
     # Get all labelled information #
-    ################################
+    ################################ DIT IS OBSOLETE
 
     def getAllLabelled(self): # gaat obsolete worden
         clust, r = self.clustering.construct_cluster_labeling(), self.clustering.get_superinstances()
@@ -1102,10 +1107,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             # hier moet ook nog een for_loop
         
         print(len(viaCL))
-
-        
-        
-
         
 
 

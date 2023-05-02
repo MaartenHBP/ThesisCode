@@ -159,7 +159,8 @@ def test():
 ######################
 def normalCOBRAS():
     path = Path(f"experimenten/thesis/Chapter5/variance_analysis/splitlevel4").absolute()
-    run({}, path)
+    run({ "useNewConstraintIndex" : True,
+        "mergeBlobs" : False}, path)
 
 
 def run(args, path):

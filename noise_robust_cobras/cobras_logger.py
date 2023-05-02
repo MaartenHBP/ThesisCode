@@ -122,59 +122,59 @@ class ClusteringLogger:
     ###################
     def log_new_user_query(self, constraint): # dit is nagekeken
         # add it to the blob yeet
-        if constraint.is_ML():
-            ml = constraint.get_instance_tuple()
-            ind1 = ml[0]
-            ind2 = ml[1]
-            blob1 = []
-            blob2 = []
-            if ind1 in self.seen_indices:
-                for blob in self.blobs:
-                    if ind1 in blob:
-                        blob1 = blob
-                        break
-            if ind2 in self.seen_indices:
-                for blob in self.blobs:
-                    if ind2 in blob:
-                        blob2 = blob
-                        break
+        # if constraint.is_ML():
+        #     ml = constraint.get_instance_tuple()
+        #     ind1 = ml[0]
+        #     ind2 = ml[1]
+        #     blob1 = []
+        #     blob2 = []
+        #     if ind1 in self.seen_indices:
+        #         for blob in self.blobs:
+        #             if ind1 in blob:
+        #                 blob1 = blob
+        #                 break
+        #     if ind2 in self.seen_indices:
+        #         for blob in self.blobs:
+        #             if ind2 in blob:
+        #                 blob2 = blob
+        #                 break
 
-            if ind1 in blob2: # dan zitten ze in dezelfde blob
-                pass
-            elif len(blob1) > 0 and len(blob2) > 0:
-                blob1.extend(blob2)
-                self.blobs.remove(blob2)
-            elif len(blob1) > 0:
-                blob1.append(ind2)
-                self.seen_indices.append(ind2)
-            elif len(blob2) > 0:
-                blob2.append(ind1)
-                self.seen_indices.append(ind1)
-            else:
-                self.blobs.append([ind1, ind2])
-                self.seen_indices.extend([ind1, ind2])
+        #     if ind1 in blob2: # dan zitten ze in dezelfde blob
+        #         pass
+        #     elif len(blob1) > 0 and len(blob2) > 0:
+        #         blob1.extend(blob2)
+        #         self.blobs.remove(blob2)
+        #     elif len(blob1) > 0:
+        #         blob1.append(ind2)
+        #         self.seen_indices.append(ind2)
+        #     elif len(blob2) > 0:
+        #         blob2.append(ind1)
+        #         self.seen_indices.append(ind1)
+        #     else:
+        #         self.blobs.append([ind1, ind2])
+        #         self.seen_indices.extend([ind1, ind2])
 
-        else: # het is een CL, soms alleenstaand
-            ml = constraint.get_instance_tuple()
-            ind1 = ml[0]
-            ind2 = ml[1]
-            found1 = False
-            found2 = False
-            for blob in self.blobs:
-                if ind1 in blob:
-                    found1 = True
-                if ind2 in blob:
-                    found2 = True
-                if found1 and found2:
-                    break
-            if not found1:
-                # print("hier")
-                self.seen_indices.append(ind1)
-                self.blobs.append([ind1]) # maken zelf een blob
-            if not found2:
-                # print("hier")
-                self.seen_indices.append(ind2)
-                self.blobs.append([ind2])
+        # else: # het is een CL, soms alleenstaand
+        #     ml = constraint.get_instance_tuple()
+        #     ind1 = ml[0]
+        #     ind2 = ml[1]
+        #     found1 = False
+        #     found2 = False
+        #     for blob in self.blobs:
+        #         if ind1 in blob:
+        #             found1 = True
+        #         if ind2 in blob:
+        #             found2 = True
+        #         if found1 and found2:
+        #             break
+        #     if not found1:
+        #         # print("hier")
+        #         self.seen_indices.append(ind1)
+        #         self.blobs.append([ind1]) # maken zelf een blob
+        #     if not found2:
+        #         # print("hier")
+        #         self.seen_indices.append(ind2)
+        #         self.blobs.append([ind2])
 
         # add the constraint to all_user_constraints
         self.all_user_constraints.append(constraint)
@@ -227,25 +227,25 @@ class ClusteringLogger:
         else:
             self.clustering_to_store = clustering.construct_cluster_labeling()
 
-        currentrepres = []
-        # currentSuperinstances = np.zeros(len(self.clustering_to_store))
+        # currentrepres = [] -> wat tijd besparen en probably a little bit obsolete
+        # # currentSuperinstances = np.zeros(len(self.clustering_to_store))
 
-        for i, super in enumerate(superinstances): # oh wauw
-            currentrepres.append(super.get_representative_idx())
-            # currentSuperinstances[np.array(super.indices)] = i
+        # for i, super in enumerate(superinstances): # oh wauw
+        #     currentrepres.append(super.get_representative_idx())
+        #     # currentSuperinstances[np.array(super.indices)] = i
 
 
-        # self.currentrepres = currentrepres
-        # self.currentSuperinstances = currentSuperinstances.tolist()
+        # # self.currentrepres = currentrepres
+        # # self.currentSuperinstances = currentSuperinstances.tolist()
 
-        if blobThing:
-            self.clustering_to_store = np.array(self.clustering_to_store)
-            for blob in self.blobs:
-                for elem in currentrepres:
-                    if elem in blob:                
-                        self.clustering_to_store[np.array(blob)] = self.clustering_to_store[elem]
-                        break
-            self.clustering_to_store = self.clustering_to_store.tolist()
+        # if blobThing:
+        #     self.clustering_to_store = np.array(self.clustering_to_store)
+        #     for blob in self.blobs:
+        #         for elem in currentrepres:
+        #             if elem in blob:                
+        #                 self.clustering_to_store[np.array(blob)] = self.clustering_to_store[elem]
+        #                 break
+        #     self.clustering_to_store = self.clustering_to_store.tolist()
 
         
 
@@ -265,29 +265,29 @@ class ClusteringLogger:
                 len(self.all_user_constraints),
             )
 
-        currentrepres = []
-        currentSuperinstances = np.zeros(len(self.clustering_to_store))
+        # currentrepres = []
+        # currentSuperinstances = np.zeros(len(self.clustering_to_store))
 
-        for i, super in enumerate(superinstances): # oh wauw
-            currentrepres.append(super.get_representative_idx())
-            # currentSuperinstances[np.array(super.indices)] = i
+        # for i, super in enumerate(superinstances): # oh wauw
+        #     currentrepres.append(super.get_representative_idx())
+        #     # currentSuperinstances[np.array(super.indices)] = i
 
 
-        # self.repres[-1] = currentrepres
-        # self.superinstances[-1] = currentSuperinstances.tolist()
+        # # self.repres[-1] = currentrepres
+        # # self.superinstances[-1] = currentSuperinstances.tolist()
 
-        if blobThing: # dit gaat obsolete worden
-            clustering_to_store = np.array(self.intermediate_results[-1][0])
-            for blob in self.blobs:
-                for elem in currentrepres:
-                    if elem in blob:                 
-                        clustering_to_store[np.array(blob)] = clustering_to_store[elem]
-                        break
-            self.intermediate_results[-1] = (
-                clustering_to_store.tolist(),
-                time.time() - self.start_time,
-                len(self.all_user_constraints),
-            )
+        # if blobThing: # dit gaat obsolete worden
+        #     clustering_to_store = np.array(self.intermediate_results[-1][0])
+        #     for blob in self.blobs:
+        #         for elem in currentrepres:
+        #             if elem in blob:                 
+        #                 clustering_to_store[np.array(blob)] = clustering_to_store[elem]
+        #                 break
+        #     self.intermediate_results[-1] = (
+        #         clustering_to_store.tolist(),
+        #         time.time() - self.start_time,
+        #         len(self.all_user_constraints),
+        #     )
             
 
     #####################
