@@ -84,14 +84,14 @@ def runCOBRAS(seed, dataName, arguments):
     target = dataset[:, 0]
 
     # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
-    querylimit = 500
+    querylimit = 200
     # runlimit = min(querylimit, len(data))
     runlimit = querylimit
 
 
     querier = LabelQuerier(None, target, runlimit)
     # splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), doen dit gehardcoded
-    clusterer = COBRAS(splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), correct_noise=False, seed=seeds[seed], **arguments)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **arguments)
 
     all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
 
@@ -158,9 +158,10 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/variance_analysis/splitlevel4").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD++").absolute()
     run({ "useNewConstraintIndex" : True,
-        "mergeBlobs" : False}, path)
+        "mergeBlobs" : False,
+        }, path)
 
 
 def run(args, path):
@@ -415,10 +416,23 @@ if __name__ == "__main__":
     # make plots
     # doAll(Path(f"experimenten/splitlevel4").absolute())
 
-    rank([Path(f"experimenten/thesis/Chapter5/variance_analysis/normalCobras"), 
-          Path(f"experimenten/thesis/Chapter5/variance_analysis/splitlevel4")], 
-          ["Cobras met dynamisch splitniveau", "Cobras met constant splitniveau = 4"], 
-          "experimenten/thesis/Chapter5/variance_analysis", useVariance=True)
+    # rank([Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD"),
+    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD++"),
+    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASC"),
+    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASC++"),], 
+    #       [ "COBRAS ", "COBRAS ++", "COBRAS C", "COBRAS C++"], 
+    #       "experimenten/thesis/Chapter5/small_adition_test", useVariance=False)
+
+
+
+    rank([Path(f"experimenten/thesis/Chapter5/blob_test/COBRASD++"),
+          Path(f"experimenten/thesis/Chapter5/blob_test/COBRASC++"), 
+          Path(f"experimenten/thesis/Chapter5/blob_test/repres_dynamisch"),
+          Path(f"experimenten/thesis/Chapter5/blob_test/repres_constant"),
+          Path(f"experimenten/thesis/Chapter5/blob_test/merge_dynamisch"),
+          Path(f"experimenten/thesis/Chapter5/blob_test/merge_constant")], 
+          [ "COBRAS D", "COBRAS C", "COBRAS RD","COBRAS RC", "COBRAS MD", "COBRAS MC"], 
+          "experimenten/thesis/Chapter5/blob_test", useVariance=False)
 
 
 

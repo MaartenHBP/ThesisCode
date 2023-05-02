@@ -380,20 +380,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ################
         # Metric learn #
         ################
-        self.initial_transform()
+        # self.initial_transform()
 
 
 
         while not self.querier.query_limit_reached():
             
             # adapt metric phase, vraagt constraints -> dit kan mss ook net voor een splitfase na het bepalen van splitlevel om die informatie er al bij te nemen
-            self.learnMetricDuring()
-            if self.querier.query_limit_reached():
-                break
-            # rebuild phase, vraagt constraints
-            self.rebuild() # dit past de clustering potentieel aan
-            if self.querier.query_limit_reached():
-                break
+            # self.learnMetricDuring()
+            # if self.querier.query_limit_reached():
+            #     break
+            # # rebuild phase, vraagt constraints
+            # self.rebuild() # dit past de clustering potentieel aan
+            # if self.querier.query_limit_reached():
+            #     break
 
             # during this iteration store the current clustering
             a, b = self.after() # after vraagt constraints wrs
