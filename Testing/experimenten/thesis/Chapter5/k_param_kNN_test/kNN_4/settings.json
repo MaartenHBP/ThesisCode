@@ -1,0 +1,6 @@
+{
+    "useNewConstraintIndex": true,
+    "mergeBlobs": true,
+    "after": true,
+    "after_k": 4
+}

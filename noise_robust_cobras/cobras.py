@@ -133,6 +133,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         keepSupervised = False, # deze nu standaard op false, want OBSOLETE
         after = False,
+        after_k = 3,
+        after_weights = "uniform",
         afterAmountQueriesAsked = 50,
         afterMetric = False, # standaard geen metriek leren
         afterLevel = "all",
@@ -226,6 +228,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # After #
         #########
         self.doAfter = after
+        self.after_k = after_k
+        self.after_weights = after_weights
         self.keepSupervised = keepSupervised
         self.afterAmountQueriesAsked = afterAmountQueriesAsked
         self.afterMetric = afterMetric
@@ -1313,9 +1317,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
         new = np.zeros(len(self.data)) # de nieuwe labels
 
-        for level in levels: # TODO: dit nakijken
+        for level in levels:
 
-            if self.afterAllOptions:
+            if self.afterAllOptions: # alles mag gebruikt worden
                 indices = []
                 repres = []
                 for superinstance in level:
@@ -1323,10 +1327,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         indices.append(idx)
                         if idx in labelled:
                             repres.append(idx)
-                model = KNeighborsClassifier(n_neighbors=3)
+                model = KNeighborsClassifier(n_neighbors=self.after_k, weights=self.after_weights)
                 model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
                 new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
 
+            # de else wordt momenteel niet gebruikt
             else:
                 repres = []
                 labelled_instances = []

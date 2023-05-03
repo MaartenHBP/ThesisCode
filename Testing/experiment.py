@@ -158,9 +158,12 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD++").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_7").absolute()
     run({ "useNewConstraintIndex" : True,
-        "mergeBlobs" : False,
+        "mergeBlobs" : True,
+        "after" : True,
+        "after_k": 7,
+        "after_weights": 'distance'
         }, path)
 
 
@@ -410,7 +413,7 @@ if __name__ == "__main__":
 
     # test()
 
-    # normalCOBRAS()
+    normalCOBRAS()
 
 
     # make plots
@@ -424,15 +427,20 @@ if __name__ == "__main__":
     #       "experimenten/thesis/Chapter5/small_adition_test", useVariance=False)
 
 
+    # rank([Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_D"),
+    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_4"),
+    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_5"),
+    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_7")], 
+    #       [ "k = 3", "k = 4", "k = 5", "k = 7"], 
+    #       "experimenten/thesis/Chapter5/k_param_kNN_test", useVariance=False)
 
-    rank([Path(f"experimenten/thesis/Chapter5/blob_test/COBRASD++"),
-          Path(f"experimenten/thesis/Chapter5/blob_test/COBRASC++"), 
-          Path(f"experimenten/thesis/Chapter5/blob_test/repres_dynamisch"),
-          Path(f"experimenten/thesis/Chapter5/blob_test/repres_constant"),
-          Path(f"experimenten/thesis/Chapter5/blob_test/merge_dynamisch"),
-          Path(f"experimenten/thesis/Chapter5/blob_test/merge_constant")], 
-          [ "COBRAS D", "COBRAS C", "COBRAS RD","COBRAS RC", "COBRAS MD", "COBRAS MC"], 
-          "experimenten/thesis/Chapter5/blob_test", useVariance=False)
+
+    # rank([Path(f"experimenten/thesis/Chapter5/simple_kNN_test/kNN_D"),
+    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/kNN_C"),
+    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/merge_dynamisch"),
+    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/merge_constant")], 
+    #       [ "COBRAS kNN D", "COBRAS kNN C", "COBRAS D", "COBRAS C"], 
+    #       "experimenten/thesis/Chapter5/simple_kNN_test", useVariance=False)
 
 
 

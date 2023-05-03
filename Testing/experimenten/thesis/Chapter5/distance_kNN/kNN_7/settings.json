@@ -1,0 +1,7 @@
+{
+    "useNewConstraintIndex": true,
+    "mergeBlobs": true,
+    "after": true,
+    "after_k": 7,
+    "after_weights": "distance"
+}
