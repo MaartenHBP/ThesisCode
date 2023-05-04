@@ -137,9 +137,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         after_weights = "uniform",
         afterAmountQueriesAsked = 50,
         afterMetric = False, # standaard geen metriek leren
-        afterLevel = "all",
+        afterLevel = "all", # kan nu ook de waarde combined hebben
         afterSuperInstanceLevel = 0,
-        afterAllOptions = True,
+        afterSuperInstanceLevelDown = True, # het is ook een optie om omhoog te gaan
+        
+        afterAllOptions = True, # wordt (even) OBSOLETE
 
         ####################
         # Constraint_index #
@@ -235,6 +237,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.afterMetric = afterMetric
         self.afterLevel = afterLevel
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
+        self.afterSuperInstanceLevelDown = afterSuperInstanceLevelDown
+
         self.afterAllOptions = afterAllOptions
 
         ####################
@@ -1161,7 +1165,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return [self.clustering.get_superinstances()]
         if level == "cluster": 
             return self.clustering.get_superinstances_per_cluster()
-        if level == "superinstance":
+        if level == "superinstance" and self.afterSuperInstanceLevelDown:
             if superinstanceLevel == 0:
                 return [[x] for x in self.clustering.get_superinstances()]
             
@@ -1176,6 +1180,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             for j in supers:
                 superchilds.append(j.get_leaves())
             return superchilds
+        
+        if level == "superinstance": # level up
+            return [[x] for x in self.clustering.get_superinstances()]
 
                 
         else:
@@ -1319,7 +1326,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels:
 
-            if self.afterAllOptions: # alles mag gebruikt worden
+            if self.afterLevel == "combined": # alles mag gebruikt worden
+                # TODO: nog juist maken
                 indices = []
                 repres = []
                 for superinstance in level:
@@ -1327,29 +1335,50 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         indices.append(idx)
                         if idx in labelled:
                             repres.append(idx)
-                model = KNeighborsClassifier(n_neighbors=self.after_k, weights=self.after_weights)
+                n_neighbors = min(len(repres), self.after_k)
+                model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
+                model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
+                new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
+
+            else: # de standaard optie
+                indices = []
+                repres = []
+                for superinstance in level:
+                    for idx in superinstance.indices:
+                        indices.append(idx)
+                        if idx in labelled:
+                            repres.append(idx)
+                    
+                    # Voor als ze bottum-up werken
+                    if not self.afterSuperInstanceLevelDown and self.afterLevel == "superinstance":
+                        greatparent = superinstance.get_parent(self.afterSuperInstanceLevel)
+                        for idx in greatparent.indices:
+                            if idx in labelled and idx not in superinstance.indices: # extra labels toevoegen
+                                repres.append(idx)
+                n_neighbors = min(len(repres), self.after_k)
+                model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
                 model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
                 new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
 
             # de else wordt momenteel niet gebruikt
-            else:
-                repres = []
-                labelled_instances = []
+            # else:
+            #     repres = []
+            #     labelled_instances = []
                 
-                for superinstance in level:
-                     for idx in superinstance.indices:
-                        if idx in labelled:
-                            repres.append(idx)
-                            if idx != superinstance.representative_idx:
-                                labelled_instances.append(idx)
+            #     for superinstance in level:
+            #          for idx in superinstance.indices:
+            #             if idx in labelled:
+            #                 repres.append(idx)
+            #                 if idx != superinstance.representative_idx:
+            #                     labelled_instances.append(idx)
 
-                labelled_instances.append(0) #is voor de superinstances
-                for superinstance in level:
-                    labelled_instances[-1] = superinstance.representative_idx # dit mag er ook bij
-                    n_neighbors = 3 if len(labelled_instances) > 2 else len(labelled_instances)
-                    model = KNeighborsClassifier(n_neighbors=n_neighbors)
-                    model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
-                    new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
+            #     labelled_instances.append(0) #is voor de superinstances
+            #     for superinstance in level:
+            #         labelled_instances[-1] = superinstance.representative_idx # dit mag er ook bij
+            #         n_neighbors = 3 if len(labelled_instances) > 2 else len(labelled_instances)
+            #         model = KNeighborsClassifier(n_neighbors=n_neighbors)
+            #         model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
+            #         new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
 
         new[np.array(labelled)] = clust[np.array(labelled)] # die zijn geweten en moeten zo blijven
         return new, self.clustering.get_superinstances()

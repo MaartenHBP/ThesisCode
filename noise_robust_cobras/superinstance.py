@@ -42,6 +42,12 @@ class SuperInstance:
             return [self]
         else:
             return self.children
+        
+    def get_parent(self, depth):
+        if depth == 0 or self.parent is None:
+            return self
+        else:
+            return self.get_parent(depth - 1)
 
 
     def get_leaves(self):

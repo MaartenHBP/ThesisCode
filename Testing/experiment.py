@@ -158,12 +158,15 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_7").absolute()
+    path = Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_1").absolute()
     run({ "useNewConstraintIndex" : True,
         "mergeBlobs" : True,
         "after" : True,
-        "after_k": 7,
-        "after_weights": 'distance'
+        "after_k": 3,
+        "after_weights": 'distance',
+        "afterLevel": 'superinstance',
+        "afterSuperInstanceLevel": 1,
+        "afterSuperInstanceLevelDown": False
         }, path)
 
 
@@ -413,11 +416,16 @@ if __name__ == "__main__":
 
     # test()
 
-    normalCOBRAS()
+    # normalCOBRAS()
 
 
     # make plots
     # doAll(Path(f"experimenten/splitlevel4").absolute())
+
+
+    #############
+    # Chapter 5 #
+    #############
 
     # rank([Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD"),
     #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD++"),
@@ -426,6 +434,7 @@ if __name__ == "__main__":
     #       [ "COBRAS ", "COBRAS ++", "COBRAS C", "COBRAS C++"], 
     #       "experimenten/thesis/Chapter5/small_adition_test", useVariance=False)
 
+    # kNN #
 
     # rank([Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_D"),
     #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_4"),
@@ -441,6 +450,49 @@ if __name__ == "__main__":
     #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/merge_constant")], 
     #       [ "COBRAS kNN D", "COBRAS kNN C", "COBRAS D", "COBRAS C"], 
     #       "experimenten/thesis/Chapter5/simple_kNN_test", useVariance=False)
+    
+
+    # rank([Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_3"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_3_C"),
+    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_4"),
+    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_5"),
+    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_7"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/merge_dynamisch"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/merge_constant")], 
+    #       [ "COBRAS kNN D" , "COBRAS kNN C" , "COBRAS D", "COBRAS C"], 
+    #       "experimenten/thesis/Chapter5/distance_kNN", useVariance=False)
+
+    # rank([Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_3"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_4"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_5"),
+    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_7")], 
+    #       [ "k = 3" , "k = 4" , "k = 5", "k = 7"], 
+    #       "experimenten/thesis/Chapter5/distance_kNN_param", useVariance=False)
+
+
+    # ClusterLevel
+    # rank([Path(f"experimenten/thesis/Chapter5/knn_cluster_level/kNN_3"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/kNN_3_cluster"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/merge_dynamisch"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/merge_constant")], 
+    #       [ "COBRAS kNN", "COBRAS kNN Cluster", "COBRAS D", "COBRAS C"], 
+    #       "experimenten/thesis/Chapter5/knn_cluster_level", useVariance=False)
+
+    # Superinstance down
+    # rank([Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_1"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_2"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_3"),
+    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_4")], 
+    #       [ "COBRAS kNN", "COBRAS kNN Diepte1", "COBRAS kNN Diepte2", "COBRAS kNN Diepte3", "COBRAS kNN Diepte4"], 
+    #       "experimenten/thesis/Chapter5/knn_superinstanceDown_level", useVariance=False)
+
+    # Superinstance Up
+    rank([Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3"),
+          Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_0"),
+          Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_1")], 
+          [ "COBRAS kNN", "COBRAS kNN Diepte0", "COBRAS kNN Diepte1"], 
+          "experimenten/thesis/Chapter5/knn_superinstanceUp_level", useVariance=False)
 
 
 
