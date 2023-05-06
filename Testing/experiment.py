@@ -106,46 +106,31 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "sonar"
-    # args = {
-    #     "rebuildPhase": True, 
-    #     "rebuildLevel": "all", 
-    #     "rebuildAmountQueriesAsked" : 150,
-    #     "rebuildMetric": False,
-    #     "rebuilder": ClosestVote}
+    dataset = "spambase"
 
-    # args = {
-    # "metricAmountQueriesAsked": 100,
-    # "learnAMetric": True
-    # }
+    args = { "useNewConstraintIndex" : True,
+        "mergeBlobs" : True,
+        "after" : True,
+        "after_k": 3,
+        "after_weights": 'distance',
+        "afterMetric": True
+        # "afterLevel": 'superinstance',
+        # "afterSuperInstanceLevel": 3,
+        # "afterSuperInstanceLevelDown": False
+        }
 
-    args = {
-        "useNewConstraintIndex": True
-    }
-    # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True, "rebuildPhase": True, "rebuildLevel": "superinstance", "rebuilder" : SemiCluster,
-    #     "rebuildAmountQueriesAsked" : 100, "rebuildMetric":True, "rebuildSuperInstanceLevel": 3}), label = "test_metric")
-    # plt.plot(runCOBRAS(55, dataset, {
-    #     "keepSupervised":True, 
-    #     "rebuildPhase": True, 
-    #     "rebuildLevel": "superinstace", 
-    #     "rebuilder" : SemiCluster,
-    #     "rebuildAmountQueriesAsked" : 75, 
-    #     "rebuildMetric":False, 
-    #     "rebuildSuperInstanceLevel": 3,
-    #     "rebuildPartition": True,
-    #     "rebuildPartitionDecider": "vote"}), label = "test")
-    # plt.plot(runCOBRAS(55, dataset, {"keepSupervised":True}), label = "COBRAS")
-
-    # plt.legend()
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(20, dataset, args), label = "test")
+    plt.plot(runCOBRAS(20, dataset, args), label = "test_metric")
     print("next")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
-    plt.plot(runCOBRAS(20, dataset, {"keepSupervised":True}), label = "COBRASLabels")
-    # print("next")
+    plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
+    print("next")
+
+    args["afterMetric"] = False
+    plt.plot(runCOBRAS(20, dataset, args), label = "test")
     # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
     plt.legend()
@@ -158,15 +143,16 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_1").absolute()
+    path = Path(f"experimenten/thesis/posterevent/kNN_metric_NCA").absolute()
     run({ "useNewConstraintIndex" : True,
         "mergeBlobs" : True,
         "after" : True,
         "after_k": 3,
-        "after_weights": 'distance',
-        "afterLevel": 'superinstance',
-        "afterSuperInstanceLevel": 1,
-        "afterSuperInstanceLevelDown": False
+        # "after_weights": 'distance',
+        "afterMetric": True
+        # "afterLevel": 'superinstance',
+        # "afterSuperInstanceLevel": 3,
+        # "afterSuperInstanceLevelDown": False
         }, path)
 
 
@@ -223,7 +209,7 @@ def run(args, path):
 
 def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
     test = loadDict(path, "total")
-    cobras = loadDict(PATH_COBRAS, "total")
+    cobras = loadDict("experimenten/thesis/posterevent/kNN_3", "total")
     
     cobraspd = pd.DataFrame()
     testpd = pd.DataFrame()
@@ -260,7 +246,7 @@ def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en 
 
 def makeDifferencePlot(path, name_algo = ""):
     test = loadDict(path, "total")
-    cobras = loadDict(PATH_COBRAS, "total")
+    cobras = loadDict("experimenten/thesis/posterevent/kNN_3", "total")
     
     total = np.zeros(200)
 
@@ -416,11 +402,11 @@ if __name__ == "__main__":
 
     # test()
 
-    # normalCOBRAS()
+    normalCOBRAS()
 
 
     # make plots
-    # doAll(Path(f"experimenten/splitlevel4").absolute())
+    # doAll(Path(f"experimenten/thesis/posterevent/kNN_metric").absolute())
 
 
     #############
@@ -487,12 +473,30 @@ if __name__ == "__main__":
     #       [ "COBRAS kNN", "COBRAS kNN Diepte1", "COBRAS kNN Diepte2", "COBRAS kNN Diepte3", "COBRAS kNN Diepte4"], 
     #       "experimenten/thesis/Chapter5/knn_superinstanceDown_level", useVariance=False)
 
-    # Superinstance Up
-    rank([Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3"),
-          Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_0"),
-          Path(f"experimenten/thesis/Chapter5/knn_superinstanceUp_level/kNN_3_up_1")], 
-          [ "COBRAS kNN", "COBRAS kNN Diepte0", "COBRAS kNN Diepte1"], 
-          "experimenten/thesis/Chapter5/knn_superinstanceUp_level", useVariance=False)
+    # Verfiningen
+    # rank([Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3"),
+    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_0"),
+    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_1"),
+    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_2"),
+    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_3"),
+    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_cluster")], 
+    #       [ "COBRAS kNN", "COBRAS kNN Diepte0", "COBRAS kNN Diepte1", "COBRAS kNN Diepte2", "COBRAS kNN Diepte3", "COBRAS kNN Cluster"], 
+    #       "experimenten/thesis/Chapter5/verfijningen", useVariance=False)
+
+
+    ################
+    # Poster event #
+    ################
+    # rank([Path(f"experimenten/thesis/posterevent/merge_dynamisch"),
+    #       Path(f"experimenten/thesis/posterevent/kNN_3"),
+    #       Path(f"experimenten/thesis/posterevent/kNN_metric")], 
+    #       [ "COBRAS", "COBRAS kNN", "COBRAS kNN metriek"], 
+    #       "experimenten/thesis/posterevent", useVariance=False)
+
+
+
+
+
 
 
 
