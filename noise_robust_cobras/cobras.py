@@ -18,6 +18,7 @@ from noise_robust_cobras.clustering_algorithms.clustering_algorithms import (
 from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
     SemiCluster,
     ClosestRebuild,
+    ClosestVote,
     Rebuilder
 )
 from sklearn.cluster import KMeans
@@ -105,7 +106,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         ###########
         # Rebuild #
-        ###########
+        ########### -> TODO: nog een optie waar enkel de reres mogen gebruikt worden
         rebuildPhase = False,
         rebuildLevel = "all", # different levels are all, cluster, superinstance
         # pas belangrijk als er voor verfijningslevel superinstance is gekozen
@@ -113,7 +114,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         rebuildAmountQueriesAsked = 50, # vanaf hoeveel queries gevraagd voeren we dit uit  
 
-        rebuilder = SemiCluster,
+        rebuilder = 'Closest',
         rebuildAllOptions = True, # alle gelabellde instances binnen en verfijning mogen worden gebruikt
 
         rebuildMetric = False,
@@ -141,7 +142,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         afterSuperInstanceLevel = 0,
         afterSuperInstanceLevelDown = True, # het is ook een optie om omhoog te gaan
         
-        afterAllOptions = True, # wordt (even) OBSOLETE
+        afterAllOptions = True, # OBSOLETE
 
         ####################
         # Constraint_index #
@@ -212,8 +213,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
 
-        self.rebuilder: Rebuilder = rebuilder()
-        self.rebuildAllOptions = rebuildAllOptions
+        self.rebuilder = rebuilder
+        self.rebuildAllOptions = rebuildAllOptions # alleen nuttig als we met closest repres werken
 
         self.rebuildMetric = rebuildMetric
         self.rebuilderKeepTransformed = rebuilderKeepTransformed
@@ -239,7 +240,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.afterMetric = afterMetric
         self.afterLevel = afterLevel
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
-        self.afterSuperInstanceLevelDown = afterSuperInstanceLevelDown
+        self.afterSuperInstanceLevelDown = afterSuperInstanceLevelDown # gaat bij rebuild standaard op false staan
 
         self.afterAllOptions = afterAllOptions
 
@@ -403,10 +404,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             # self.learnMetricDuring()
             # if self.querier.query_limit_reached():
             #     break
-            # # rebuild phase, vraagt constraints
-            # self.rebuild() # dit past de clustering potentieel aan
-            # if self.querier.query_limit_reached():
-            #     break
+            # rebuild phase, vraagt constraints
+            self.rebuild() # dit past de clustering potentieel aan
+            if self.querier.query_limit_reached():
+                break
 
             # during this iteration store the current clustering
             a, b = self.after() # after vraagt constraints wrs
@@ -1232,7 +1233,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         
     ##########
     # During # 
-    ########## TODO: nog in de code zetten
+    ########## 
     def learnMetricDuring(self):
         if self.learnAMetric and len(self._cobras_log.all_user_constraints) >= self.metricAmountQueriesAsked:
             self.data = self.learnMetric()
@@ -1257,7 +1258,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         data = self.learnMetric() if self.rebuildMetric else self.data
 
-        rebuilder = ClosestRebuild()
+        rebuilder = ClosestRebuild() 
+
+        if self.rebuilder == "Vote" and self.rebuildAllOptions:
+            rebuilder = ClosestVote()
+            
         
         if self.rebuilderKeepTransformed: # werk later verder met deze transformatie
             self.data = data
@@ -1275,9 +1280,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         if idx in labelled:
                             repres.append(idx)
 
-                labels_repres = self.rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)]) 
+                labels_repres = rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)]) 
 
-            else: # nu moet het per superinsatance worden gedaan
+            else: # nu moet het per superinstance worden gedaan
                 indices = []
                 repres = [] # alles waar rond kan gebouwd worden
                 labelled_instances = [] # hier kan sws alles naartoe
@@ -1342,7 +1347,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels:
 
-            if self.afterLevel == "combined": # alles mag gebruikt worden
+            if self.afterLevel == "combined": # OBSOLETE
                 # TODO: nog juist maken
                 indices = []
                 repres = []
@@ -1356,7 +1361,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
                 new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
 
-            else: # de standaard optie
+            else: # DE STANDAARD OPTIE
                 indices = []
                 repres = []
                 for superinstance in level:

@@ -46,7 +46,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
 nbRUNS = 100
-ARGUMENTS = range(10) # TODO terug naar 100 veranderen
+ARGUMENTS = range(10) # werken nu maar met 10 seeds
 SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
@@ -143,12 +143,17 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/posterevent/COBRAS").absolute()
+    path = Path(f"experimenten/thesis/Chapter_rebuild/closest/100").absolute()
     run({ "useNewConstraintIndex" : True,
-        # "mergeBlobs" : True,
+        "mergeBlobs" : True,
+        "rebuildPhase": True,
+        "rebuildAmountQueriesAsked" : 100,
+        "rebuildAllOptions": False,
+        "rebuilder" : 'Closest'
+
         # "after" : True,
-        "after_k": 3,
-        "after_weights": 'distance',
+        # "after_k": 3,
+        # "after_weights": 'distance',
         # "afterMetric": True
         # "afterLevel": 'superinstance',
         # "afterSuperInstanceLevel": 3,
@@ -348,7 +353,7 @@ def rank(paths, names, location, useVariance = False):
         
     all_results.plot(xlabel="#queries", ylabel="Aligned rank")
     # plt.show()
-    plt.savefig(f"{location}/rank.png")
+    plt.savefig(f"{location}/rank.png", dpi = 600)
 
 
 ####################
@@ -404,7 +409,7 @@ if __name__ == "__main__":
 
     # test()
 
-    # normalCOBRAS()
+    normalCOBRAS()
 
 
     # make plots
@@ -489,12 +494,12 @@ if __name__ == "__main__":
     ################
     # Poster event #
     ################
-    rank([Path(f"experimenten/thesis/posterevent/COBRAS++"),
-          Path(f"experimenten/thesis/posterevent/kNN"),
-          Path(f"experimenten/thesis/posterevent/kNN_KLMNN"),
-          Path(f"experimenten/thesis/posterevent/COBRAS")], 
-          ["COBRAS", "COBRAS kNN", "COBRAS kNN  KLMNN", "COBRAS++"], 
-          "experimenten/thesis/posterevent", useVariance=False)
+    # rank([Path(f"experimenten/thesis/posterevent/COBRAS++"),
+    #       Path(f"experimenten/thesis/posterevent/kNN"),
+    #       Path(f"experimenten/thesis/posterevent/kNN_KLMNN"),
+    #       Path(f"experimenten/thesis/posterevent/COBRAS")], 
+    #       ["COBRAS", "COBRAS kNN", "COBRAS kNN  KLMNN", "COBRAS++"], 
+    #       "experimenten/thesis/posterevent", useVariance=False)
 
 
 

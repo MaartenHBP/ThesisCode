@@ -30,7 +30,7 @@ class ClosestRebuild(Rebuilder):
         #         labels[indi_super == repres[i]] = i
         # return labels
     
-class SemiCluster(Rebuilder):
+class SemiCluster(Rebuilder): # gebruiken we momenteel niet
     def rebuild(self, repres, indices, data, represLabels): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
         # the inital centers
         centers = data[np.copy(repres)] # voor bestaande repres kan dit in theorie met de echte center (?)
@@ -85,7 +85,7 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
         k = 3
         if len(repres) < k:
             k = len(repres)
-        model = KNeighborsClassifier(n_neighbors=k)
+        model = KNeighborsClassifier(n_neighbors=k, weights='distance')
         model.fit(data[np.array(repres)], represLabels)
 
         predicted_label = model.predict(data[np.array(indices)])
