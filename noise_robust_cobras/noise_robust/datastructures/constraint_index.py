@@ -147,17 +147,7 @@ class ConstraintBlobs: # blobs zijn sets
 
             return np.array(labelled), clust, finished
         
-        # else: # TODO COBRAS met de nieuwe manier
-        #     clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
-        #     r = set([s.get_representative_idx() for s in repres])
-
-        #     i = len(np.unique(clust))
-
-        #     labelled = list(self.blobs.keys())
-
-        #     return np.array(labelled), clust, False
-
-        else:
+        else: # TODO COBRAS met de nieuwe manier
             clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
             r = set([s.get_representative_idx() for s in repres])
 
@@ -165,16 +155,26 @@ class ConstraintBlobs: # blobs zijn sets
 
             labelled = list(self.blobs.keys())
 
-            for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
-                if blob & r:
-                    clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
-                # else:, dit kan nu niet worden gedaan
-                #     clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
-                #     i += 1
-
-
-
             return np.array(labelled), clust, False
+
+        # else:
+        #     clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
+        #     r = set([s.get_representative_idx() for s in repres])
+
+        #     i = len(np.unique(clust))
+
+        #     labelled = list(self.blobs.keys())
+
+        #     for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
+        #         if blob & r:
+        #             clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
+        #         # else:, dit kan nu niet worden gedaan
+        #         #     clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
+        #         #     i += 1
+
+
+
+        #     return np.array(labelled), clust, False
 
 
     

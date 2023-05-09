@@ -46,7 +46,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
 nbRUNS = 100
-ARGUMENTS = range(100)
+ARGUMENTS = range(10) # TODO terug naar 100 veranderen
 SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
@@ -106,7 +106,7 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "spambase"
+    dataset = "glass"
 
     args = { "useNewConstraintIndex" : True,
         "mergeBlobs" : True,
@@ -122,15 +122,15 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(20, dataset, args), label = "test_metric")
+    plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     print("next")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
-    plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
-    print("next")
+    # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
+    # print("next")
 
     args["afterMetric"] = False
-    plt.plot(runCOBRAS(20, dataset, args), label = "test")
+    plt.plot(runCOBRAS(16, dataset, args), label = "normal")
     # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
     plt.legend()
@@ -143,13 +143,13 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/posterevent/kNN_metric_NCA").absolute()
+    path = Path(f"experimenten/thesis/posterevent/COBRAS").absolute()
     run({ "useNewConstraintIndex" : True,
-        "mergeBlobs" : True,
-        "after" : True,
+        # "mergeBlobs" : True,
+        # "after" : True,
         "after_k": 3,
-        # "after_weights": 'distance',
-        "afterMetric": True
+        "after_weights": 'distance',
+        # "afterMetric": True
         # "afterLevel": 'superinstance',
         # "afterSuperInstanceLevel": 3,
         # "afterSuperInstanceLevelDown": False
@@ -317,9 +317,11 @@ def rank(paths, names, location, useVariance = False):
             plt.savefig(f"{location}/variance_{names[i]}.png")
             plt.clf()
 
-    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
+    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85), legend=False) # TODO: legend nog uitzetten
 
-    plt.savefig(f"{location}/ARI.png")
+    plt.savefig(f"{location}/ARI.png", dpi = 600)
+
+    # plt.show()
 
     plt.clf()
 
@@ -402,7 +404,7 @@ if __name__ == "__main__":
 
     # test()
 
-    normalCOBRAS()
+    # normalCOBRAS()
 
 
     # make plots
@@ -487,11 +489,12 @@ if __name__ == "__main__":
     ################
     # Poster event #
     ################
-    # rank([Path(f"experimenten/thesis/posterevent/merge_dynamisch"),
-    #       Path(f"experimenten/thesis/posterevent/kNN_3"),
-    #       Path(f"experimenten/thesis/posterevent/kNN_metric")], 
-    #       [ "COBRAS", "COBRAS kNN", "COBRAS kNN metriek"], 
-    #       "experimenten/thesis/posterevent", useVariance=False)
+    rank([Path(f"experimenten/thesis/posterevent/COBRAS++"),
+          Path(f"experimenten/thesis/posterevent/kNN"),
+          Path(f"experimenten/thesis/posterevent/kNN_KLMNN"),
+          Path(f"experimenten/thesis/posterevent/COBRAS")], 
+          ["COBRAS", "COBRAS kNN", "COBRAS kNN  KLMNN", "COBRAS++"], 
+          "experimenten/thesis/posterevent", useVariance=False)
 
 
 

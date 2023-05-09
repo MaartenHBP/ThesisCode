@@ -185,7 +185,7 @@ class KLMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = KLMNN(kernel = "rbf")
+        self.fitted = KLMNN(kernel = "laplacian")
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 

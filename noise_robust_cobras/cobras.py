@@ -1142,29 +1142,33 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
     def learnMetric(self): # TODO: dit nog nakijken
 
-        if (len(self._cobras_log.all_user_constraints) >= 25*self.metricCounter + 50):
-            # print(self.metricCounter)
-            # print(len(self._cobras_log.all_user_constraints))
-            # print("==========")  
-            self.metricCounter += 1
-            levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
-            data = np.copy(self.data)
+        
+        # print(self.metricCounter)
+        # print(len(self._cobras_log.all_user_constraints))
+        # print("==========")  
+        levels = self.getFinegrainedLevel(self.metricLevel, self.metricSuperInstanceLevel)
+        data = np.copy(self.data)
 
-            labelled, clust, finished = self.constraint_index_advanced.cluster(self)
+        labelled, clust, finished = self.constraint_index_advanced.cluster(self)
 
-            if finished: # tis gedaan, het boeit ni meer
-                return data
+        if(len(labelled) == self.metricCounter):
+            return self.learedMetric
+        
+        self.metricCounter = len(labelled)
 
-            for level in levels:
-                indices = []
-                repres = []
-                for superinstance in level:
-                    for idx in superinstance.indices:
-                        indices.append(idx)
-                        if idx in labelled:
-                            repres.append(idx)
-                data[np.array(indices)] = NCA_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)] # ff een poging ondernemen
-            self.learedMetric = np.copy(data)
+        if finished: # tis gedaan, het boeit ni meer
+            return data
+
+        for level in levels:
+            indices = []
+            repres = []
+            for superinstance in level:
+                for idx in superinstance.indices:
+                    indices.append(idx)
+                    if idx in labelled:
+                        repres.append(idx)
+            data[np.array(indices)] = KLMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)] # ff een poging ondernemen
+        self.learedMetric = np.copy(data)
         return self.learedMetric
 
 

@@ -1,0 +1,5 @@
+{
+    "useNewConstraintIndex": true,
+    "after_k": 3,
+    "after_weights": "distance"
+}
