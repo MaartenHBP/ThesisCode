@@ -146,18 +146,8 @@ class ConstraintBlobs: # blobs zijn sets
 
 
             return np.array(labelled), clust, finished
-        
-        # else: # TODO COBRAS met de nieuwe manier
-        #     clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
-        #     r = set([s.get_representative_idx() for s in repres])
 
-        #     i = len(np.unique(clust))
-
-        #     labelled = list(self.blobs.keys())
-
-        #     return np.array(labelled), clust, False
-
-        else:
+        elif cobras.represBlobs:
             clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
             r = set([s.get_representative_idx() for s in repres])
 
@@ -173,6 +163,16 @@ class ConstraintBlobs: # blobs zijn sets
                 #     i += 1
 
 
+
+            return np.array(labelled), clust, False
+        
+        else:
+            clust, repres = np.array(cobras.clustering.construct_cluster_labeling()), cobras.clustering.get_superinstances() # representatieven als set opslaan
+            r = set([s.get_representative_idx() for s in repres])
+
+            i = len(np.unique(clust))
+
+            labelled = list(self.blobs.keys())
 
             return np.array(labelled), clust, False
 

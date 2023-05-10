@@ -25,6 +25,7 @@ from sklearn.cluster import KMeans
 from noise_robust_cobras.cobras_logger import ClusteringLogger
 from noise_robust_cobras.strategies.splitlevel_estimation import (
     StandardSplitLevelEstimationStrategy,
+    ConstantSplitLevelEstimationStrategy
 )
 from noise_robust_cobras.strategies.superinstance_selection import (
     SuperinstanceSelectionHeuristic,
@@ -61,7 +62,7 @@ class SplitResult(Enum):
 
 class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een random getal te genereren
     certainty_constraint_set: NewCertaintyConstraintSet
-    clustering: Union[Clustering, None] # aha met die union (kan ook nuttig zijn voor bepaalde string opties TODO
+    clustering: Union[Clustering, None]
 
     def __init__(
         self,
@@ -74,6 +75,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         superinstance_builder: SuperInstanceBuilder = KMeans_SuperinstanceBuilder(),
         split_superinstance_selection_heur: SuperinstanceSelectionHeuristic = None,
         splitlevel_strategy=None,
+        splitlevelInt = 4,
         noise_probability=0.10,
         minimum_approximation_order=2,
         maximum_approximation_order=3,
@@ -85,8 +87,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        metricLearner = None, # wordt momenteel niet gebruikt OBSOLETE
+        metricLearner = None, # wordt terug gebruikt
         metricLearer_arguments = {},
+
         metricLevel = "all",
         metricSuperInstanceLevel = 0,
 
@@ -101,23 +104,20 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # Initial #
         ###########
         initial = False,
-        initialSupervised = 0, # is een percentage
-        initialSemisupervised = 0, # OBSOLETE
-        initialRandom = True, # if false and supervised, gebruik supervised info na initialsemisupervised constraints
+        initialSupervised = 0, 
+        initialRandom = True, 
 
         ###########
         # Rebuild #
-        ########### -> TODO: nog een optie waar enkel de reres mogen gebruikt worden
+        ########### 
         rebuildPhase = False,
+        rebuildAmountQueriesAsked = 50,
         rebuildInterval = 0,
-        rebuildLevel = "all", # different levels are all, cluster, superinstance
-        # pas belangrijk als er voor verfijningslevel superinstance is gekozen
+
+        rebuildLevel = "all", 
         rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
 
-        rebuildAmountQueriesAsked = 50, # vanaf hoeveel queries gevraagd voeren we dit uit  
-
         rebuilder = 'Closest',
-        rebuildAllOptions = True, # Dit gaat obsolete worden because makes zero zenseeeeee
 
         rebuildMetric = False,
         rebuilderKeepTransformed = False,
@@ -125,11 +125,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         # After #
         #########
-        keepSupervised = False, # deze nu standaard op false, want OBSOLETE
         after = False,
+        afterAmountQueriesAsked = 50,
+
         after_k = 3,
         after_weights = "uniform",
-        afterAmountQueriesAsked = 50,
         
         afterMetric = False, # standaard geen metriek leren
         afterKeepTransformed = False, # werken we met deze metriek verder
@@ -138,37 +138,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         afterSuperInstanceLevel = 0,
 
 
-        
-        afterSuperInstanceLevelDown = False, # Obsolete
-
-
-
-
-        # partition: OBSOLETE #############
-        rebuildPartition = False,
-        rebuildPartitionDecider = "all", # verschillede manieren om kleine deeltjes te verplaatsen, all, repres, vote
-        rebuildPartitionUseTransformed = False,
-        rebuildPartitionLevel = 4,
-        
-        afterAllOptions = True, # OBSOLETE
-
         ####################
         # Constraint_index #
         ####################
         useNewConstraintIndex = False,
         mergeBlobs = False, # dit is voor wanneer er niet gemerged wordt op het niveau
-
-        # metric: MetricLearningAlgorithm = EuclidianDistance, # gaan ervanuit dat de caller deze classes al heet initilised
-        # metric_parameters = {},
-        # rebuilder: InstanceRebuilder = None,
-        # rebuilder_parameters = {},
-        # baseline = False,
-
-        # ###########
-        # # Logging #
-        # ########### -> TODO
-
-        # logExtraInfo = False
+        represBlobs = False, # enkel de repres
 
 
     ):
@@ -209,66 +184,45 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###########
         self.initial = initial
         self.initialSupervised = initialSupervised # is een percentage
-        self.initialSemisupervised = initialSemisupervised
         self.initialRandom = initialRandom
 
         ###########
         # Rebuild #
         ###########
         self.rebuildPhase = rebuildPhase
+        self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
         self.rebuildInterval = rebuildInterval
-        self.rebuildLevel = rebuildLevel # different levels are all, cluster, superinstance
-        # pas belangrijk als er voor verfijningslevel superinstance is gekozen
+        
+        self.rebuildLevel = rebuildLevel 
         self.rebuildSuperInstanceLevel = rebuildSuperInstanceLevel # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
 
-        self.rebuildAmountQueriesAsked = rebuildAmountQueriesAsked # vanaf hoeveel queries gevraagd voeren we dit uit 
-
         self.rebuilder = rebuilder
-        self.rebuildAllOptions = rebuildAllOptions # alleen nuttig als we met closest repres werken
 
         self.rebuildMetric = rebuildMetric
         self.rebuilderKeepTransformed = rebuilderKeepTransformed
         
-        
-        
-
-
-        # OBSOLETE
-        self.rebuildPartition = rebuildPartition
-        self.rebuildPartitionDecider = rebuildPartitionDecider
-        self.rebuildPartitionUseTransformed = rebuildPartitionUseTransformed
-        self.rebuildPartitionLevel = rebuildPartitionLevel
 
         #########
         # After #
         #########
         self.doAfter = after
+        self.afterAmountQueriesAsked = afterAmountQueriesAsked
+
         self.after_k = after_k
         self.after_weights = after_weights
-        self.keepSupervised = keepSupervised
-        self.afterAmountQueriesAsked = afterAmountQueriesAsked
 
         self.afterMetric = afterMetric
         self.afterKeepTransformed = afterKeepTransformed
 
         self.afterLevel = afterLevel
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
-        self.afterSuperInstanceLevelDown = afterSuperInstanceLevelDown # gaat bij rebuild standaard op false staan
-
-        self.afterAllOptions = afterAllOptions
 
         ####################
         # Constraint_index #
         ####################
         self.useNewConstraintIndex = useNewConstraintIndex
         self.mergeBlobs = mergeBlobs
-
-
-        ###################
-        # METRIC LEARNING #
-        ###################
-        # logging
-        # self.logExtraInfo = logExtraInfo # wordt momenteel niet gebruikt, nog niet mooi gefixt gekregen TODO
+        self.represBlobs = represBlobs
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -282,7 +236,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             LeastInstancesSelectionHeuristic()
         )
         else:
-            self.splitlevel_strategy = splitlevel_strategy
+            if splitlevel_strategy == "constant":
+                self.splitlevel_strategy = ConstantSplitLevelEstimationStrategy(splitlevelInt)
+            else:
+                self.splitlevel_strategy = splitlevel_strategy
 
         # variables used during execution
         self.clustering_to_store = None
@@ -318,45 +275,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     @property
     def clustering_logger(self):
         return self._cobras_log   
-    
-
-    def tokenFit(self, X, nb_clusters, train_indices, querier): # OBSSOLETE
-        self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
-        self._cobras_log.log_start_clustering()
-        self.data = X
-
-
-        self.train_indices = (
-            train_indices if train_indices is not None else range(len(X)) # hier worden enkel queries van gevraagd
-        )
-        self.split_superinstance_selection_heur.set_clusterer(self) # nadenken over dit design
-        self.splitlevel_strategy.set_clusterer(self)
-        self.querier = querier
-
-        # self.initialData = np.copy(X) -> not needed anymore
-
-        # initial clustering: all instances in one superinstance in one cluster
-        initial_superinstance = self.create_superinstance(
-            list(range(self.data.shape[0]))
-        )
-        initial_clustering = Clustering([Cluster([initial_superinstance])])
-        self.clustering = initial_clustering
-
-        # ### SUPERINSTANCES ### -> deze logger nog fixen -> nog volgens de juiste manier maken
-        # self._cobras_log.addSuperinstances(self.clustering.construct_superinstance_labeling())
-        # self._cobras_log.addClus(np.copy(self.clustering.construct_cluster_labeling()))
-
-        # last valid clustering keeps the last completely merged clustering
-        last_valid_clustering = None
-
-
-
-
-        # during this iteration store the current clustering
-        self._cobras_log.update_clustering_to_store(*self.after(), self.keepSupervised)
-        self.clustering_to_store = self.clustering.construct_cluster_labeling()
-
-
 
     def fit(self, X, nb_clusters, train_indices, querier):
         """
@@ -413,20 +331,21 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         while not self.querier.query_limit_reached():
             
-            # adapt metric phase, vraagt constraints -> dit kan mss ook net voor een splitfase na het bepalen van splitlevel om die informatie er al bij te nemen
-            # self.learnMetricDuring()
-            # if self.querier.query_limit_reached():
-            #     break
-            # rebuild phase, vraagt constraints
-            self.rebuild() # dit past de clustering potentieel aan
+            # adapt metric phase
+            self.learnMetricDuring()
             if self.querier.query_limit_reached():
                 break
 
-            # during this iteration store the current clustering
-            a, b = self.after() # after vraagt constraints wrs
+            # rebuild phase
+            self.rebuild() 
             if self.querier.query_limit_reached():
                 break
-            self._cobras_log.update_clustering_to_store(a, b, self.keepSupervised) # das hier nog een artifact
+
+            # during this iteration store the current clustering + after
+            a, b = self.after()
+            if self.querier.query_limit_reached():
+                break
+            self._cobras_log.update_clustering_to_store(a, b) # das hier nog een artifact
             self.clustering_to_store = self.clustering.construct_cluster_labeling()
 
             
@@ -474,7 +393,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 a, b = self.after()
                 if self.querier.query_limit_reached():
                     break
-                self._cobras_log.update_last_intermediate_result(a, b, self.keepSupervised) # een artifact
+                self._cobras_log.update_last_intermediate_result(a, b) # a is op zich de belangrijkste, b dient voor als er plots moeten zijn
 
             # fill in the last_valid_clustering whenever appropriate
             # after initialisation or after that the current clustering is fully merged
@@ -938,7 +857,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             si1.representative_idx, si2.representative_idx
         )
 
-    def check_constraint_reuse_between_instances(self, i1, i2): # TODO aanpassen
+    def check_constraint_reuse_between_instances(self, i1, i2):
         """
             Checks whether or not there is a known constraint between the instances i1 and i2
             if there is return this constraint otherwise return NOne
@@ -1043,8 +962,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     ##################
 
     def learnMetric(self):
-
-        
         # print(self.metricCounter)
         # print(len(self._cobras_log.all_user_constraints))
         # print("==========")  
@@ -1083,21 +1000,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             return [self.clustering.get_superinstances()]
         if level == "cluster": 
             return self.clustering.get_superinstances_per_cluster()
-        # if level == "superinstance" and self.afterSuperInstanceLevelDown:
-        #     if superinstanceLevel == 0:
-        #         return [[x] for x in self.clustering.get_superinstances()]
-            
-        #     supers = [self.clustering.get_superinstances()[0].get_root()]
-        #     for i in range(superinstanceLevel):
-        #         new = []
-        #         for s in supers:
-        #             new.extend(s.get_childeren())
-        #         supers = new
-            
-        #     superchilds = []
-        #     for j in supers:
-        #         superchilds.append(j.get_leaves())
-        #     return superchilds
         
         if level == "superinstance": # level up, wordt de standaard
             if superinstanceLevel == 0:
@@ -1128,22 +1030,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def initial_transform(self):
         if not self.initial:
             return
-        pairs = None
+        pairs = None # is hier nog voor legacy reasons
         y = None
         points = None
         labels = None
 
         if self.initialRandom:  
-            pairs, y = self.querier.getRandomConstraints(self.initialSemisupervised, self.seed)
             points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)), self.seed)
         else:
-            querier = self.querier.createCopy(self.initialSemisupervised) # hier is het een absoluut aantal
+            querier = self.querier.createCopy(self.initialSupervised)
             clusterer = COBRAS(correct_noise=False, seed=self.seed)
             clusterer.fit(np.copy(self.data), -1, None, querier)
 
-            pairs, y = clusterer.constraint_index.getLearningConstraints()
-
-            points, clust, finished = self.constraint_index_advanced.cluster(self) # hopelijk is finished False, anders wel ja boeieeeuh
+            points, clust, finished = self.constraint_index_advanced.cluster(self) # TODO
             labels = clust[points]
             
         self.data = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
@@ -1178,12 +1077,12 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         data = self.learnMetric() if self.rebuildMetric else self.data
 
-        rebuilder = ClosestRebuild() 
+        rebuilder = ClosestRebuild() # 3 opties voor rebuilder
 
-        if self.rebuilder == "Vote" and self.rebuildAllOptions:
+        if self.rebuilder == "Vote":
             rebuilder = ClosestVote()
 
-        if self.rebuilder == "SemiCluster" and self.rebuildAllOptions:
+        if self.rebuilder == "SemiCluster":
             rebuilder = SemiCluster()
             
         
@@ -1192,45 +1091,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels: 
 
-            if self.rebuildAllOptions:
-            # nu begint het echte werk
-                indices = []
-                repres = []
+            indices = []
+            repres = []
 
-                for superinstance in level:
-                    for idx in superinstance.indices:
-                        indices.append(idx)
-                        if idx in labelled:
-                            repres.append(idx)
+            for superinstance in level:
+                for idx in superinstance.indices:
+                    indices.append(idx)
+                    if idx in labelled:
+                        repres.append(idx)
 
-                labels_repres = rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)]) 
-
-
-            else: # nu moet het per superinstance worden gedaan
-                indices = []
-                repres = [] # alles waar rond kan gebouwd worden
-                labelled_instances = [] # hier kan sws alles naartoe
-                
-                for superinstance in level:
-                     for idx in superinstance.indices: # TODO nog nakijken!
-                        indices.append(idx)
-                        if idx in labelled:
-                            repres.append(idx)
-                            if idx != superinstance.representative_idx:
-                                labelled_instances.append(idx)
-
-                labelled_instances.append(0) # is voor de representative van de superinstances
-                labels_repres = []
-                for superinstance in level:
-                    labelled_instances[-1] = superinstance.representative_idx # dit is ook een optie
-                    local_labels_repres = rebuilder.rebuild(labelled_instances, superinstance.indices, data, represLabels=np.array(clust)[np.array(labelled_instances)]) # nu enkel labelled instances
-
-                    # nu nog omvormen naar de juiste labels
-                    local_labels_repres = np.array(labelled_instances)[local_labels_repres]
-                    labels_repres.extend(np.where(local_labels_repres[:, None] == np.array(repres)[None, :])[1].tolist()) # TODO nog checken!
-
-                labels_repres = np.array(labels_repres)
-                                
+            labels_repres = rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)]) 
 
             # bouw de superinstances en voeg aan de juiste cluster toe
             for i in range(len(indices)):
@@ -1249,15 +1119,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         else:
             self.rebuildPhase = False
         self.clustering.clusters = clusters
-        # print("done")
 
 
     #########
     # AFTER #
     #########
-    # def after(self):
-
-    # What to do afterwards, heeft een default TODO
     def after(self):
 
         labelled, clust, finished = self.constraint_index_advanced.cluster(self)
@@ -1276,20 +1142,6 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels:
 
-            # if self.afterLevel == "combined": # OBSOLETE
-            #     # TODO: nog juist maken
-            #     indices = []
-            #     repres = []
-            #     for superinstance in level:
-            #         for idx in superinstance.indices:
-            #             indices.append(idx)
-            #             if idx in labelled:
-            #                 repres.append(idx)
-            #     n_neighbors = min(len(repres), self.after_k)
-            #     model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
-            #     model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
-            #     new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
-
             indices = []
             repres = []
             for superinstance in level:
@@ -1298,78 +1150,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     if idx in labelled:
                         repres.append(idx)
                 
-                # # Voor als ze bottum-up werken
-                # if self.afterLevel == "superinstance":
-                #     greatparent = superinstance.get_parent(self.afterSuperInstanceLevel)
-                #     for idx in greatparent.indices:
-                #         if idx in labelled and idx not in superinstance.indices: # extra labels toevoegen
-                #             repres.append(idx)
+
             n_neighbors = min(len(repres), self.after_k)
             model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
             model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
             new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
 
-            # de else wordt momenteel niet gebruikt
-            # else:
-            #     repres = []
-            #     labelled_instances = []
-                
-            #     for superinstance in level:
-            #          for idx in superinstance.indices:
-            #             if idx in labelled:
-            #                 repres.append(idx)
-            #                 if idx != superinstance.representative_idx:
-            #                     labelled_instances.append(idx)
-
-            #     labelled_instances.append(0) #is voor de superinstances
-            #     for superinstance in level:
-            #         labelled_instances[-1] = superinstance.representative_idx # dit mag er ook bij
-            #         n_neighbors = 3 if len(labelled_instances) > 2 else len(labelled_instances)
-            #         model = KNeighborsClassifier(n_neighbors=n_neighbors)
-            #         model.fit(np.array(data)[np.array(labelled_instances)], clust[np.array(labelled_instances)])
-            #         new[np.array(superinstance.indices)] = model.predict(np.array(data)[np.array(superinstance.indices)])
 
         new[np.array(labelled)] = clust[np.array(labelled)] # die zijn geweten en moeten zo blijven
         return new, self.clustering.get_superinstances()
 
-        
-        # clust = np.array(clust)
-        # founded = 0
-        # for blob in self._cobras_log.blobs:
-        #     for elem in repres:
-        #         if elem in blob:                
-        #             clust[np.array(blob)] = clust[elem]
-        #             repres.extend(blob)
-        #             founded += 1
-        #             break
-
-        # # print(f'blobs not used: {len(self._cobras_log.blobs) - founded}')
-
-
-        # repres = list(set(repres)) # hiervan hebben we labelled information
-
-        # # print("started after")
-        
-        # target = np.array(clust)
-        # pairs, labels = self.constraint_index.getLearningConstraints()
-
-
-        # if (len(labels) < 100): # pas vanop een bepaald moment proberen verbeteren
-        #     return np.array(clust), r
-        # if len(np.unique(target[np.array(repres)])) == 1:
-        #     return np.array(clust), r
-        #     # newD = ITML_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
-        # else:
-        #     # newD = LMNN_wrapper(preprocessor = np.copy(self.data), seed = self.seed).fit_transform(np.copy(pairs), np.copy(labels), np.copy(repres), target[np.array(repres)])
-        #     newD = np.copy(self.data)
-
-        # model = KNeighborsClassifier(n_neighbors=3)
-        # model.fit(np.array(newD)[np.array(repres)], target[np.array(repres)])
-        # new = model.predict(np.array(newD))
-
-
-        # new[np.array(repres)] = target[np.array(repres)]
-
-        # # new = target
-
-        # return np.array(new), r
