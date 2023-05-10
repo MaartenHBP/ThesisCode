@@ -1207,7 +1207,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
     ###########
     # Initial #
-    ########### TODO: het werkt zo niet meer hehe
+    ###########
     def initial_transform(self):
         if not self.initial:
             return
@@ -1220,14 +1220,14 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             pairs, y = self.querier.getRandomConstraints(self.initialSemisupervised, self.seed)
             points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)), self.seed)
         else:
-            querier = self.querier.createCopy(self.initialSemisupervised) # gaan ervan uit dat dit groter dan nul is
+            querier = self.querier.createCopy(self.initialSemisupervised) # hier is het een absoluut aantal
             clusterer = COBRAS(correct_noise=False, seed=self.seed)
             clusterer.fit(np.copy(self.data), -1, None, querier)
 
             pairs, y = clusterer.constraint_index.getLearningConstraints()
 
-            points, _ = clusterer.getAllLabelled() # TODO: nog fixen
-            labels = clusterer.querier.getConstraints(points) # is dit zo hmmmm, moeten we testen
+            points, clust, finished = self.constraint_index_advanced.cluster(self) # hopelijk is finished False, anders wel ja boeieeeuh
+            labels = clust[points]
             
         self.data = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(np.copy(pairs), np.copy(y), np.copy(points), np.copy(labels))
         

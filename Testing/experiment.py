@@ -143,13 +143,14 @@ def test():
 # SImple_experiments #
 ######################
 def normalCOBRAS():
-    path = Path(f"experimenten/thesis/Chapter_rebuild/closest/100").absolute()
+    path = Path(f"experimenten/thesis/Chapter_rebuild/closest/metric").absolute()
     run({ "useNewConstraintIndex" : True,
         "mergeBlobs" : True,
         "rebuildPhase": True,
         "rebuildAmountQueriesAsked" : 100,
-        "rebuildAllOptions": False,
-        "rebuilder" : 'Closest'
+        "rebuildAllOptions": True,
+        "rebuilder" : 'Vote',
+        "rebuildMetric" : True
 
         # "after" : True,
         # "after_k": 3,
@@ -322,7 +323,7 @@ def rank(paths, names, location, useVariance = False):
             plt.savefig(f"{location}/variance_{names[i]}.png")
             plt.clf()
 
-    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85), legend=False) # TODO: legend nog uitzetten
+    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
 
     plt.savefig(f"{location}/ARI.png", dpi = 600)
 
@@ -500,6 +501,19 @@ if __name__ == "__main__":
     #       Path(f"experimenten/thesis/posterevent/COBRAS")], 
     #       ["COBRAS", "COBRAS kNN", "COBRAS kNN  KLMNN", "COBRAS++"], 
     #       "experimenten/thesis/posterevent", useVariance=False)
+
+    ###########
+    # Rebuild #
+    ###########
+
+    rank([Path(f"experimenten/thesis/Chapter_rebuild/closest/COBRAS++"),
+          Path(f"experimenten/thesis/Chapter_rebuild/closest/All_100"),
+          Path(f"experimenten/thesis/Chapter_rebuild/closest/100"),
+          Path(f"experimenten/thesis/Chapter_rebuild/closest/Vote_100"),
+           Path(f"experimenten/thesis/Chapter_rebuild/closest/metric")], 
+          ["COBRAS", "COBRAS closest", "COBRAS closest notAll", "COBRAS vote", "Metric"], 
+          "experimenten/thesis/Chapter_rebuild/closest", useVariance=False)
+
 
 
 

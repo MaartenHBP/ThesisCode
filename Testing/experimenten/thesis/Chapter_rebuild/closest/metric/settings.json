@@ -1,0 +1,9 @@
+{
+    "useNewConstraintIndex": true,
+    "mergeBlobs": true,
+    "rebuildPhase": true,
+    "rebuildAmountQueriesAsked": 100,
+    "rebuildAllOptions": true,
+    "rebuilder": "Vote",
+    "rebuildMetric": true
+}
