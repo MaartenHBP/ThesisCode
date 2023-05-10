@@ -60,7 +60,7 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
 
     def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):  
 
-        init = 'k-means++' if centers is None else centers 
+        init = 'k-means++' # voor de zekerheid
         
         if seed is not None:
             km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
@@ -75,93 +75,93 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
 
 # OBSOLETE
     
-class KMeansITMLClusterAlgorithm(ClusterAlgorithm):  # TODO: aanpassen
-    def __init__(self, percentage = 0.1, limit = 0.3, n_runs=10):
-        self.percentage = percentage
-        self.limit = limit
-        self.n_runs = n_runs
-        self.done = False
+# class KMeansITMLClusterAlgorithm(ClusterAlgorithm):  # TODO: aanpassen
+#     def __init__(self, percentage = 0.1, limit = 0.3, n_runs=10):
+#         self.percentage = percentage
+#         self.limit = limit
+#         self.n_runs = n_runs
+#         self.done = False
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
-        pairs, labels = cobras.constraint_index.getLearningConstraints(local = indices, both = True)
-        newdata = np.copy(data)
-        if not self.done: 
-            needed = math.floor(len(indices)*self.percentage*self.limit)
-            extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed)
-            pairs = np.append(pairs, extrapairs, axis = 0)
-            labels = np.append(labels, extralabels)
-            newdata = ITML_wrapper(preprocessor=np.copy(data), seed=seed).fit_transform(pairs, labels, None, None)
-            self.done = True
+#     def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
+#         pairs, labels = cobras.constraint_index.getLearningConstraints(local = indices, both = True)
+#         newdata = np.copy(data)
+#         if not self.done: 
+#             needed = math.floor(len(indices)*self.percentage*self.limit)
+#             extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed)
+#             pairs = np.append(pairs, extrapairs, axis = 0)
+#             labels = np.append(labels, extralabels)
+#             newdata = ITML_wrapper(preprocessor=np.copy(data), seed=seed).fit_transform(pairs, labels, None, None)
+#             self.done = True
 
         
 
-        # learn a bloody metric
-        # if needed > 1:
-        #     have = len(labels)
+#         # learn a bloody metric
+#         # if needed > 1:
+#         #     have = len(labels)
             
-        #     if have < needed:
-        #         extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed - have)
-        #         newpairs = np.append(pairs, extrapairs, axis = 0)
-        #         newlabels = np.append(labels, extralabels)
-        #     else:
-        #         newpairs = np.copy(pairs)
-        #         newlabels = np.copy(labels)
+#         #     if have < needed:
+#         #         extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed - have)
+#         #         newpairs = np.append(pairs, extrapairs, axis = 0)
+#         #         newlabels = np.append(labels, extralabels)
+#         #     else:
+#         #         newpairs = np.copy(pairs)
+#         #         newlabels = np.copy(labels)
 
         
 
 
-        init = 'k-means++' if centers is None else centers 
+#         init = 'k-means++' if centers is None else centers 
         
-        if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
-        else:
-            km = KMeans(k, n_init=self.n_runs, init = init)
+#         if seed is not None:
+#             km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
+#         else:
+#             km = KMeans(k, n_init=self.n_runs, init = init)
 
-        # only cluster the given indices
-        km.fit(newdata[indices, :])
+#         # only cluster the given indices
+#         km.fit(newdata[indices, :])
 
-        # return the labels as a list of integers
-        return km.labels_.astype(np.int)#, None
+#         # return the labels as a list of integers
+#         return km.labels_.astype(np.int)#, None
 
     
-class KMeansITMLClusterAlgorithmAbsolute(ClusterAlgorithm): 
-    def __init__(self, start_amount = 30, n_runs=10):
-        self.start_amount = start_amount
-        self.n_runs = n_runs
+# class KMeansITMLClusterAlgorithmAbsolute(ClusterAlgorithm): 
+#     def __init__(self, start_amount = 30, n_runs=10):
+#         self.start_amount = start_amount
+#         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
-        pairs, labels = cobras.constraint_index.getLearningConstraints(local = indices, both = True)
-        needed = min(self.start_amount, math.ceil(len(indices)/2))# math.floor((len(indices)/len(data)) * self.start_amount)
+#     def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):
+#         pairs, labels = cobras.constraint_index.getLearningConstraints(local = indices, both = True)
+#         needed = min(self.start_amount, math.ceil(len(indices)/2))# math.floor((len(indices)/len(data)) * self.start_amount)
 
-        newdata = np.copy(data)
+#         newdata = np.copy(data)
 
-        # learn a bloody metric
-        if needed > 1:
-            have = len(labels)
+#         # learn a bloody metric
+#         if needed > 1:
+#             have = len(labels)
             
-            if have < needed:
-                extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed - have)
-                newpairs = np.append(pairs, extrapairs, axis = 0)
-                newlabels = np.append(labels, extralabels)
-            else:
-                newpairs = np.copy(pairs)
-                newlabels = np.copy(labels)
+#             if have < needed:
+#                 extrapairs, extralabels = cobras.query_random_points(options = indices, count = needed - have)
+#                 newpairs = np.append(pairs, extrapairs, axis = 0)
+#                 newlabels = np.append(labels, extralabels)
+#             else:
+#                 newpairs = np.copy(pairs)
+#                 newlabels = np.copy(labels)
 
-            newdata = ITML_wrapper(preprocessor=data, seed=seed).fit_transform(newpairs, newlabels, None, None)
+#             newdata = ITML_wrapper(preprocessor=data, seed=seed).fit_transform(newpairs, newlabels, None, None)
 
 
-        init = 'k-means++' if centers is None else centers 
+#         init = 'k-means++' if centers is None else centers 
         
-        if seed is not None:
-            km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
-        else:
-            km = KMeans(k, n_init=self.n_runs, init = init)
+#         if seed is not None:
+#             km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
+#         else:
+#             km = KMeans(k, n_init=self.n_runs, init = init)
 
-        # only cluster the given indices
-        km.fit(newdata[indices, :])
+#         # only cluster the given indices
+#         km.fit(newdata[indices, :])
 
-        # return the labels as a list of integers
-        return km.labels_.astype(np.int)#, None
+#         # return the labels as a list of integers
+#         return km.labels_.astype(np.int)#, None
 
 # class SpectralClusterAlgorithm(ClusterAlgorithm):
 #     def __init__(self, n_runs=10): #TODO: properties as class variables

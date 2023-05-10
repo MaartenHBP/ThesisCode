@@ -30,42 +30,7 @@ class ClosestRebuild(Rebuilder):
         #         labels[indi_super == repres[i]] = i
         # return labels
     
-class SemiCluster(Rebuilder): # gebruiken we momenteel niet
-    def rebuild(self, repres, indices, data, represLabels): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
-        # the inital centers
-        centers = data[np.copy(repres)] # voor bestaande repres kan dit in theorie met de echte center (?)
 
-        repers_indi = np.in1d(indices,repres)
-
-        labels = np.zeros(len(indices))
-        
-        # alle repres initieel een gekend label
-        for i in range(len(repres)):
-            labels[indices == repres[i]] = i
-
-        while True:
-            # if len(labelled) == 0: geen idee of dit gaat convergeren
-            nbrs = NearestNeighbors(n_neighbors=1).fit(centers)
-            _, newlabels = nbrs.kneighbors(data[indices])
-            newlabels = newlabels.flatten()
-
-            # print(newlabels[repers_indi])
-
-
-            if (labels == np.array(newlabels)).all(): # zijn geconvergeerd
-                break
-            # if not (labels[repers_indi] == np.array(indices)[repers_indi]).all(): # de repres zijn eruit geconvergeerd
-            #     break
-            if len(np.unique(newlabels[repers_indi])) != len(repres): # de repres moeten in verschillende clusters zitten
-                break
-            labels = np.copy(newlabels)
-
-
-            # update the centers
-            for i in range(len(centers)):
-                centers[i] = data[np.array(indices)[labels == i]].mean(axis = 0)
-
-        return labels
 
 
             # indices = np.zeros(len(indices))
@@ -104,6 +69,44 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
 
         for i in range(len(repres)): # repres wel nog altijd hun eigen nemen (dit is alleen nodig als twee repres overeenlappen)
             labels[np.array(indices) == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
+
+        return labels
+    
+
+class SemiCluster(Rebuilder): # TODO nog testen
+    def rebuild(self, repres, indices, data, represLabels): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
+        # the inital centers
+        centers = data[np.copy(repres)] # voor bestaande repres kan dit in theorie met de echte center (?)
+
+        repers_indi = np.in1d(indices,repres)
+
+        labels = np.zeros(len(indices))
+        
+        # alle repres initieel een gekend label
+        for i in range(len(repres)):
+            labels[indices == repres[i]] = i
+
+        while True:
+            # if len(labelled) == 0: geen idee of dit gaat convergeren
+            nbrs = NearestNeighbors(n_neighbors=1).fit(centers)
+            _, newlabels = nbrs.kneighbors(data[indices])
+            newlabels = newlabels.flatten()
+
+            # print(newlabels[repers_indi])
+
+
+            if (labels == np.array(newlabels)).all(): # zijn geconvergeerd
+                break
+            # if not (labels[repers_indi] == np.array(indices)[repers_indi]).all(): # de repres zijn eruit geconvergeerd
+            #     break
+            if len(np.unique(newlabels[repers_indi])) != len(repres): # de repres moeten in verschillende clusters zitten
+                break
+            labels = np.copy(newlabels)
+
+
+            # update the centers
+            for i in range(len(centers)):
+                centers[i] = data[np.array(indices)[labels == i]].mean(axis = 0)
 
         return labels
 

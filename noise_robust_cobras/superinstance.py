@@ -75,3 +75,6 @@ class SuperInstance:
     def copy(self):
         pass
 
+    def getEqualDepth(self): # wat is de minumum diepte waar alles is geraakt
+        return min([x.get_depth() for x in self.get_leaves()])
+
