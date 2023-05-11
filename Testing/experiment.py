@@ -46,16 +46,10 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
 nbRUNS = 100
-ARGUMENTS = range(10) # werken nu maar met 10 seeds
+ARGUMENTS = range(100) # 10 seeds bleek te weinig te zijn voor smooth curves
 SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
-
-ABSOLUTE = 200
-RELATIVE = 0.3
-
-absolute_testing = np.arange(20, 200, step = 20).tolist()
-relative_testing = np.arange(0.1, 1, 0.1).tolist()
 
 PATH_COBRAS = "experimenten/COBRAS"
 
@@ -66,7 +60,7 @@ def createFolds(labels, index:int): # gaan eerst zonder folds testen, een goeie 
     testing_indices = []
     
     for fold_nb, (train_indices, test_indices) in enumerate(fold.split(np.zeros(len(labels)), labels)):
-        training_indices.append(train_indices.tolist())
+        training_indices.append(train_indices.tolist()) 
         testing_indices.append(test_indices.tolist())
 
 #################
@@ -83,14 +77,11 @@ def runCOBRAS(seed, dataName, arguments):
     data = dataset[:, 1:]
     target = dataset[:, 0]
 
-    # querylimit = max(math.floor(len(data)*RELATIVE), ABSOLUTE)
     querylimit = 200
-    # runlimit = min(querylimit, len(data))
     runlimit = querylimit
 
 
     querier = LabelQuerier(None, target, runlimit)
-    # splitlevel_strategy = ConstantSplitLevelEstimationStrategy(4), doen dit gehardcoded
     clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **arguments)
 
     all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
@@ -109,11 +100,8 @@ def test():
     dataset = "glass"
 
     args = { "useNewConstraintIndex" : True,
-        "mergeBlobs" : True,
-        "after" : True,
-        "after_k": 3,
-        "after_weights": 'distance',
-        "afterMetric": True
+          "splitlevel_strategy": "constant",
+        "splitlevelInt" : 4
         # "afterLevel": 'superinstance',
         # "afterSuperInstanceLevel": 3,
         # "afterSuperInstanceLevelDown": False
@@ -122,14 +110,14 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
+    plt.plot(runCOBRAS(16, dataset, args), label = "advances")
     print("next")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
     # print("next")
 
-    args["afterMetric"] = False
+    args["useNewConstraintIndex"] = False
     plt.plot(runCOBRAS(16, dataset, args), label = "normal")
     # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
@@ -140,25 +128,19 @@ def test():
     
     
 ######################
-# SImple_experiments #
+# Simple_experiments #
 ######################
 def normalCOBRAS():
     path = Path(f"experimenten/thesis/Chapter_rebuild/closest/metric").absolute()
     run({ "useNewConstraintIndex" : True,
-        "mergeBlobs" : True,
-        "rebuildPhase": True,
-        "rebuildAmountQueriesAsked" : 100,
-        "rebuildAllOptions": True,
-        "rebuilder" : 'Vote',
-        "rebuildMetric" : True
-
-        # "after" : True,
-        # "after_k": 3,
-        # "after_weights": 'distance',
-        # "afterMetric": True
-        # "afterLevel": 'superinstance',
-        # "afterSuperInstanceLevel": 3,
-        # "afterSuperInstanceLevelDown": False
+          "splitlevel_strategy": "constant",
+        "splitlevelInt" : 4
+        # "mergeBlobs" : True,
+        # "rebuildPhase": True,
+        # "rebuildAmountQueriesAsked" : 100,
+        # "rebuildAllOptions": True,
+        # "rebuilder" : 'Vote',
+        # "rebuildMetric" : True
         }, path)
 
 
@@ -186,7 +168,6 @@ def run(args, path):
             if os.path.exists(p):
                 run = loadDict(path, f"total")
                 variance = loadDict(path, f"variance")
-            # saveDict(cobras, f"experimenten/presentatie3", "NORMAL_LMNN")
             for j in range(len(datasets)):
                 nameData = datasets[j][:len(datasets[j]) - 5]
                 if nameData in run:
@@ -194,7 +175,6 @@ def run(args, path):
                 print(f"({path})\t ({nameData})\t Running")
                 parallel_func = functools.partial(runCOBRAS, dataName = nameData, arguments = args)
                 futures = client.map(parallel_func, ARGUMENTS)
-                # parallel_func(16)
                 results = np.array(client.gather(futures))
                 run[nameData] = np.mean(results, axis=0).tolist()
                 variance[nameData] = np.std(results, axis=0).tolist()
@@ -205,8 +185,6 @@ def run(args, path):
         print("error cccured:" + path)
         errordict = {"problem": str(x)}
         saveDict(errordict, path, "error")
-
-
 
 
 ###############
@@ -312,18 +290,23 @@ def rank(paths, names, location, useVariance = False):
         ARI[names[i]] = testpd.mean(axis=1)
 
         if useVariance:
+            CHECK_FOLDER = os.path.isdir(os.path.join(location, "variance"))
+            if not CHECK_FOLDER:
+                os.makedirs(os.path.join(location, "variance"))
+                print("created folder : ", os.path.join(location, "variance"))
             allVariance = variancepd.mean(axis=1)
             plt.plot(ARI[names[i]], label = "gemiddelde")
-            plt.plot(ARI[names[i]] - allVariance, alpha = 0.4)
-            plt.plot(ARI[names[i]] + allVariance, alpha = 0.4)
+            plt.plot(ARI[names[i]] - allVariance, alpha = 0.4, label = "-$\sigma$")
+            plt.plot(ARI[names[i]] + allVariance, alpha = 0.4, label = "+$\sigma$")
             plt.ylim((0.4,1))
             plt.xlabel("#queries")
             plt.ylabel("ARI")
             plt.title(f"Variantie-analyse {names[i]}")
-            plt.savefig(f"{location}/variance_{names[i]}.png")
+            plt.legend()
+            plt.savefig(f"{location}/variance/variance_{names[i]}.png")
             plt.clf()
 
-    ARI.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
+    ARI.plot(xlabel="#vragen", ylabel="ARI", ylim = (0.4,0.85))
 
     plt.savefig(f"{location}/ARI.png", dpi = 600)
 
@@ -355,6 +338,8 @@ def rank(paths, names, location, useVariance = False):
     all_results.plot(xlabel="#queries", ylabel="Aligned rank")
     # plt.show()
     plt.savefig(f"{location}/rank.png", dpi = 600)
+
+    plt.clf()
 
 
 ####################
@@ -398,6 +383,51 @@ def doAll(path):
     makeARI(path, name_algo = "test")
     makeDifferencePlot(path, name_algo = "test")
 
+#########################
+# Run alle experimenten #
+#########################
+def runAll():
+    rootdir = Path(f"queue").absolute()
+
+    for subdir in os.listdir(rootdir):
+        # Komen nu bij een chapter
+        file_chapter = Path(f"experimenten/thesis/{subdir}").absolute()
+        chapter_location = os.path.join(rootdir, subdir)
+        print(f"({file_chapter})")
+
+        for subchapterdir in os.listdir(chapter_location):
+            # komen nu bij het soort experiment
+            file_experiment = os.path.join(file_chapter, subchapterdir)
+            experiment_location = os.path.join(chapter_location, subchapterdir)
+            print(f"({file_experiment})")
+
+            all_paths  = []
+            all_names = []
+
+            for file in os.listdir(experiment_location):
+                results_location = os.path.join(file_experiment, file[:len(file) - 5])
+                print(f"({results_location})")
+                
+
+                experiment_file = loadDict(experiment_location, file[:len(file) - 5])
+                all_names.append(experiment_file["plotName"])
+
+                if "reuse" in experiment_file:
+                    reuse = Path(f"experimenten/thesis/{experiment_file['reuse']}/total.json").absolute()
+                    if reuse.is_file():
+                        all_paths.append(Path(f"experimenten/thesis/{experiment_file['reuse']}").absolute())
+                        continue # de resultaten zijn hier al van bekend
+                
+                all_paths.append(results_location)
+
+                run(experiment_file["settings"], results_location)
+
+
+            rank(all_paths, 
+            all_names, 
+            file_experiment, useVariance=False)
+
+            
 
 if __name__ == "__main__":
     def ignore_warnings():
@@ -407,10 +437,12 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
+    runAll() # vanaf nu dit oproepen
+
 
     # test()
 
-    normalCOBRAS()
+    # normalCOBRAS()
 
 
     # make plots
@@ -506,13 +538,13 @@ if __name__ == "__main__":
     # Rebuild #
     ###########
 
-    rank([Path(f"experimenten/thesis/Chapter_rebuild/closest/COBRAS++"),
-          Path(f"experimenten/thesis/Chapter_rebuild/closest/All_100"),
-          Path(f"experimenten/thesis/Chapter_rebuild/closest/100"),
-          Path(f"experimenten/thesis/Chapter_rebuild/closest/Vote_100"),
-           Path(f"experimenten/thesis/Chapter_rebuild/closest/metric")], 
-          ["COBRAS", "COBRAS closest", "COBRAS closest notAll", "COBRAS vote", "Metric"], 
-          "experimenten/thesis/Chapter_rebuild/closest", useVariance=False)
+    # rank([Path(f"experimenten/thesis/Chapter_rebuild/closest/COBRAS++"),
+    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/All_100"),
+    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/100"),
+    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/Vote_100"),
+    #        Path(f"experimenten/thesis/Chapter_rebuild/closest/metric")], 
+    #       ["COBRAS", "COBRAS closest", "COBRAS closest notAll", "COBRAS vote", "Metric"], 
+    #       "experimenten/thesis/Chapter_rebuild/closest", useVariance=False)
 
 
 

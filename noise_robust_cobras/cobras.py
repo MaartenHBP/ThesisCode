@@ -117,7 +117,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuildLevel = "all", 
         rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf nu gaan we van top-down naar beneden kijken
 
-        rebuilder = 'Closest',
+        rebuilder = 'ClosestRebuild',
 
         rebuildMetric = False,
         rebuilderKeepTransformed = False,
@@ -206,7 +206,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # After #
         #########
         self.doAfter = after
-        self.afterAmountQueriesAsked = afterAmountQueriesAsked
+        self.afterAmountQueriesAsked = 1
 
         self.after_k = after_k
         self.after_weights = after_weights
@@ -1077,13 +1077,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         data = self.learnMetric() if self.rebuildMetric else np.copy(self.data)
 
-        rebuilder = ClosestRebuild() # 3 opties voor rebuilder
-
-        if self.rebuilder == "Vote":
-            rebuilder = ClosestVote()
-
-        if self.rebuilder == "SemiCluster":
-            rebuilder = SemiCluster()
+        rebuilder = eval(self.rebuilder)()
             
         
         if self.rebuilderKeepTransformed: # werk later verder met deze transformatie
