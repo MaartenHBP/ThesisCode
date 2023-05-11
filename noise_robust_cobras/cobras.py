@@ -144,6 +144,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         useNewConstraintIndex = False,
         mergeBlobs = False, # dit is voor wanneer er niet gemerged wordt op het niveau
         represBlobs = False, # enkel de repres
+        plusBlobs = False
 
 
     ):
@@ -223,6 +224,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.useNewConstraintIndex = useNewConstraintIndex
         self.mergeBlobs = mergeBlobs
         self.represBlobs = represBlobs
+        self.plusBlobs = plusBlobs
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -868,8 +870,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
 
         if self.useNewConstraintIndex:
-            return self.constraint_index_advanced.checkReuse(i1, i2)
-
+            clust = np.array(self.clustering_to_store)
+            options = np.array(list(range(self.data.shape[0])))
+            if len(clust) > 0:
+                return self.constraint_index_advanced.checkReuse(i1, i2, self.data, options[clust == clust[i1]], options[clust == clust[i2]], self.plusBlobs)
+            return self.constraint_index_advanced.checkReuse(i1, i2, self.data, [], [], self.plusBlobs)
         else:
             reused_constraint = None
             ml_constraint = Constraint(i1, i2, True)

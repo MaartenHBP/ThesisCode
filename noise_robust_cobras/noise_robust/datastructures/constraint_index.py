@@ -43,7 +43,10 @@ class ConstraintBlobs: # blobs zijn sets
         self.CLs = defaultdict(set)
         self.allBlobs = []
 
+        self.allConstraints = []
+
     def addConstraints(self, constraint):
+        self.allConstraints.append(constraint)
         # zichzelf toevoegen
         self.blobs[constraint.i1].add(constraint.i1) # om aan te tonen dat er daar constraints over bestaan
         self.blobs[constraint.i2].add(constraint.i2)
@@ -62,14 +65,42 @@ class ConstraintBlobs: # blobs zijn sets
             self.CLs[constraint.i1].add(constraint.i2)
             self.CLs[constraint.i2].add(constraint.i1)
 
+    def calculateDiss(self, constraint, a1, a2, data, clusteri1, clusteri2):
+        b1 = constraint.i1
+        b2 = constraint.i2
+        if (b1 in clusteri1 and b2 in clusteri2) or (b1 in clusteri2 and b2 in clusteri1):
+            A1B1 = np.linalg.norm(data[a1] - data[b1])
+            A2B2 = np.linalg.norm(data[a2] - data[b2])
+            A1B2 = np.linalg.norm(data[a1] - data[b2])
+            A2B1 = np.linalg.norm(data[a2] - data[b1])
+
+            A1A2 = np.linalg.norm(data[a1] - data[a2])
+            B1B2 = np.linalg.norm(data[b1] - data[b2])
+
+            teller =  min(max(A1B1,A2B2), max(A1B2, A2B1))
+            noemer = (A1A2 + B1B2)/2
+
+            return teller/noemer
+        return 100 # arbitrair hoog getal, enkel naar punten van zelfde clusters kijken, op dat moment natuurlijk => zoals COBRAS het normaal zou doen
+
         
 
     # dit is between instances
-    def checkReuse(self, i1, i2):
+    def checkReuse(self, i1, i2, data, clusteri1, clusteri2, plusOption = False):
         if i1 in self.blobs[i2]:
             return Constraint(i1, i2, True)
         if any(self.CLs[x] & self.blobs[i1] for x in self.blobs[i2]):
             return Constraint(i1, i2, False)
+        if plusOption and len(self.allConstraints) > 0:
+            closest = min(
+                self.allConstraints,
+                key=lambda x: self.calculateDiss(x, i1, i2, data, clusteri1, clusteri2)
+            )
+            if self.calculateDiss(closest, i1, i2, data, clusteri1, clusteri2) < 0.4:
+                if closest.is_ML():
+                    return Constraint(i1, i2, True)
+                else:
+                    return Constraint(i1, i2, False)
         return None
     
     def distance_between_blobs(self, blob1, blob2, data):

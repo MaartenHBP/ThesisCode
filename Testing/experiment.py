@@ -97,11 +97,10 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "glass"
+    dataset = "segmentation"
 
     args = { "useNewConstraintIndex" : True,
-          "splitlevel_strategy": "constant",
-        "splitlevelInt" : 4
+          "plusBlobs": False
         # "afterLevel": 'superinstance',
         # "afterSuperInstanceLevel": 3,
         # "afterSuperInstanceLevelDown": False
@@ -110,15 +109,16 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "advances")
+    plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS")
     print("next")
     # args["rebuildMetric"] = True
     # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
     # print("next")
 
-    args["useNewConstraintIndex"] = False
-    plt.plot(runCOBRAS(16, dataset, args), label = "normal")
+    args["useNewConstraintIndex"] = True
+    args["plusBlobs"] = True
+    plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS+")
     # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
     plt.legend()
