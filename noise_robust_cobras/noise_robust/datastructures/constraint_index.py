@@ -64,7 +64,7 @@ class ConstraintBlobs: # blobs zijn sets
 
         
 
-    # dit is netween instances
+    # dit is between instances
     def checkReuse(self, i1, i2):
         if i1 in self.blobs[i2]:
             return Constraint(i1, i2, True)
@@ -183,7 +183,7 @@ class ConstraintBlobs: # blobs zijn sets
 
 
 
-class ConstraintIndex:
+class ConstraintIndex: # is kinda OBSOLETE
     """
         A class that stores constraints in a dictionary for fast retrieval
     """

@@ -17,7 +17,7 @@ class ClosestRebuild(Rebuilder):
         nbrs = NearestNeighbors(n_neighbors=1).fit(data[np.array(repres)])
         _, labels = nbrs.kneighbors(data[indices])
         for i in range(len(repres)): # repres wel nog altijd hun eigen nemen (dit is alleen nodig als twee repres overeenlappen)
-            labels[np.array(indices) == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
+            labels[np.array(indices) == repres[i]] = i
         return labels.flatten()
         # labels = np.zeros(len(indices))
         # for i in repres:
@@ -50,7 +50,7 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
         k = 3
         if len(repres) < k:
             k = len(repres)
-        model = KNeighborsClassifier(n_neighbors=k, weights='distance')
+        model = KNeighborsClassifier(n_neighbors=k, weights='distance') # distance weight werken het beste
         model.fit(data[np.array(repres)], represLabels)
 
         predicted_label = model.predict(data[np.array(indices)])
@@ -67,16 +67,16 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
 
         labels = n_indices[selection]
 
-        for i in range(len(repres)): # repres wel nog altijd hun eigen nemen (dit is alleen nodig als twee repres overeenlappen)
-            labels[np.array(indices) == repres[i]] = i # gaan er nu gewoon van uit dat het klopt
+        for i in range(len(repres)): # repres wel nog altijd hun eigen nemen, zeker in kNN setting belangrijk
+            labels[np.array(indices) == repres[i]] = i
 
         return labels
     
 
-class SemiCluster(Rebuilder): # TODO nog testen
+class SemiCluster(Rebuilder):
     def rebuild(self, repres, indices, data, represLabels): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
         # the inital centers
-        centers = data[np.copy(repres)] # voor bestaande repres kan dit in theorie met de echte center (?)
+        centers = data[np.copy(repres)]
 
         repers_indi = np.in1d(indices,repres)
 

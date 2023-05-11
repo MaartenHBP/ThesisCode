@@ -87,7 +87,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
-        metricLearner = None, # wordt terug gebruikt
+        metricLearner = "LMNN_wrapper",
         metricLearer_arguments = {},
 
         metricLevel = "all",
@@ -115,7 +115,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         rebuildInterval = 0,
 
         rebuildLevel = "all", 
-        rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf ! gaan we van top-down naar beneden kijken
+        rebuildSuperInstanceLevel = 0, # nul is enkel naar de superinstances apart kijken, vanaf nu gaan we van top-down naar beneden kijken
 
         rebuilder = 'Closest',
 
@@ -294,7 +294,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self._cobras_log.log_start_clustering()
         self.data = X
 
-        self.learedMetric = np.copy(self.data)
+        self.learedMetric = np.copy(self.data) # de huidige geleerde metriek
         self.metricCounter = 0
 
 
@@ -970,7 +970,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         labelled, clust, finished = self.constraint_index_advanced.cluster(self)
 
-        if(len(labelled) == self.metricCounter):
+        if(len(labelled) == self.metricCounter): # als het dezelfde labels krijgt, ja dan moet je geen metriek leren => gaan er vanuit dat het aantal gelabelde instances stijgt
             return self.learedMetric
         
         self.metricCounter = len(labelled)
@@ -1056,7 +1056,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             if self.metricInterval > 0:
                 self.metricAmountQueriesAsked = len(self._cobras_log.all_user_constraints) + self.metricInterval # voor de volgende keer dat het mag uitgevoerd worden
             else:
-                self.learnAMetric = False # momenteel doen we het zo, is ook zo bij rebuild, gewoon een keer uitvoeren
+                self.learnAMetric = False # er moet geen metriek meer geleerd worden
 
     ##############
     # Rebuilding #
@@ -1075,7 +1075,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         clusters = [Cluster([]) for i in np.unique(clust)] # de nieuwe clusters, is evenveel als dat er labels zijn
 
-        data = self.learnMetric() if self.rebuildMetric else self.data
+        data = self.learnMetric() if self.rebuildMetric else np.copy(self.data)
 
         rebuilder = ClosestRebuild() # 3 opties voor rebuilder
 
@@ -1105,19 +1105,19 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             # bouw de superinstances en voeg aan de juiste cluster toe
             for i in range(len(indices)):
                 idx = indices[i]
-                if idx in repres:
+                if idx in repres: # dit punt moet een representatieve worden
                     points = np.array(indices)[labels_repres == labels_repres[i]] # zelfde label als een mogelijke representatieve volgen
                     superinstance = self.superinstance_builder.makeSuperInstance(
                         self.data, points.tolist(), self.train_indices, None
                     )
                     superinstance.representative_idx = idx # manueeel repres zetten
-                    clusters[clust[idx]].super_instances.append(superinstance) # 
+                    clusters[clust[idx]].super_instances.append(superinstance) # voeg aan de juiste cluster toe
             
 
         if self.rebuildInterval > 0:
             self.rebuildAmountQueriesAsked = len(self._cobras_log.all_user_constraints) + self.rebuildInterval
         else:
-            self.rebuildPhase = False
+            self.rebuildPhase = False # moet maar een keer uitgvoerd worden
         self.clustering.clusters = clusters
 
 
@@ -1129,7 +1129,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         labelled, clust, finished = self.constraint_index_advanced.cluster(self)
         
         if not self.doAfter or len(self._cobras_log.all_user_constraints) < self.afterAmountQueriesAsked or finished:
-            return clust, self.clustering.get_superinstances()
+            return clust, self.clustering.get_superinstances() # geef gewoon terug wat er was
         
         levels = self.getFinegrainedLevel(self.afterLevel, self.afterSuperInstanceLevel)
         
@@ -1154,9 +1154,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             n_neighbors = min(len(repres), self.after_k)
             model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
             model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
-            new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)])
+            new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)]) # predict de labels
 
 
         new[np.array(labelled)] = clust[np.array(labelled)] # die zijn geweten en moeten zo blijven
-        return new, self.clustering.get_superinstances()
+        return new, self.clustering.get_superinstances() # return de nieuze labeling
 
