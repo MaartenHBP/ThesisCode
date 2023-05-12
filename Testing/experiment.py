@@ -386,7 +386,7 @@ def doAll(path):
 #########################
 # Run alle experimenten #
 #########################
-def runAll():
+def runAll(doAll = False):
     rootdir = Path(f"queue").absolute()
 
     for subdir in os.listdir(rootdir):
@@ -406,6 +406,7 @@ def runAll():
 
             for file in os.listdir(experiment_location):
                 results_location = os.path.join(file_experiment, file[:len(file) - 5])
+
                 print(f"({results_location})")
                 
 
@@ -419,6 +420,10 @@ def runAll():
                         continue # de resultaten zijn hier al van bekend
                 
                 all_paths.append(results_location)
+
+                test =  Path(os.path.join(results_location, "total.json")).absolute()
+                if test.is_file() and doAll:
+                    continue
 
                 run(experiment_file["settings"], results_location)
 
@@ -437,7 +442,7 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll() # vanaf nu dit oproepen
+    runAll(doAll = True) # vanaf nu dit oproepen
 
 
     # test()
@@ -452,10 +457,10 @@ if __name__ == "__main__":
     # Variance_test #
     #################
 
-    rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
-          Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
-          ["dynamisch splitlevel", "splitlevel = 4"], 
-          "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
+    # rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
+    #       Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
+    #       ["dynamisch splitlevel", "splitlevel = 4"], 
+    #       "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
 
 
 

@@ -1,5 +1,5 @@
 {   
-    "reuse": "5-COBRAS/labels_blobs_test/COBRASC++",
+    "reuse": "5-Labels/label_blob_test/COBRASC++",
     
     "plotName": "COBRAS C++",
     

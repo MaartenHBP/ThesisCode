@@ -1,4 +1,5 @@
-{   "plotName": "COBRAS",
+{   
+    "plotName": "COBRAS Extra 50",
     
     "settings" : {   
         
@@ -19,12 +20,12 @@
         "initialSupervised" : 0, 
         "initialRandom" : true, 
 
-        "rebuildPhase" : false,
+        "rebuildPhase" : true,
         "rebuildAmountQueriesAsked" : 50,
         "rebuildInterval" : 0,
         "rebuildLevel" : "all", 
         "rebuildSuperInstanceLevel" : 0,
-        "rebuilder" : "ClosestRebuild",
+        "rebuilder" : "ClosestVote",
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
 
@@ -38,7 +39,7 @@
         "afterSuperInstanceLevel" : 0,
 
         "useNewConstraintIndex" : true,
-        "mergeBlobs" : false, 
+        "mergeBlobs" : true, 
         "represBlobs" : false
     }
 
