@@ -1,4 +1,7 @@
-{   "plotName": "COBRAS D++",
+{   
+    "reuse": "5-COBRAS/labels_blobs_test/COBRASD++",
+    
+    "plotName": "COBRAS D++",
     
     "settings" : {   
         

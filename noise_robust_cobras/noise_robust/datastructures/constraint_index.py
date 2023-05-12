@@ -86,21 +86,21 @@ class ConstraintBlobs: # blobs zijn sets
         
 
     # dit is between instances
-    def checkReuse(self, i1, i2, data, clusteri1, clusteri2, plusOption = False):
+    def checkReuse(self, i1, i2):
         if i1 in self.blobs[i2]:
             return Constraint(i1, i2, True)
         if any(self.CLs[x] & self.blobs[i1] for x in self.blobs[i2]):
             return Constraint(i1, i2, False)
-        if plusOption and len(self.allConstraints) > 0:
-            closest = min(
-                self.allConstraints,
-                key=lambda x: self.calculateDiss(x, i1, i2, data, clusteri1, clusteri2)
-            )
-            if self.calculateDiss(closest, i1, i2, data, clusteri1, clusteri2) < 0.4:
-                if closest.is_ML():
-                    return Constraint(i1, i2, True)
-                else:
-                    return Constraint(i1, i2, False)
+        # if plusOption and len(self.allConstraints) > 0:
+        #     closest = min(
+        #         self.allConstraints,
+        #         key=lambda x: self.calculateDiss(x, i1, i2, data, clusteri1, clusteri2)
+        #     )
+        #     if self.calculateDiss(closest, i1, i2, data, clusteri1, clusteri2) < 0.4:
+        #         if closest.is_ML():
+        #             return Constraint(i1, i2, True)
+        #         else:
+        #             return Constraint(i1, i2, False)
         return None
     
     def distance_between_blobs(self, blob1, blob2, data):

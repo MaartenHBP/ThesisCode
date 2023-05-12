@@ -46,7 +46,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
 nbRUNS = 100
-ARGUMENTS = range(100) # 10 seeds bleek te weinig te zijn voor smooth curves
+ARGUMENTS = range(25) # 25 seeds voor betere curve mar geen overkill aan runs
 SEED = 24
 random_generator = np.random.default_rng(SEED)
 seeds = [random_generator.integers(1,1000000) for i in range(nbRUNS)] # creation of the seeds
@@ -448,103 +448,14 @@ if __name__ == "__main__":
     # make plots
     # doAll(Path(f"experimenten/thesis/posterevent/kNN_metric").absolute())
 
+    #################
+    # Variance_test #
+    #################
 
-    #############
-    # Chapter 5 #
-    #############
-
-    # rank([Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD"),
-    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASD++"),
-    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASC"),
-    #       Path(f"experimenten/thesis/Chapter5/small_adition_test/COBRASC++"),], 
-    #       [ "COBRAS ", "COBRAS ++", "COBRAS C", "COBRAS C++"], 
-    #       "experimenten/thesis/Chapter5/small_adition_test", useVariance=False)
-
-    # kNN #
-
-    # rank([Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_D"),
-    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_4"),
-    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_5"),
-    #       Path(f"experimenten/thesis/Chapter5/k_param_kNN_test/kNN_7")], 
-    #       [ "k = 3", "k = 4", "k = 5", "k = 7"], 
-    #       "experimenten/thesis/Chapter5/k_param_kNN_test", useVariance=False)
-
-
-    # rank([Path(f"experimenten/thesis/Chapter5/simple_kNN_test/kNN_D"),
-    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/kNN_C"),
-    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/merge_dynamisch"),
-    #       Path(f"experimenten/thesis/Chapter5/simple_kNN_test/merge_constant")], 
-    #       [ "COBRAS kNN D", "COBRAS kNN C", "COBRAS D", "COBRAS C"], 
-    #       "experimenten/thesis/Chapter5/simple_kNN_test", useVariance=False)
-    
-
-    # rank([Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_3"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_3_C"),
-    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_4"),
-    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_5"),
-    #     #   Path(f"experimenten/thesis/Chapter5/distance_kNN/kNN_7"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/merge_dynamisch"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN/merge_constant")], 
-    #       [ "COBRAS kNN D" , "COBRAS kNN C" , "COBRAS D", "COBRAS C"], 
-    #       "experimenten/thesis/Chapter5/distance_kNN", useVariance=False)
-
-    # rank([Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_3"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_4"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_5"),
-    #       Path(f"experimenten/thesis/Chapter5/distance_kNN_param/kNN_7")], 
-    #       [ "k = 3" , "k = 4" , "k = 5", "k = 7"], 
-    #       "experimenten/thesis/Chapter5/distance_kNN_param", useVariance=False)
-
-
-    # ClusterLevel
-    # rank([Path(f"experimenten/thesis/Chapter5/knn_cluster_level/kNN_3"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/kNN_3_cluster"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/merge_dynamisch"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_cluster_level/merge_constant")], 
-    #       [ "COBRAS kNN", "COBRAS kNN Cluster", "COBRAS D", "COBRAS C"], 
-    #       "experimenten/thesis/Chapter5/knn_cluster_level", useVariance=False)
-
-    # Superinstance down
-    # rank([Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_1"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_2"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_3"),
-    #       Path(f"experimenten/thesis/Chapter5/knn_superinstanceDown_level/kNN_3_down_4")], 
-    #       [ "COBRAS kNN", "COBRAS kNN Diepte1", "COBRAS kNN Diepte2", "COBRAS kNN Diepte3", "COBRAS kNN Diepte4"], 
-    #       "experimenten/thesis/Chapter5/knn_superinstanceDown_level", useVariance=False)
-
-    # Verfiningen
-    # rank([Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3"),
-    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_0"),
-    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_1"),
-    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_2"),
-    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_up_3"),
-    #       Path(f"experimenten/thesis/Chapter5/verfijningen/kNN_3_cluster")], 
-    #       [ "COBRAS kNN", "COBRAS kNN Diepte0", "COBRAS kNN Diepte1", "COBRAS kNN Diepte2", "COBRAS kNN Diepte3", "COBRAS kNN Cluster"], 
-    #       "experimenten/thesis/Chapter5/verfijningen", useVariance=False)
-
-
-    ################
-    # Poster event #
-    ################
-    # rank([Path(f"experimenten/thesis/posterevent/COBRAS++"),
-    #       Path(f"experimenten/thesis/posterevent/kNN"),
-    #       Path(f"experimenten/thesis/posterevent/kNN_KLMNN"),
-    #       Path(f"experimenten/thesis/posterevent/COBRAS")], 
-    #       ["COBRAS", "COBRAS kNN", "COBRAS kNN  KLMNN", "COBRAS++"], 
-    #       "experimenten/thesis/posterevent", useVariance=False)
-
-    ###########
-    # Rebuild #
-    ###########
-
-    # rank([Path(f"experimenten/thesis/Chapter_rebuild/closest/COBRAS++"),
-    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/All_100"),
-    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/100"),
-    #       Path(f"experimenten/thesis/Chapter_rebuild/closest/Vote_100"),
-    #        Path(f"experimenten/thesis/Chapter_rebuild/closest/metric")], 
-    #       ["COBRAS", "COBRAS closest", "COBRAS closest notAll", "COBRAS vote", "Metric"], 
-    #       "experimenten/thesis/Chapter_rebuild/closest", useVariance=False)
+    rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
+          Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
+          ["dynamisch splitlevel", "splitlevel = 4"], 
+          "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
 
 
 

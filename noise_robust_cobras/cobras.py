@@ -870,11 +870,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
 
         if self.useNewConstraintIndex:
-            clust = np.array(self.clustering_to_store)
-            options = np.array(list(range(self.data.shape[0])))
-            if len(clust) > 0:
-                return self.constraint_index_advanced.checkReuse(i1, i2, self.data, options[clust == clust[i1]], options[clust == clust[i2]], self.plusBlobs)
-            return self.constraint_index_advanced.checkReuse(i1, i2, self.data, [], [], self.plusBlobs)
+            # clust = np.array(self.clustering_to_store)
+            # options = np.array(list(range(self.data.shape[0])))
+            # if len(clust) > 0:
+                # return self.constraint_index_advanced.checkReuse(i1, i2, self.data, options[clust == clust[i1]], options[clust == clust[i2]], self.plusBlobs)
+            return self.constraint_index_advanced.checkReuse(i1, i2)
         else:
             reused_constraint = None
             ml_constraint = Constraint(i1, i2, True)

@@ -1,11 +1,11 @@
 {   
-    "reuse": "5-COBRAS/labels_blobs_test/COBRASC++",
-    
-    "plotName": "COBRAS C++",
+    "reuse": "7-kNN/1-kNN/COBRASD++M_kNN",
+
+    "plotName": "k = 3",
     
     "settings" : {   
         
-        "splitlevel_strategy": "constant",
+        "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
         "metricLearner" : "LMNN_wrapper",
@@ -31,7 +31,7 @@
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
 
-        "after" : false,
+        "after" : true,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
         "after_weights" : "uniform",
@@ -41,7 +41,7 @@
         "afterSuperInstanceLevel" : 0,
 
         "useNewConstraintIndex" : true,
-        "mergeBlobs" : false, 
+        "mergeBlobs" : true, 
         "represBlobs" : false
     }
 

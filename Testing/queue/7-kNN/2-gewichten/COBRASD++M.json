@@ -1,11 +1,11 @@
 {   
-    "reuse": "5-COBRAS/labels_blobs_test/COBRASC++",
-    
-    "plotName": "COBRAS C++",
+    "reuse": "5-COBRAS/labels_blobs_test/COBRASD++M",
+
+    "plotName": "COBRAS D",
     
     "settings" : {   
         
-        "splitlevel_strategy": "constant",
+        "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
         "metricLearner" : "LMNN_wrapper",
@@ -41,7 +41,7 @@
         "afterSuperInstanceLevel" : 0,
 
         "useNewConstraintIndex" : true,
-        "mergeBlobs" : false, 
+        "mergeBlobs" : true, 
         "represBlobs" : false
     }
 
