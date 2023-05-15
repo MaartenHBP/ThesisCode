@@ -99,32 +99,67 @@ def runCOBRAS(seed, dataName, arguments):
 def test():
     dataset = "segmentation"
 
-    args = { "useNewConstraintIndex" : True,
-          "plusBlobs": False
-        # "afterLevel": 'superinstance',
-        # "afterSuperInstanceLevel": 3,
-        # "afterSuperInstanceLevelDown": False
-        }
+    args = {   
+        
+        "splitlevel_strategy": None,
+        "splitlevelInt" : 4,
+        
+        "metricLearner" : "NCA_wrapper",
+        "metricLearer_arguments" : {},
+
+        "metricLevel" : "all",
+        "metricSuperInstanceLevel" : 0,
+
+        "learnAMetric" : False,
+        "metricAmountQueriesAsked" : 50,
+        "metricInterval" : 0,
+
+        "initial" : True,
+        "initialSupervised" : 0.5, 
+        "initialRandom" : True, 
+
+        "rebuildPhase" : False,
+        "rebuildAmountQueriesAsked" : 75,
+        "rebuildInterval" : 0,
+        "rebuildLevel" : "all", 
+        "rebuildSuperInstanceLevel" : 0,
+        "rebuilder" : "ClosestRebuild",
+        "rebuildMetric" : False,
+        "rebuilderKeepTransformed" : False,
+
+        "after" : False,
+        "afterAmountQueriesAsked" : 1,
+        "after_k" : 3,
+        "after_weights" : "uniform",
+        "afterMetric" : False, 
+        "afterKeepTransformed" : False, 
+        "afterLevel" : "all", 
+        "afterSuperInstanceLevel" : 0,
+
+        "useNewConstraintIndex" : True,
+        "mergeBlobs" : True, 
+        "represBlobs" : False
+    }
 
     
 
     # plt.show()    
     plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS")
-    print("next")
-    # args["rebuildMetric"] = True
-    # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
-    # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
     # print("next")
+    # # args["rebuildMetric"] = True
+    # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
+    # # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
+    # # print("next")
 
-    args["useNewConstraintIndex"] = True
-    args["plusBlobs"] = True
-    plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS+")
-    # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
+    # args["useNewConstraintIndex"] = True
+    # args["plusBlobs"] = True
+    # plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS+")
+    # # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
-    plt.legend()
+    # plt.legend()
     
 
-    plt.show()
+    # plt.show()
     
     
 ######################
@@ -404,6 +439,8 @@ def runAll(doAll = False):
             all_paths  = []
             all_names = []
 
+            found = 0
+
             for file in os.listdir(experiment_location):
                 results_location = os.path.join(file_experiment, file[:len(file) - 5])
 
@@ -417,17 +454,20 @@ def runAll(doAll = False):
                     reuse = Path(f"experimenten/thesis/{experiment_file['reuse']}/total.json").absolute()
                     if reuse.is_file():
                         all_paths.append(Path(f"experimenten/thesis/{experiment_file['reuse']}").absolute())
+                        found += 1
                         continue # de resultaten zijn hier al van bekend
                 
                 all_paths.append(results_location)
 
                 test =  Path(os.path.join(results_location, "total.json")).absolute()
-                if test.is_file() and doAll:
+                if test.is_file():
+                    found += 1
                     continue
 
                 run(experiment_file["settings"], results_location)
 
-
+            if doAll and found == len(os.listdir(experiment_location)):
+                continue
             rank(all_paths, 
             all_names, 
             file_experiment, useVariance=False)

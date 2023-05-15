@@ -1,5 +1,5 @@
-# from metric_learn import *
-from dml import KLMNN, LMNN, ITML, NCA
+from metric_learn import NCA
+from dml import KLMNN, LMNN, ITML
 
 
 from sklearn.manifold import SpectralEmbedding
@@ -54,7 +54,7 @@ class ITML_wrapper(MetricLearner):
         # if len(np.unique(newlabels)) < 2:
         #     return self
 
-        self.fitted = NCA()
+        self.fitted = ITML()
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 
@@ -120,7 +120,7 @@ class LMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = LMNN()
+        self.fitted = LMNN(max_iter = 30)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 
@@ -136,7 +136,7 @@ class LMNN_wrapper(MetricLearner):
         return self.transform(np.copy(self.preprocessor))
 
 class KLMNN_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None, seed = 42, kernel = 'Laplacian'):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'laplacian'):
         self.fitted = None
         self.seed = seed
         self.kernel = kernel
@@ -154,7 +154,7 @@ class KLMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = KLMNN(kernel = self.kernel)
+        self.fitted = KLMNN(kernel = self.kernel, max_iter = 30)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 

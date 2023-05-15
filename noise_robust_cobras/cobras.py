@@ -327,7 +327,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ################
         # Metric learn #
         ################
-        # self.initial_transform()
+        self.initial_transform()
 
 
 
@@ -1042,7 +1042,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         if self.initialRandom:  
             points, labels =  self.querier.getRandomLabels(math.ceil(self.initialSupervised*len(self.data)), self.seed)
-        else:
+        else: # mss dit niet nodig
             querier = self.querier.createCopy(self.initialSupervised)
             clusterer = COBRAS(correct_noise=False, seed=self.seed)
             clusterer.fit(np.copy(self.data), -1, None, querier)
