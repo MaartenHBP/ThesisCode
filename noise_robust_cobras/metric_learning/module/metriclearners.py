@@ -80,11 +80,11 @@ class NCA_wrapper(MetricLearner):
         unique, counts = np.unique(labels, return_counts=True)
         problem = unique[counts < 3]
         newpoint, newlabels = points, labels
-        if (len(problem) > 0):
-            select = np.invert(np.in1d(labels, problem))
-            newpoint, newlabels = points[select], labels[select]
-        if len(np.unique(newlabels)) < 2:
-            return self
+        # if (len(problem) > 0):
+        #     select = np.invert(np.in1d(labels, problem))
+        #     newpoint, newlabels = points[select], labels[select]
+        # if len(np.unique(newlabels)) < 2:
+        #     return self
             
 
         self.fitted = NCA()
@@ -120,7 +120,7 @@ class LMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = LMNN(max_iter = 30)
+        self.fitted = LMNN()
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 
@@ -154,7 +154,7 @@ class KLMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = KLMNN(kernel = self.kernel, max_iter = 30)
+        self.fitted = KLMNN(kernel = self.kernel)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 

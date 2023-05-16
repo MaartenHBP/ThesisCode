@@ -470,7 +470,7 @@ def runAll(doAll = False):
                 continue
             rank(all_paths, 
             all_names, 
-            file_experiment, useVariance=False)
+            file_experiment, useVariance=True)
 
             
 

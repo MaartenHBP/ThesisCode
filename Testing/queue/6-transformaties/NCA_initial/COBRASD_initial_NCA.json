@@ -1,0 +1,46 @@
+{   
+    "plotName": "NCA-COBRAS",
+    
+    "settings" : {   
+        
+        "splitlevel_strategy": null,
+        "splitlevelInt" : 4,
+        
+        "metricLearner" : "NCA_wrapper",
+        "metricLearer_arguments" : {},
+
+        "metricLevel" : "all",
+        "metricSuperInstanceLevel" : 0,
+
+        "learnAMetric" : false,
+        "metricAmountQueriesAsked" : 50,
+        "metricInterval" : 0,
+
+        "initial" : true,
+        "initialSupervised" : 1, 
+        "initialRandom" : true, 
+
+        "rebuildPhase" : false,
+        "rebuildAmountQueriesAsked" : 75,
+        "rebuildInterval" : 0,
+        "rebuildLevel" : "all", 
+        "rebuildSuperInstanceLevel" : 0,
+        "rebuilder" : "ClosestRebuild",
+        "rebuildMetric" : false,
+        "rebuilderKeepTransformed" : false,
+
+        "after" : false,
+        "afterAmountQueriesAsked" : 1,
+        "after_k" : 3,
+        "after_weights" : "uniform",
+        "afterMetric" : false, 
+        "afterKeepTransformed" : false, 
+        "afterLevel" : "all", 
+        "afterSuperInstanceLevel" : 0,
+
+        "useNewConstraintIndex" : true,
+        "mergeBlobs" : true, 
+        "represBlobs" : false
+    }
+
+}
