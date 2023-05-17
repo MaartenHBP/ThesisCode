@@ -25,6 +25,8 @@ from sklearn.decomposition import KernelPCA
 
 import itertools
 
+from noise_robust_cobras.metric_learning.metricLearners import gb_lmnn
+
 
 class MetricLearner:
     def __init__(self, preprocessor = None, expand = False):
@@ -87,7 +89,7 @@ class NCA_wrapper(MetricLearner):
         #     return self
             
 
-        self.fitted = NCA()
+        self.fitted = NCA(random_state=self.seed)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 
@@ -168,6 +170,44 @@ class KLMNN_wrapper(MetricLearner):
             return np.copy(self.preprocessor)
         self.fit(pairs, y, points, labels)
         return self.transform(np.copy(self.preprocessor))
+
+"""
+This is a non-linear supervised metric learning algorithm
+Design from: https://github.com/iago-suarez/py-gb-lmnn
+"""
+class GBLMNN_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, nbImposters = 10):
+        self.fitted = None
+        self.seed = seed
+        self.nbImposters = nbImposters # TODO deze goed vinden, kan enkel afh van de grootte van de dataset zijn
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 4]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0): # werkt ook zoals LMNN
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=self.nbImposters, k=3, L=None)
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+
 
 
 # class kernelbased(MetricLearner): # TODO: check de implementatie

@@ -97,14 +97,14 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "segmentation"
+    dataset = "yeast"
 
     args = {   
         
         "splitlevel_strategy": None,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "NCA_wrapper",
+        "metricLearner" : "GBLMNN_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
@@ -114,7 +114,7 @@ def test():
         "metricAmountQueriesAsked" : 50,
         "metricInterval" : 0,
 
-        "initial" : True,
+        "initial" : False,
         "initialSupervised" : 0.5, 
         "initialRandom" : True, 
 
@@ -145,7 +145,10 @@ def test():
 
     # plt.show()    
     plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS")
-    # print("next")
+    print("next")
+    args["initial"] = True
+    plt.plot(runCOBRAS(16, dataset, args), label = "metric")
+    # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # plt.plot(runCOBRAS(20, dataset, {"useNewConstraintIndex" : True, "mergeBlobs" : True}), label = "COBRASLabels")
@@ -156,10 +159,10 @@ def test():
     # plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS+")
     # # plt.plot(runCOBRAS(16, dataset, {}), label = "COBRAS")
 
-    # plt.legend()
+    plt.legend()
     
 
-    # plt.show()
+    plt.show()
     
     
 ######################
@@ -482,10 +485,10 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    # runAll(doAll = True) # vanaf nu dit oproepen
 
 
-    # test()
+    test()
 
     # normalCOBRAS()
 

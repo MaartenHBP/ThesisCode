@@ -1,0 +1,48 @@
+{   
+    "reuse": "5-Labels/label_blobs_test/COBRASD++M",
+
+    "plotName": "COBRAS KLMNN 75",
+    
+    "settings" : {   
+        
+        "splitlevel_strategy": null,
+        "splitlevelInt" : 4,
+        
+        "metricLearner" : "KLMNN_wrapper",
+        "metricLearer_arguments" : {},
+
+        "metricLevel" : "all",
+        "metricSuperInstanceLevel" : 0,
+
+        "learnAMetric" : true,
+        "metricAmountQueriesAsked" : 75,
+        "metricInterval" : 0,
+
+        "initial" : false,
+        "initialSupervised" : 0, 
+        "initialRandom" : true, 
+
+        "rebuildPhase" : false,
+        "rebuildAmountQueriesAsked" : 75,
+        "rebuildInterval" : 0,
+        "rebuildLevel" : "all", 
+        "rebuildSuperInstanceLevel" : 0,
+        "rebuilder" : "ClosestRebuild",
+        "rebuildMetric" : false,
+        "rebuilderKeepTransformed" : false,
+
+        "after" : false,
+        "afterAmountQueriesAsked" : 1,
+        "after_k" : 3,
+        "after_weights" : "uniform",
+        "afterMetric" : false, 
+        "afterKeepTransformed" : false, 
+        "afterLevel" : "all", 
+        "afterSuperInstanceLevel" : 0,
+
+        "useNewConstraintIndex" : true,
+        "mergeBlobs" : true, 
+        "represBlobs" : false
+    }
+
+}

@@ -45,6 +45,8 @@ class ConstraintBlobs: # blobs zijn sets
 
         self.allConstraints = []
 
+        self.labeled = []
+
     def addConstraints(self, constraint):
         self.allConstraints.append(constraint)
         # zichzelf toevoegen
@@ -167,9 +169,11 @@ class ConstraintBlobs: # blobs zijn sets
 
             labelled = list(self.blobs.keys())
 
+            self.labeled = labelled
+
             for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
                 if blob & r:
-                    clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
+                    clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem hetzelfde label over
                 else:
                     clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
                     i += 1
