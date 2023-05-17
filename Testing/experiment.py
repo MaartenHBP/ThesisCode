@@ -97,20 +97,20 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "yeast"
+    dataset = "ecoli"
 
     args = {   
         
         "splitlevel_strategy": None,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "GBLMNN_wrapper",
+        "metricLearner" : "NCA_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
-        "learnAMetric" : False,
+        "learnAMetric" : True,
         "metricAmountQueriesAsked" : 50,
         "metricInterval" : 0,
 
@@ -144,9 +144,9 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "COBRAS")
+    plt.plot(runCOBRAS(6, dataset, args), label = "COBRAS")
     print("next")
-    args["initial"] = True
+    args["learnAMetric"] = True
     plt.plot(runCOBRAS(16, dataset, args), label = "metric")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
