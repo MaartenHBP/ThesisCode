@@ -672,7 +672,7 @@ def gb_lmnn(X, y, k, L, verbose=False, depth=4, n_trees=200, lr=1e-3, no_potenti
     n_classes = len(un)
 
     use_validation = False
-    pred = X #@ L.T
+    pred = X # @ L.T
     pred_val = xval if use_validation else None
     if use_validation:
         tr_err, val_err = knn_error_score([], X, y, xval, yval, k=1)

@@ -194,7 +194,8 @@ class GBLMNN_wrapper(MetricLearner):
             return self
         
         values, counts = np.unique(newlabels, return_counts=True)
-        nbImposters = min(len(newlabels) - np.max(counts), 10)
+        # nbImposters = min(len(newlabels) - np.max(counts), 10)
+        nbImposters = len(newlabels) - np.max(counts)
         
         self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=nbImposters, k=3, L=None)
         return self
