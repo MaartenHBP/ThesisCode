@@ -1,21 +1,22 @@
 {   
-    
 
-    "plotName": "COBRAS ITML 25",
+    "plotName": "COBRAS NCA 100 Changed",
     
     "settings" : {   
         
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
+        "cluster_algo": "SemiKMeansClusterAlgorithm",
         
-        "metricLearner" : "ITML_wrapper",
+        "metricLearner" : "NCA_wrapper",
         "metricLearer_arguments" : {},
+        "changeToMedoids": true,
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
         "learnAMetric" : true,
-        "metricAmountQueriesAsked" : 25,
+        "metricAmountQueriesAsked" : 75,
         "metricInterval" : 0,
 
         "initial" : false,

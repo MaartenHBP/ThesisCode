@@ -1,5 +1,5 @@
 from metric_learn import NCA
-from dml import KLMNN, LMNN, ITML
+from dml import KLMNN, ITML, LMNN
 
 
 from sklearn.manifold import SpectralEmbedding
@@ -82,11 +82,11 @@ class NCA_wrapper(MetricLearner):
         unique, counts = np.unique(labels, return_counts=True)
         problem = unique[counts < 3]
         newpoint, newlabels = points, labels
-        # if (len(problem) > 0):
-        #     select = np.invert(np.in1d(labels, problem))
-        #     newpoint, newlabels = points[select], labels[select]
-        # if len(np.unique(newlabels)) < 2:
-        #     return self
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
             
 
         self.fitted = NCA(random_state=self.seed)
@@ -179,7 +179,7 @@ class GBLMNN_wrapper(MetricLearner):
     def __init__(self, preprocessor=None, seed = 42, nbImposters = 10):
         self.fitted = None
         self.seed = seed
-        self.nbImposters = nbImposters # TODO deze goed vinden, kan enkel afh van de grootte van de dataset zijn
+        self.nbImposters = nbImposters # moenteel 10 of de helft van de dataset als dat kleiner is
         super().__init__(preprocessor) 
 
     def fit(self, pairs, y, points, labels):
@@ -192,9 +192,12 @@ class GBLMNN_wrapper(MetricLearner):
             newpoint, newlabels = points[select], labels[select]
         if len(np.unique(newlabels)) < 2:
             return self
-            
-
-        self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=self.nbImposters, k=3, L=None)
+        
+        values, counts = np.unique(newlabels, return_counts=True)
+        # nbImposters = min(len(newlabels) - np.max(counts), 10)
+        nbImposters = len(newlabels) - np.max(counts)
+        
+        self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=nbImposters, k=3, L=None)
         return self
 
     def transform(self, data):

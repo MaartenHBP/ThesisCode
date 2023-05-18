@@ -12,7 +12,7 @@ from noise_robust_cobras.metric_learning.module.metriclearners import *
 
 class ClusterAlgorithm:
     @abc.abstractmethod
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None): # Added extra stuff for more advanced stuff
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, transformed = None): # Added extra stuff for more advanced stuff
         pass
 
     def get_name(self):
@@ -58,7 +58,7 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
     def __init__(self, n_runs=10, askExtraConstraints = False): # true for now
         self.n_runs = n_runs
 
-    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None):  
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None, transformed = None):  
 
         init = 'k-means++' # voor de zekerheid
         
@@ -71,7 +71,45 @@ class KMeansClusterAlgorithm(ClusterAlgorithm):
         km.fit(data[indices, :])
 
         # return the labels as a list of integers
-        return km.labels_.astype(np.int)#, None
+        return km.labels_.astype(np.int), None
+    
+class KMedoidsCLusteringAlgorithm(ClusterAlgorithm):
+    def __init__(self, n_runs=10):
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None, transformed = None): #ml and cl not used
+        init = 'k-means++' if centers is None else centers 
+        
+        if seed is not None:
+            km = KMedoids(n_clusters=k, random_state=seed)
+        else:
+            km = KMedoids(n_clusters=k)
+
+        # only cluster the given indices
+        km.fit(data[indices, :])
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int), np.array(indices)[km.medoid_indices_.astype(np.int)]
+    
+# gebruik Mahalanobis distance, maar centers op zelfde manier berekenen
+class SemiKMeansClusterAlgorithm(ClusterAlgorithm):
+    def __init__(self, n_runs=10, askExtraConstraints = False): # true for now
+        self.n_runs = n_runs
+
+    def cluster(self, data, indices, k, ml, cl, seed=None, centers = None, cobras = None, transformed = None):  # transformed is dus de originele data
+
+        init = 'k-means++' # voor de zekerheid
+        
+        if seed is not None:
+            km = KMeans(k, n_init=self.n_runs, random_state=seed, init = init)
+        else:
+            km = KMeans(k, n_init=self.n_runs, init = init)
+
+        # only cluster the given indices
+        km.semi_fit(transformed[indices, :], TransformedData = np.copy(data[indices, :]))
+
+        # return the labels as a list of integers
+        return km.labels_.astype(np.int), None
 
 # OBSOLETE
     

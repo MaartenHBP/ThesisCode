@@ -13,6 +13,8 @@ from noise_robust_cobras.cluster import Cluster
 from noise_robust_cobras.clustering import Clustering
 from noise_robust_cobras.clustering_algorithms.clustering_algorithms import (
     KMeansClusterAlgorithm,
+    SemiKMeansClusterAlgorithm,
+    KMedoidsCLusteringAlgorithm,
     ClusterAlgorithm,
 )
 from noise_robust_cobras.rebuild_algorithms.rebuild_algorithms import (
@@ -67,7 +69,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def __init__(
         self,
         ###########################################################
-        cluster_algo: ClusterAlgorithm = KMeansClusterAlgorithm,
+        cluster_algo = "KMeansClusterAlgorithm",
         cluster_algo_parameters = {},
         # rebuild_cluster: ClusterAlgorithm = KMeansClusterAlgorithm,
         # rebuild_cluster_parameters = {},
@@ -92,6 +94,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         metricLevel = "all",
         metricSuperInstanceLevel = 0,
+        changeToMedoids = False,
 
         ##########
         # During #
@@ -155,13 +158,14 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         # already initialised so object size does not change during execution
         # python can optimize
         self.data = None
+        self.original = None
         self.querier = None
         self.train_indices = None
 
         # init cobras_cluster_algo
-        self.cluster_algo = cluster_algo(**cluster_algo_parameters)
+        self.cluster_algo: ClusterAlgorithm = eval(cluster_algo)(**cluster_algo_parameters)
         self.superinstance_builder = superinstance_builder
-        self.splitlevel_cluster = KMeansClusterAlgorithm(askExtraConstraints=False) # OBSOLETE, uiteindelijk niet meer aangekomen
+        # self.splitlevel_cluster = KMeansClusterAlgorithm(askExtraConstraints=False) # OBSOLETE, uiteindelijk niet meer aangekomen
         ###################
         # METRIC LEARNING #
         ###################
@@ -169,6 +173,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.metricLearer_arguments = metricLearer_arguments
         self.metricLevel = metricLevel
         self.metricSuperInstanceLevel = metricSuperInstanceLevel
+        self.changeToMedoids = changeToMedoids
 
         self.learedMetric = None
 
@@ -295,6 +300,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.random_generator = np.random.default_rng(self.seed) # hier random_generator gezet
         self._cobras_log.log_start_clustering()
         self.data = X
+
+        self.original = np.copy(X)
 
         self.learedMetric = np.copy(self.data) # de huidige geleerde metriek
         self.metricCounter = 0
@@ -548,11 +555,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         """
 
         # cluster the instances of the superinstance
-        clusters = self.splitlevel_cluster.cluster( # ML and CL meegeven
-            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
-
-        ) if determination else self.cluster_algo.cluster( # ML and CL meegeven
-            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
+        clusters, medoids = self.cluster_algo.cluster( # ML and CL meegeven
+            np.copy(self.data), si.indices, k, [], [], seed=self.random_generator.integers(1,1000000), cobras = self,
+            transformed=self.original # seed voor clusteren wordt rangom gegenereerd (zo krijgen we altijd dezelfde resultaten) => zo moet seed gedaan worden (ook als we ITML enzo oproepen)
 
         )
 
@@ -567,7 +572,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             si_train_indices = [x for x in cur_indices if x in self.train_indices]
             if len(si_train_indices) != 0:
-                training.append(self.create_superinstance(cur_indices, si)) # hier wordt de parent gezet
+                training.append(self.create_superinstance(cur_indices, si, medoids[new_si_idx] if medoids is not None else None)) # hier wordt de parent gezet
             else:
                 no_training.append(
                     (cur_indices, np.mean(self.data[cur_indices, :], axis=0))
@@ -746,9 +751,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
     def get_constraint_length(self):
         return self.constraint_index.get_number_of_constraints()
 
-    def create_superinstance(self, indices, parent=None) -> SuperInstance:
+    def create_superinstance(self, indices, parent=None, medoid = None) -> SuperInstance:
         return self.superinstance_builder.makeSuperInstance(
-            self.data, indices, self.train_indices, parent
+            self.data, indices, self.train_indices, parent, medoid
         )
 
     ############################################
@@ -993,6 +998,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                         repres.append(idx)
             data[np.array(indices)] = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)] # ff een poging ondernemen
         self.learedMetric = np.copy(data)
+        
         return self.learedMetric
 
 
@@ -1062,6 +1068,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                 self.metricAmountQueriesAsked = len(self._cobras_log.all_user_constraints) + self.metricInterval # voor de volgende keer dat het mag uitgevoerd worden
             else:
                 self.learnAMetric = False # er moet geen metriek meer geleerd worden
+            if self.changeToMedoids:
+                self.cluster_algo = SemiKMeansClusterAlgorithm()
 
     ##############
     # Rebuilding #

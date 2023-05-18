@@ -3,7 +3,7 @@ import abc
 
 class SuperInstanceBuilder:
     @abc.abstractmethod
-    def makeSuperInstance(self, data, indices, train_indices, parent=None):
+    def makeSuperInstance(self, data, indices, train_indices, parent=None, medoid = None):
         pass
 
 
