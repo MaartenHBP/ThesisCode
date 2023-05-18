@@ -45,6 +45,13 @@ from scipy.interpolate import interp1d
 from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy.spatial import ConvexHull
 
+# moonplots
+from sklearn.datasets import make_moons
+from sklearn.cluster import KMeans
+from sklearn.cluster import SpectralClustering
+
+plt.style.use('default')
+
 nbRUNS = 100
 ARGUMENTS = range(25) # 25 seeds voor betere curve mar geen overkill aan runs
 SEED = 24
@@ -92,26 +99,29 @@ def runCOBRAS(seed, dataName, arguments):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
+def kNNTest(seed, dataName):
+    pass
+
 ###############
 # Experiments #
 ###############
                 
 def test():
-    dataset = "yeast"
+    dataset = "dermatology"
 
     args = {   
         
         "splitlevel_strategy": None,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "GBLMNN_wrapper",
+        "metricLearner" : "ITML_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
-        "learnAMetric" : False,
-        "metricAmountQueriesAsked" : 50,
+        "learnAMetric" : True,
+        "metricAmountQueriesAsked" : 25,
         "metricInterval" : 0,
 
         "initial" : False,
@@ -163,6 +173,50 @@ def test():
     
 
     plt.show()
+
+def moonPlot():
+    # features, true_labels = make_moons(n_samples=100, noise=0.13)
+
+    for i in ["KLMNN"]: #["oorspronkelijk", "kmeans", "spectral", "ITML", "NCA", "KLMNN", "GBLMNN", "LMNN"]:
+
+        print(i)
+
+        path = Path(f'datasets/created/spectral.data').absolute()
+        dataset = np.loadtxt(path, delimiter=',')
+        features = dataset[:, 1:]
+        true_labels = dataset[:, 0]
+
+        if i == "kmeans":
+            kmeans = KMeans(n_clusters=2, random_state=0).fit(features)
+            true_labels = kmeans.labels_
+
+        if i == "spectral":
+            clustering = SpectralClustering(n_clusters=2, eigen_solver="arpack",
+                affinity="nearest_neighbors",).fit(features)
+            true_labels = clustering.labels_
+
+        if i == "ITML":
+            features = ITML_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+        if i == "NCA":  
+            features = NCA_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+        if i == "LMNN":  
+            features = LMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+        if i  == "KLMNN":
+            features = KLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+        if i == "GBLMNN":
+            features = GBLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+
+        # GBLMNN
+
+        plt.scatter(features[:,0], features[:,1], c=true_labels)
+        plt.savefig(f"experimenten/thesis/2-literatuurstudie/moons/{i}.png", dpi = 600)
+        plt.clf()
+
     
     
 ######################
@@ -341,7 +395,7 @@ def rank(paths, names, location, useVariance = False):
             plt.ylabel("ARI")
             plt.title(f"Variantie-analyse {names[i]}")
             plt.legend()
-            plt.savefig(f"{location}/variance/variance_{names[i]}.png")
+            plt.savefig(f"{location}/variance/variance_{names[i]}.png", dpi = 600)
             plt.clf()
 
     ARI.plot(xlabel="#vragen", ylabel="ARI", ylim = (0.4,0.85))
@@ -485,10 +539,12 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    # runAll(doAll = True) # vanaf nu dit oproepen
 
 
     # test()
+
+    moonPlot()
 
     # normalCOBRAS()
 
