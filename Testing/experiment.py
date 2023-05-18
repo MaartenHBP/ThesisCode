@@ -97,7 +97,7 @@ def runCOBRAS(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "ecoli"
+    dataset = "segmentation"
 
     args = {   
         
@@ -106,6 +106,8 @@ def test():
         
         "metricLearner" : "NCA_wrapper",
         "metricLearer_arguments" : {},
+        "changeToMedoids": False,
+        "cluster_algo": "KMeansClusterAlgorithm", 
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
@@ -144,10 +146,10 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(6, dataset, args), label = "COBRAS")
+    plt.plot(runCOBRAS(16, dataset, args), label = "kmeans")
     print("next")
-    args["learnAMetric"] = True
-    plt.plot(runCOBRAS(16, dataset, args), label = "metric")
+    args["cluster_algo"] = "SemiKMeansClusterAlgorithm"
+    plt.plot(runCOBRAS(16, dataset, args), label = "Change")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")

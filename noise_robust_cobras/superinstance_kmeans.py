@@ -29,9 +29,10 @@ class SuperInstance_kmeans(SuperInstance): # hoe wordt de medoid bepaald
                     key=lambda x: np.linalg.norm(self.data[x, :] - self.centroid),
                 )
             else:
-                self.representative_idx = centre
+                self.representative_idx = centre # TADA
         except:
             raise ValueError("Super instance without training instances")
+
 
 
     def distance_to(self, other_superinstance):
