@@ -1,6 +1,6 @@
-from metric_learn import NCA
-from dml import KLMNN, ITML, LMNN
-
+from metric_learn import NCA, LMNN
+from dml import KLMNN, ITML
+import dml 
 
 from sklearn.manifold import SpectralEmbedding
 from sklearn.cluster import SpectralClustering
@@ -36,7 +36,11 @@ class MetricLearner:
     def fit(self, pairs , y, points, labels): # points en labels is fully labelled data
         pass # return transformed and affinity
     @abstractmethod
-    def transform(self, data):
+    def transform(self, pairs, y, points, labels):
+        pass
+
+    @abstractmethod
+    def fit_transform(self, data):
         pass
 
 class ITML_wrapper(MetricLearner):
@@ -122,7 +126,7 @@ class LMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = LMNN()
+        self.fitted = LMNN(random_state=self.seed)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 
@@ -194,8 +198,45 @@ class GBLMNN_wrapper(MetricLearner):
             return self
         
         values, counts = np.unique(newlabels, return_counts=True)
-        # nbImposters = min(len(newlabels) - np.max(counts), 10)
-        nbImposters = len(newlabels) - np.max(counts)
+        nbImposters = min(len(newlabels) - np.max(counts), 10)
+        # nbImposters = len(newlabels) - np.max(counts)
+        
+        self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=nbImposters, k=3, L=None)
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+class GB_LMNN_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, nbImposters = 10):
+        self.fitted = None
+        self.seed = seed
+        self.nbImposters = nbImposters # moenteel 10 of de helft van de dataset als dat kleiner is
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        self.preprocessor = LMNN_wrapper_2(self.preprocessor).fit_transform(None, None, np.copy(points), np.copy(labels)) # eerst LMNN uitvoeren
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 4]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0): # werkt ook zoals LMNN
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+        
+        values, counts = np.unique(newlabels, return_counts=True)
+        nbImposters = min(len(newlabels) - np.max(counts), 10)
+        # nbImposters = len(newlabels) - np.max(counts)
         
         self.fitted = gb_lmnn(X=self.preprocessor[np.array(newpoint)], y=newlabels, no_potential_impo=nbImposters, k=3, L=None)
         return self
@@ -211,8 +252,236 @@ class GBLMNN_wrapper(MetricLearner):
         self.fit(pairs, y, points, labels)
         return self.transform(np.copy(self.preprocessor))
 
+class EUCLIDIAN_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42):
+        self.fitted = None
+        self.seed = seed
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja => hier moet dat niet
+        # unique, counts = np.unique(labels, return_counts=True)
+        # problem = unique[counts < 3]
+        # newpoint, newlabels = points, labels
+        # # if (len(problem) > 0):
+        # #     select = np.invert(np.in1d(labels, problem))
+        # #     newpoint, newlabels = points[select], labels[select]
+        # # if len(np.unique(newlabels)) < 2:
+        # #     return self
+
+        # self.fitted = ITML()
+        # self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        return data
+    
+    def fit_transform(self, pairs, y, points, labels):
+        return self.transform(np.copy(self.preprocessor))
+    
 
 
+class KLMNN_rbf_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'rbf'):
+        self.fitted = None
+        self.seed = seed
+        self.kernel = kernel
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = KLMNN(kernel = self.kernel)
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+class KLMNN_poly1_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'poly'):
+        self.fitted = None
+        self.seed = seed
+        self.kernel = kernel
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = KLMNN(kernel = self.kernel, degree = 1)
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+class KLMNN_poly2_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'poly'):
+        self.fitted = None
+        self.seed = seed
+        self.kernel = kernel
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = KLMNN(kernel = self.kernel, degree = 2)
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+    
+class KLMNN_poly3_wrapper(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'poly'):
+        self.fitted = None
+        self.seed = seed
+        self.kernel = kernel
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 3]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = KLMNN(kernel = self.kernel, degree = 3)
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+
+class LMNN_wrapper_2(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42):
+        self.fitted = None
+        self.seed = seed
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 4]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = dml.LMNN()
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
+
+class NCA_wrapper_2(MetricLearner):
+    def __init__(self, preprocessor=None, seed = 42):
+        self.fitted = None
+        self.seed = seed
+        super().__init__(preprocessor) 
+
+    def fit(self, pairs, y, points, labels):
+        # als er labels minder dan 3 keer voorkomen, eruit halen ja
+        unique, counts = np.unique(labels, return_counts=True)
+        problem = unique[counts < 4]
+        newpoint, newlabels = points, labels
+        if (len(problem) > 0):
+            select = np.invert(np.in1d(labels, problem))
+            newpoint, newlabels = points[select], labels[select]
+        if len(np.unique(newlabels)) < 2:
+            return self
+            
+
+        self.fitted = dml.NCA()
+        self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
+        return self
+
+    def transform(self, data):
+        if self.fitted is None:
+            return data
+        return self.fitted.transform(data)
+    
+    def fit_transform(self, pairs, y, points, labels):
+        if len(points) < 3:
+            return np.copy(self.preprocessor)
+        self.fit(pairs, y, points, labels)
+        return self.transform(np.copy(self.preprocessor))
 # class kernelbased(MetricLearner): # TODO: check de implementatie
 #     ''' 
 #     Semi-Supervised Metric Learning Using Pairwise Constraints, Soleymani Baghshah M, Bagheri Shouraki S

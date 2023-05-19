@@ -99,8 +99,48 @@ def runCOBRAS(seed, dataName, arguments):
 
     return [adjusted_rand_score(target, np.array(clustering)) for clustering in all_clusters]
 
-def kNNTest(seed, dataName):
-    pass
+def kNNTest(seed, dataName, metric_algo: MetricLearner):
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querylimit = 200
+    runlimit = querylimit
+
+
+    querier = LabelQuerier(None, target, runlimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **{"useNewConstraintIndex" : True,
+        "mergeBlobs" : True})
+
+    all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
+
+    labeled = clusterer.constraint_index_advanced.labeled
+
+    result = []
+
+    for j in [25, 50, 75, 100]:
+        i = j
+        if len(labeled) < i:
+            i = len(labeled) 
+        indi = np.array(labeled)[np.arange(i)]
+        newData = metric_algo(np.copy(data)).fit_transform(None, None, indi, np.copy(target)[indi])
+        model = KNeighborsClassifier(n_neighbors=3, weights='distance')
+        model.fit(np.array(newData)[indi], np.copy(target)[indi])
+        prediction = model.predict(np.array(newData))
+
+        mask = np.ones(data.shape[0], dtype=bool)
+        mask[indi] = False
+
+        result.append(adjusted_rand_score(target[mask], prediction[mask]))
+
+    return result
+
+    
 
 ###############
 # Experiments #
@@ -179,7 +219,7 @@ def test():
 def moonPlot():
     # features, true_labels = make_moons(n_samples=100, noise=0.13)
 
-    for i in ["KLMNN"]: #["oorspronkelijk", "kmeans", "spectral", "ITML", "NCA", "KLMNN", "GBLMNN", "LMNN"]:
+    for i in ["GB_LMNN"]: #["oorspronkelijk", "kmeans", "spectral", "ITML", "NCA", "KLMNN", "GBLMNN", "LMNN"]:
 
         print(i)
 
@@ -210,6 +250,12 @@ def moonPlot():
             features = KLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
 
         if i == "GBLMNN":
+            features = GBLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+
+        if i == "GB_LMNN":
+            features = KLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            plt.scatter(features[:,0], features[:,1], c=true_labels)
+            plt.show()
             features = GBLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
 
 
@@ -435,6 +481,58 @@ def rank(paths, names, location, useVariance = False):
 
     plt.clf()
 
+def rank_kNN(paths, names, location):
+    # cobras = loadDict(PATH_COBRAS, "total")
+
+    mean = pd.DataFrame()
+
+
+    ARI = pd.DataFrame()
+
+
+    # for key, item in cobras.items():
+    #     mean[key] = np.array(item)
+    
+    for i in range(len(paths)):
+        path = paths[i]
+        testpd = pd.DataFrame()
+        test = loadDict(path, "total")
+        for key, item in test.items():
+            if key in mean:
+                mean[key] += np.array(item)
+            else:
+                mean[key] = np.array(item)
+            testpd[key] = np.array(item)
+
+        ARI[names[i]] = testpd.mean(axis=1)
+
+    ARI.to_csv(f"{location}/ARI.csv", index=False)
+
+
+    for key, item in mean.items():
+        item /= len(paths)
+
+    cbr = []
+    for path in paths:
+        test = loadDict(path, "total")
+        for key, item in test.items():
+            cbr.append(np.array(item) - mean[key])
+
+    cbr = np.array(cbr)
+
+    sorted = np.argsort(cbr, axis = 0)
+
+    all_results = pd.DataFrame()
+    indii = np.tile(np.arange(len(paths)*15)[::-1], (4, 1)).T
+
+    for i in range(len(names)):
+        indices = np.arange(start=i*15, stop=i*15+15)
+        positions = np.isin(sorted,indices)
+        all_results[names[i]] = np.where(positions, indii, 0).sum(axis=0) / positions.sum(axis=0)
+        
+    all_results.plot(xlabel="#queries", ylabel="Aligned rank")
+    # plt.show()
+    all_results.to_csv(f"{location}/aligned.csv", index=False)
 
 ####################
 # Helper functions #
@@ -531,6 +629,46 @@ def runAll(doAll = False):
             all_names, 
             file_experiment, useVariance=True)
 
+def kNNExperiment():
+    all_paths = []
+    arry = ["ITML_wrapper", "NCA_wrapper", "LMNN_wrapper", "KLMNN_wrapper",
+              "GBLMNN_wrapper", "GB_LMNN_wrapper", "EUCLIDIAN_wrapper", 
+              "KLMNN_poly1_wrapper", "KLMNN_poly2_wrapper", 
+              "KLMNN_poly3_wrapper" ,"KLMNN_rbf_wrapper", "LMNN_wrapper_2"]
+    for i in arry:
+        path = Path(f"experimenten/thesis/7-kNN/metric_test/{i}").absolute()
+        all_paths.append(path)
+
+        CHECK_FOLDER = os.path.isdir(path)
+        if not CHECK_FOLDER:
+            os.makedirs(path)
+            print("created folder : ", path)
+        try:
+            print(f"Started {i}")
+            with LocalCluster() as cluster, Client(cluster) as client:
+                path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+                datasets = os.listdir(path_datasets)
+                run = dict()
+                p = Path(f'{path}/total.json').absolute()
+                if os.path.exists(p):
+                    run = loadDict(path, f"total")
+                for j in range(len(datasets)):
+                    nameData = datasets[j][:len(datasets[j]) - 5]
+                    if nameData in run:
+                        continue
+                    print(f"({path})\t ({nameData})\t Running")
+                    parallel_func = functools.partial(kNNTest, dataName = nameData, metric_algo = eval(i))
+                    futures = client.map(parallel_func, ARGUMENTS)
+                    results = np.array(client.gather(futures))
+                    run[nameData] = np.mean(results, axis=0).tolist()
+                    saveDict(run, path, "total")
+                saveDict(run, path, "total")
+        except Exception as x:
+            print("error cccured:" + path)
+            errordict = {"problem": str(x)}
+            saveDict(errordict, path, "error")
+    rank_kNN(all_paths, arry, "experimenten/thesis/7-kNN/metric_test")
+
             
 
 if __name__ == "__main__":
@@ -541,12 +679,14 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    # runAll(doAll = True) # vanaf nu dit oproepen
+    runAll(doAll = True) # vanaf nu dit oproepen
 
 
     # test()
 
-    moonPlot()
+    # moonPlot()
+
+    # kNNExperiment()
 
     # normalCOBRAS()
 
