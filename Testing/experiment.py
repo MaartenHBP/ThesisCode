@@ -47,8 +47,11 @@ from scipy.spatial import ConvexHull
 
 # moonplots
 from sklearn.datasets import make_moons
+from sklearn.datasets import make_blobs
 from sklearn.cluster import KMeans
 from sklearn.cluster import SpectralClustering
+
+from sklearn.model_selection import train_test_split
 
 plt.style.use('default')
 
@@ -219,14 +222,17 @@ def test():
 def moonPlot():
     # features, true_labels = make_moons(n_samples=100, noise=0.13)
 
-    for i in ["GB_LMNN"]: #["oorspronkelijk", "kmeans", "spectral", "ITML", "NCA", "KLMNN", "GBLMNN", "LMNN"]:
+    for i in ["oorspronkelijk", "kmeans", "spectral", "ITML", "NCA", "KLMNN", "GBLMNN", "LMNN"]:
 
         print(i)
+
 
         path = Path(f'datasets/created/spectral.data').absolute()
         dataset = np.loadtxt(path, delimiter=',')
         features = dataset[:, 1:]
         true_labels = dataset[:, 0]
+
+        X_train, X_test, y_train, y_test = train_test_split(np.arange(len(features)), true_labels, test_size=0.5, random_state=42)
 
         if i == "kmeans":
             kmeans = KMeans(n_clusters=2, random_state=0).fit(features)
@@ -238,19 +244,19 @@ def moonPlot():
             true_labels = clustering.labels_
 
         if i == "ITML":
-            features = ITML_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            features = ITML_wrapper(features).fit_transform(None, None, X_train, y_train)
 
         if i == "NCA":  
-            features = NCA_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            features = NCA_wrapper(features).fit_transform(None, None, X_train, y_train)
 
         if i == "LMNN":  
-            features = LMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            features = LMNN_wrapper(features).fit_transform(None, None, X_train, y_train)
 
         if i  == "KLMNN":
-            features = KLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            features = KLMNN_wrapper(features).fit_transform(None, None, X_train, y_train)
 
         if i == "GBLMNN":
-            features = GBLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
+            features = GBLMNN_wrapper(features).fit_transform(None, None, X_train, y_train)
 
         if i == "GB_LMNN":
             features = KLMNN_wrapper(features).fit_transform(None, None, np.arange(len(features)), true_labels)
@@ -261,9 +267,26 @@ def moonPlot():
 
         # GBLMNN
 
-        plt.scatter(features[:,0], features[:,1], c=true_labels)
-        plt.savefig(f"experimenten/thesis/2-literatuurstudie/moons/{i}.png", dpi = 600)
+        plt.scatter(features[X_train,0], features[X_train,1], c=y_train)
+        plt.scatter(features[X_test,0], features[X_test,1], c=y_test, alpha=0.3)
+        plt.savefig(f"experimenten/thesis/2-literatuurstudie/moons_0.5/{i}.png", dpi = 600)
         plt.clf()
+
+def subjective_dataset():
+    features, true_labels = make_blobs(
+    n_samples=500, cluster_std=[1, 2, 2], random_state=33)
+
+
+    # kmeans = KMeans(n_clusters=3, random_state=0).fit(features)
+    # true_labels = kmeans.labels_
+
+    clustering = SpectralClustering(n_clusters=3, eigen_solver="arpack",
+        affinity="nearest_neighbors",).fit(features)
+    true_labels = clustering.labels_
+
+    plt.scatter(features[:,0], features[:,1], c=true_labels)
+    plt.savefig(f"experimenten/thesis/1-Introductie/spectral_3.png", dpi = 600)
+
 
     
     
