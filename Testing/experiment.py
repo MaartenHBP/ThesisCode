@@ -604,7 +604,7 @@ def runAll(doAll = False):
                 print(f"({results_location})")
                 
 
-                experiment_file = loadDict(experiment_location, file[:len(file) - 5])
+                experiment_file = loadDict(experiment_location, file[:len(file) - 5]) 
                 all_names.append(experiment_file["plotName"])
 
                 if "reuse" in experiment_file:
@@ -617,9 +617,9 @@ def runAll(doAll = False):
                 all_paths.append(results_location)
 
                 test =  Path(os.path.join(results_location, "total.json")).absolute()
-                if test.is_file():
-                    found += 1
-                    continue
+                # if test.is_file():
+                #     found += 1
+                #     continue
 
                 run(experiment_file["settings"], results_location)
 
@@ -679,7 +679,7 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    runAll(doAll = False) # vanaf nu dit oproepen
 
 
     # test()
