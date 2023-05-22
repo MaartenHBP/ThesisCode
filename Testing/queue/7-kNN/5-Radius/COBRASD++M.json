@@ -37,9 +37,7 @@
         "after_weights" : "uniform",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
-        "afterLevel" : "all", 
-        "afterSuperInstanceLevel" : 0,
-
+        
         "useNewConstraintIndex" : true,
         "mergeBlobs" : true, 
         "represBlobs" : false

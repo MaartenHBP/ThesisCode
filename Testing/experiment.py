@@ -150,7 +150,7 @@ def kNNTest(seed, dataName, metric_algo: MetricLearner):
 ###############
                 
 def test():
-    dataset = "segmentation"
+    dataset = "breast-cancer-wisconsin"
 
     args = {   
         
@@ -165,7 +165,7 @@ def test():
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
-        "learnAMetric" : True,
+        "learnAMetric" : False,
         "metricAmountQueriesAsked" : 50,
         "metricInterval" : 0,
 
@@ -182,14 +182,16 @@ def test():
         "rebuildMetric" : False,
         "rebuilderKeepTransformed" : False,
 
-        "after" : False,
+        "after" : True,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "uniform",
+        "after_weights" : "distance",
         "afterMetric" : False, 
         "afterKeepTransformed" : False, 
         "afterLevel" : "all", 
-        "afterSuperInstanceLevel" : 0,
+        "afterSuperInstanceLevel" : 3,
+        "afterRadius" : False,
+        "afterLambda" : 1,
 
         "useNewConstraintIndex" : True,
         "mergeBlobs" : True, 
@@ -199,10 +201,13 @@ def test():
     
 
     # plt.show()    
-    plt.plot(runCOBRAS(16, dataset, args), label = "kmeans")
+    # plt.plot(runCOBRAS(9, dataset, args), label = "kNN")
+    # print("next")
+    args["afterRadius"] = True
+    plt.plot(runCOBRAS(2, dataset, args), label = "Radius")
     print("next")
-    args["cluster_algo"] = "SemiKMeansClusterAlgorithm"
-    plt.plot(runCOBRAS(16, dataset, args), label = "Change")
+    args["after"] = False
+    plt.plot(runCOBRAS(9, dataset, args), label = "COBRAS")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
@@ -640,9 +645,9 @@ def runAll(doAll = False):
                 all_paths.append(results_location)
 
                 test =  Path(os.path.join(results_location, "total.json")).absolute()
-                # if test.is_file():
-                #     found += 1
-                #     continue
+                if test.is_file():
+                    found += 1
+                    continue
 
                 run(experiment_file["settings"], results_location)
 
@@ -702,7 +707,7 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = False) # vanaf nu dit oproepen
+    runAll(doAll = True) # vanaf nu dit oproepen
 
 
     # test()

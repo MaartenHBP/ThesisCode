@@ -1,7 +1,6 @@
 {   
-    "reuse": "5-Labels/label_blobs_test/COBRASD++M",
 
-    "plotName": "COBRAS D",
+    "plotName": "COBRAS kNN radius",
     
     "settings" : {   
         
@@ -31,14 +30,16 @@
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
 
-        "after" : false,
+        "after" : true,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "uniform",
+        "after_weights" : "distance",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
         "afterLevel" : "all", 
         "afterSuperInstanceLevel" : 0,
+        "afterRadius": true,
+
 
         "useNewConstraintIndex" : true,
         "mergeBlobs" : true, 

@@ -1,7 +1,6 @@
-{   
-    "reuse": "5-Labels/label_blobs_test/COBRASD++M",
+{   "reuse": "7-kNN/2-gewichten/COBRASD++M_kNN_distance",
 
-    "plotName": "COBRAS D",
+    "plotName": "COBRAS kNN D",
     
     "settings" : {   
         
@@ -31,10 +30,10 @@
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
 
-        "after" : false,
+        "after" : true,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "uniform",
+        "after_weights" : "distance",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
         "afterLevel" : "all", 
