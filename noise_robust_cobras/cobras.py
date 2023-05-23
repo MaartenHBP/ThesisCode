@@ -914,7 +914,11 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
-        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
+
+        if (len(self.constraint_index_advanced.labeled) == 0):
+            self.countLabelled.append(1)
+        else:
+            self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
         self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose="simple")
@@ -942,7 +946,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
-        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
+        if (len(self.constraint_index_advanced.labeled) == 0):
+            self.countLabelled.append(1)
+        else:
+            self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
 
         if self.useNewConstraintIndex: # new advanced yeet

@@ -497,7 +497,7 @@ def rank(paths, names, location, useVariance = False):
             plt.ylim((0.4,1))
             plt.xlabel("#vragen")
             plt.ylabel("Gemiddelde ARI")
-            plt.title(f"Variantie-analyse {names[i]}")
+            # plt.title(f"Variantie-analyse {names[i]}")
             plt.legend()
             plt.savefig(f"{location}/variance/variance_{names[i]}.png", dpi = 600)
             plt.clf()
@@ -756,6 +756,11 @@ def labelledCount():
             else:
                 total["Incomplete graaf"] = run/15
 
+    perc = (np.array(total["Complete graaf"]) - np.array(total["Incomplete graaf"]))/np.array(total["Incomplete graaf"])
+
+    print(np.mean(perc))
+
+
     total.plot(xlabel="#vragen", ylabel="Gemiddeld #constraints")
     # plt.show()
     plt.savefig(f"experimenten/thesis/count.png", dpi = 600)
@@ -793,7 +798,7 @@ if __name__ == "__main__":
 
     # rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
     #       Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
-    #       ["dynamisch splitlevel", "splitlevel = 4"], 
+    #       ["dynamisch splitniveau", "splitniveau = 4"], 
     #       "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
 
 

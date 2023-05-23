@@ -1,6 +1,6 @@
 {   
 
-    "plotName": "COBRAS LMNN 50",
+    "plotName": "COBRAS LMNN$_25$",
     
     "settings" : {   
         
@@ -14,7 +14,7 @@
         "metricSuperInstanceLevel" : 0,
 
         "learnAMetric" : true,
-        "metricAmountQueriesAsked" : 50,
+        "metricAmountQueriesAsked" : 25,
         "metricInterval" : 0,
 
         "initial" : false,
