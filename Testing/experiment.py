@@ -143,6 +143,34 @@ def kNNTest(seed, dataName, metric_algo: MetricLearner):
 
     return result
 
+def count(seed, dataName, arguments):
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    warnings.simplefilter(action='ignore', category=Warning)
+
+    path = Path(f'datasets/cobras-paper/UCI/{dataName}.data').absolute()
+    dataset = np.loadtxt(path, delimiter=',')
+    data = dataset[:, 1:]
+    target = dataset[:, 0]
+
+    querylimit = 200
+    runlimit = querylimit
+
+
+    querier = LabelQuerier(None, target, runlimit)
+    clusterer = COBRAS(correct_noise=False, seed=seeds[seed], **arguments)
+
+    all_clusters, _, _, _, = clusterer.fit(data, -1, None, querier)
+
+    lan = clusterer.countLabelled
+
+    if len(all_clusters) < querylimit:
+        diff = querylimit - len(all_clusters)
+        for ex in range(diff): lan.append(lan[-1])
+
+    return lan # return the counts
+
+
     
 
 ###############
@@ -467,14 +495,14 @@ def rank(paths, names, location, useVariance = False):
             plt.plot(ARI[names[i]] - allVariance, alpha = 0.4, label = "-$\sigma$")
             plt.plot(ARI[names[i]] + allVariance, alpha = 0.4, label = "+$\sigma$")
             plt.ylim((0.4,1))
-            plt.xlabel("#queries")
-            plt.ylabel("ARI")
+            plt.xlabel("#vragen")
+            plt.ylabel("Gemiddelde ARI")
             plt.title(f"Variantie-analyse {names[i]}")
             plt.legend()
             plt.savefig(f"{location}/variance/variance_{names[i]}.png", dpi = 600)
             plt.clf()
 
-    ARI.plot(xlabel="#vragen", ylabel="ARI", ylim = (0.4,0.85))
+    ARI.plot(xlabel="#vragen", ylabel="Gemiddelde ARI", ylim = (0.4,0.85))
 
     plt.savefig(f"{location}/ARI.png", dpi = 600)
 
@@ -503,7 +531,7 @@ def rank(paths, names, location, useVariance = False):
         positions = np.isin(sorted,indices)
         all_results[names[i]] = np.where(positions, indii, 0).sum(axis=0) / positions.sum(axis=0)
         
-    all_results.plot(xlabel="#queries", ylabel="Aligned rank")
+    all_results.plot(xlabel="#vragen", ylabel="AR")
     # plt.show()
     plt.savefig(f"{location}/rank.png", dpi = 600)
 
@@ -697,6 +725,41 @@ def kNNExperiment():
             saveDict(errordict, path, "error")
     rank_kNN(all_paths, arry, "experimenten/thesis/7-kNN/metric_test")
 
+def labelledCount():
+    args = {"useNewConstraintIndex" : True,
+        "mergeBlobs" : True, 
+        "represBlobs" : False}
+    
+    total = pd.DataFrame()
+
+    for i in [True, False]:
+        args["mergeBlobs"] = i
+        args["represBlobs"] = not i
+
+        print(args["mergeBlobs"] )
+        print(args["represBlobs"])
+        with LocalCluster() as cluster, Client(cluster) as client:
+            path_datasets = Path('datasets/cobras-paper/UCI').absolute()
+            datasets = os.listdir(path_datasets)
+            run = np.zeros(200)
+            for j in range(len(datasets)):
+                nameData = datasets[j][:len(datasets[j]) - 5]
+                if nameData in run:
+                    continue
+                parallel_func = functools.partial(count, dataName = nameData, arguments = args)
+                futures = client.map(parallel_func, ARGUMENTS)
+                results = np.array(client.gather(futures))
+                run += np.mean(results, axis=0).tolist()
+            
+            if i:
+                total["Complete graaf"] = run/15
+            else:
+                total["Incomplete graaf"] = run/15
+
+    total.plot(xlabel="#vragen", ylabel="Gemiddeld #constraints")
+    # plt.show()
+    plt.savefig(f"experimenten/thesis/count.png", dpi = 600)
+
             
 
 if __name__ == "__main__":
@@ -707,7 +770,9 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    # runAll(doAll = True) # vanaf nu dit oproepen
+
+    labelledCount()
 
 
     # test()

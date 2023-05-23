@@ -188,16 +188,18 @@ class ConstraintBlobs: # blobs zijn sets
 
             i = len(np.unique(clust))
 
-            labelled = list(self.blobs.keys())
+            # labelled = list(self.blobs.keys()) # lol das niet juist
+            labelled = []
 
             for blob in self.allBlobs: # hier gaan we ervan uit dat het mergen gelukt is
                 if blob & r:
                     clust[np.array(list(blob))] = clust[list(blob & r)[0]] # neem dezelfde label over
+                    labelled.extend(blob)
                 # else:, dit kan nu niet worden gedaan
                 #     clust[np.array(list(blob))] = i # deze punten hebben een label dat niet een van de representatieven heeft
                 #     i += 1
 
-
+            self.labeled = labelled
 
             return np.array(labelled), clust, False
         

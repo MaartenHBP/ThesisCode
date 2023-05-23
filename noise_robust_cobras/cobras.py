@@ -241,6 +241,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.represBlobs = represBlobs
         self.plusBlobs = plusBlobs
 
+        self.countLabelled = []
+
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
             self.split_superinstance_selection_heur = MostInstancesSelectionHeuristic()
@@ -912,6 +914,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
+        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
         self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose="simple")
@@ -939,11 +942,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
+        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
 
         if self.useNewConstraintIndex: # new advanced yeet
             new_constraint = Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
             self.constraint_index_advanced.addConstraints(new_constraint)
+
 
             self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose=purpose) # voor de veiligheid een nieuwe aanmaken
