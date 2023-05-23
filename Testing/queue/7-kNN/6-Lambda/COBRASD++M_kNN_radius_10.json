@@ -1,7 +1,7 @@
 {   
     "reuse": "7-kNN/5-Radius/COBRASD++M_kNN_radius",
 
-    "plotName": "COBRAS kNN radius 1",
+    "plotName": "r$_1$NN",
     
     "settings" : {   
         

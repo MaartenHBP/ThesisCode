@@ -1,7 +1,7 @@
 {   
 
 
-    "plotName": "COBRAS NCA$_75$",
+    "plotName": "COBRAS NCA$_{50}$",
     
     "settings" : {   
         
@@ -15,7 +15,7 @@
         "metricSuperInstanceLevel" : 0,
 
         "learnAMetric" : true,
-        "metricAmountQueriesAsked" : 75,
+        "metricAmountQueriesAsked" : 50,
         "metricInterval" : 0,
 
         "initial" : false,

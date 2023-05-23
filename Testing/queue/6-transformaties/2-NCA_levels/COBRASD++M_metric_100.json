@@ -1,7 +1,7 @@
 {   
-    "reuse": "6-transformaties/NCA/COBRASD++M_metric_50",
+    "reuse": "6-transformaties/NCA/COBRASD++M_metric_050",
 
-    "plotName": "COBRAS NCA$_100$",
+    "plotName": "COBRAS NCA$_{100}$",
     
     "settings" : {   
         

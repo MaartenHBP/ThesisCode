@@ -775,9 +775,9 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    # runAll(doAll = True) # vanaf nu dit oproepen
+    runAll(doAll = False) # vanaf nu dit oproepen
 
-    labelledCount()
+    # labelledCount()
 
 
     # test()
@@ -796,10 +796,10 @@ if __name__ == "__main__":
     # Variance_test #
     #################
 
-    # rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
-    #       Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
-    #       ["dynamisch splitniveau", "splitniveau = 4"], 
-    #       "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
+    rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
+          Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
+          ["dynamisch splitniveau", "splitniveau = 4"], 
+          "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
 
 
 

@@ -1,6 +1,6 @@
 {   "reuse": "7-kNN/2-gewichten/COBRASD++M_kNN_distance",
 
-    "plotName": "COBRAS kNN D",
+    "plotName": "COBRAS 3NN D",
     
     "settings" : {   
         

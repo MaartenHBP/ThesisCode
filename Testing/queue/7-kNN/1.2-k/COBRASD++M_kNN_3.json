@@ -1,7 +1,7 @@
 {   
     "reuse": "7-kNN/1-kNN/COBRASD++M_kNN",
 
-    "plotName": "k = 3",
+    "plotName": "3NN",
     
     "settings" : {   
         

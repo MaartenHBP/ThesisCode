@@ -1,21 +1,21 @@
 {   
-    "reuse": "7-kNN/2-gewichten/COBRASD++M_kNN_distance",
 
-    "plotName": "k = 3",
+
+    "plotName": "COBRAS NCA$_{75}$",
     
     "settings" : {   
         
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "LMNN_wrapper",
+        "metricLearner" : "NCA_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
-        "learnAMetric" : false,
-        "metricAmountQueriesAsked" : 50,
+        "learnAMetric" : true,
+        "metricAmountQueriesAsked" : 75,
         "metricInterval" : 0,
 
         "initial" : false,
@@ -23,7 +23,7 @@
         "initialRandom" : true, 
 
         "rebuildPhase" : false,
-        "rebuildAmountQueriesAsked" : 50,
+        "rebuildAmountQueriesAsked" : 75,
         "rebuildInterval" : 0,
         "rebuildLevel" : "all", 
         "rebuildSuperInstanceLevel" : 0,
@@ -31,10 +31,10 @@
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
 
-        "after" : true,
+        "after" : false,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "distance",
+        "after_weights" : "uniform",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
         "afterLevel" : "all", 
