@@ -53,7 +53,12 @@ from noise_robust_cobras.metric_learning.module.metriclearners import *
 
 import random 
 
+from sklearn.metrics.pairwise import euclidean_distances
+
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import RadiusNeighborsClassifier
+
+from noise_robust_cobras.dynamicRadiuskNN import Radius_Nearest_Neighbors_Classifier 
 
 
 class SplitResult(Enum):
@@ -130,6 +135,9 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         #########
         after = False,
         afterAmountQueriesAsked = 50,
+        afterRadius = False,
+        afterLambda = 1,
+        
 
         after_k = 3,
         after_weights = "uniform",
@@ -173,7 +181,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.metricLearer_arguments = metricLearer_arguments
         self.metricLevel = metricLevel
         self.metricSuperInstanceLevel = metricSuperInstanceLevel
-        self.changeToMedoids = changeToMedoids
+        self.changeToMedoids = changeToMedoids # OBSOLETE
 
         self.learedMetric = None
 
@@ -222,6 +230,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         self.afterLevel = afterLevel
         self.afterSuperInstanceLevel = afterSuperInstanceLevel
+        self.afterRadius = afterRadius
+        self.afterLambda = afterLambda
 
         ####################
         # Constraint_index #
@@ -230,6 +240,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self.mergeBlobs = mergeBlobs
         self.represBlobs = represBlobs
         self.plusBlobs = plusBlobs
+
+        self.countLabelled = []
 
         # init split superinstance selection heuristic
         if split_superinstance_selection_heur is None:
@@ -902,6 +914,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
+        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
         self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose="simple")
@@ -929,11 +942,13 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         min_instance = min(instance1, instance2)
         max_instance = max(instance1, instance2)
         constraint_type = self.querier._query_points(min_instance, max_instance)
+        self.countLabelled.append(len(self.constraint_index_advanced.labeled))
 
 
         if self.useNewConstraintIndex: # new advanced yeet
             new_constraint = Constraint(min_instance, max_instance, constraint_type, purpose=purpose)
             self.constraint_index_advanced.addConstraints(new_constraint)
+
 
             self._cobras_log.log_new_user_query(
                 Constraint(min_instance, max_instance, constraint_type, purpose=purpose) # voor de veiligheid een nieuwe aanmaken
@@ -1151,19 +1166,29 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
             indices = []
             repres = []
+            distances = []
             for superinstance in level:
                 for idx in superinstance.indices:
                     indices.append(idx)
                     if idx in labelled:
                         repres.append(idx)
-                
+                        distances.append(1)
+                    else:
+                        distances.append(np.linalg.norm(data[idx] - data[superinstance.representative_idx]) * self.afterLambda)
 
-            n_neighbors = min(len(repres), self.after_k)
-            model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
-            model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
-            new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)]) # predict de labels
+                
+            if self.afterRadius:
+                n_neighbors = min(len(repres), self.after_k)
+                model = Radius_Nearest_Neighbors_Classifier(r = distances, weights=self.after_weights) # een beetje een hacky maniers
+                model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
+                new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)]) # predict de labels
+            else:
+                n_neighbors = min(len(repres), self.after_k)
+                model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)
+                model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
+                new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)]) # predict de labels
 
 
         new[np.array(labelled)] = clust[np.array(labelled)] # die zijn geweten en moeten zo blijven
         return new, self.clustering.get_superinstances() # return de nieuze labeling
-
+    
