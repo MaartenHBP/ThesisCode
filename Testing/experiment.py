@@ -178,14 +178,14 @@ def count(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "breast-cancer-wisconsin"
+    dataset = "ecoli"
 
     args = {   
         
         "splitlevel_strategy": None,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "NCA_wrapper",
+        "metricLearner" : "ITML_wrapper",
         "metricLearer_arguments" : {},
         "changeToMedoids": False,
         "cluster_algo": "KMeansClusterAlgorithm", 
@@ -214,7 +214,7 @@ def test():
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
         "after_weights" : "distance",
-        "afterMetric" : False, 
+        "afterMetric" : True, 
         "afterKeepTransformed" : False, 
         "afterLevel" : "all", 
         "afterSuperInstanceLevel" : 3,
@@ -232,10 +232,16 @@ def test():
     # plt.plot(runCOBRAS(9, dataset, args), label = "kNN")
     # print("next")
     args["afterRadius"] = True
-    plt.plot(runCOBRAS(2, dataset, args), label = "Radius")
+    # plt.plot(runCOBRAS(10, dataset, args), label = "ITML")
+    # print("next")
+    args["metricLearner"] = "ITML_wrapper"
+    plt.plot(runCOBRAS(10, dataset, args), label = "ITML")
+    print("next")
+    args["afterMetric"] = False
+    plt.plot(runCOBRAS(10, dataset, args), label = "nometric")
     print("next")
     args["after"] = False
-    plt.plot(runCOBRAS(9, dataset, args), label = "COBRAS")
+    plt.plot(runCOBRAS(10, dataset, args), label = "COBRAS")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
@@ -672,10 +678,10 @@ def runAll(doAll = False):
                 
                 all_paths.append(results_location)
 
-                test =  Path(os.path.join(results_location, "total.json")).absolute()
-                if test.is_file():
-                    found += 1
-                    continue
+                # test =  Path(os.path.join(results_location, "total.json")).absolute()
+                # if test.is_file():
+                #     found += 1
+                #     continue
 
                 run(experiment_file["settings"], results_location)
 
@@ -775,10 +781,11 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = False) # vanaf nu dit oproepen
+    runAll(doAll = True) # vanaf nu dit oproepen
 
     # labelledCount()
 
+    # kNNTest(10, "ecoli", ITML_wrapper)
 
     # test()
 
@@ -796,10 +803,10 @@ if __name__ == "__main__":
     # Variance_test #
     #################
 
-    rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
-          Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
-          ["dynamisch splitniveau", "splitniveau = 4"], 
-          "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
+    # # rank([Path(f"experimenten/thesis/4-COBRAS/variance_analysis/normalCOBRAS"),
+    #       Path(f"experimenten/thesis/4-COBRAS/variance_analysis/splitlevel4"),], 
+    #       ["dynamisch splitniveau", "splitniveau = 4"], 
+    #       "experimenten/thesis/4-COBRAS/variance_analysis", useVariance=True)
 
 
 

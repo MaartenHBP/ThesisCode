@@ -54,12 +54,14 @@ class ITML_wrapper(MetricLearner):
         unique, counts = np.unique(labels, return_counts=True)
         problem = unique[counts < 3]
         newpoint, newlabels = points, labels
+
+        if len(labels) < 15:
+            return self 
         # if (len(problem) > 0):
         #     select = np.invert(np.in1d(labels, problem))
         #     newpoint, newlabels = points[select], labels[select]
         # if len(np.unique(newlabels)) < 2:
         #     return self
-
         self.fitted = ITML()
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
@@ -109,9 +111,10 @@ class NCA_wrapper(MetricLearner):
         return self.transform(np.copy(self.preprocessor))
 
 class LMNN_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None, seed = 42):
+    def __init__(self, preprocessor=None, seed = 42, k =3):
         self.fitted = None
         self.seed = seed
+        self.k = k
         super().__init__(preprocessor) 
 
     def fit(self, pairs, y, points, labels):
@@ -142,10 +145,11 @@ class LMNN_wrapper(MetricLearner):
         return self.transform(np.copy(self.preprocessor))
 
 class KLMNN_wrapper(MetricLearner):
-    def __init__(self, preprocessor=None, seed = 42, kernel = 'laplacian'):
+    def __init__(self, preprocessor=None, seed = 42, kernel = 'laplacian', k = 3):
         self.fitted = None
         self.seed = seed
         self.kernel = kernel
+        self.k = k
         super().__init__(preprocessor) 
 
     def fit(self, pairs, y, points, labels):
@@ -160,7 +164,7 @@ class KLMNN_wrapper(MetricLearner):
             return self
             
 
-        self.fitted = KLMNN(kernel = self.kernel)
+        self.fitted = KLMNN(kernel = self.kernel, k = self.k)
         self.fitted.fit(self.preprocessor[np.array(newpoint)], newlabels) 
         return self
 

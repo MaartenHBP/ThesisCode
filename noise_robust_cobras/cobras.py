@@ -1001,7 +1001,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         data = np.copy(self.data)
 
         labelled, clust, finished = self.constraint_index_advanced.cluster(self)
-
+        
         if(len(labelled) == self.metricCounter): # als het dezelfde labels krijgt, ja dan moet je geen metriek leren => gaan er vanuit dat het aantal gelabelde instances stijgt
             return self.learedMetric
         
@@ -1018,7 +1018,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
                     indices.append(idx)
                     if idx in labelled:
                         repres.append(idx)
-            data[np.array(indices)] = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)] # ff een poging ondernemen
+            data[np.array(indices)] = self.metricLearner(preprocessor = np.copy(self.data), **self.metricLearer_arguments, seed = self.seed).fit_transform(None, None, np.copy(repres), clust[np.array(repres)])[np.array(indices)]# ff een poging ondernemen
         self.learedMetric = np.copy(data)
         
         return self.learedMetric
@@ -1177,18 +1177,16 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
             for superinstance in level:
                 for idx in superinstance.indices:
                     indices.append(idx)
+                    distances.append(superinstance.representative_idx)
                     if idx in labelled:
                         repres.append(idx)
-                        distances.append(1)
-                    else:
-                        distances.append(np.linalg.norm(data[idx] - data[superinstance.representative_idx]) * self.afterLambda)
 
                 
             if self.afterRadius:
                 n_neighbors = min(len(repres), self.after_k)
-                model = Radius_Nearest_Neighbors_Classifier(r = distances, weights=self.after_weights) # een beetje een hacky maniers
-                model.fit(np.array(data)[np.array(repres)], clust[np.array(repres)])
-                new[np.array(indices)] = model.predict(np.array(data)[np.array(indices)]) # predict de labels
+                model = Radius_Nearest_Neighbors_Classifier(r = distances, weights=self.after_weights, data = data) # een beetje een hacky maniers
+                model.fit(np.array(repres), clust[np.array(repres)])
+                new[np.array(indices)] = model.predict(np.array(indices)) # predict de labels
             else:
                 n_neighbors = min(len(repres), self.after_k)
                 model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=self.after_weights)

@@ -12,38 +12,38 @@ from sklearn.neighbors import RadiusNeighborsClassifier
  
 class Radius_Nearest_Neighbors_Classifier() :
      
-    def __init__( self, r, weights) :
+    def __init__( self, r, weights, data) :
          
-        self.r = r # gaat een array zijn
+        self.r = r 
         self.w = weights
+        self.data = np.copy(data)
+        X_mean = self.data.mean(axis=0) # centreren voor betere nauwkeurigheid
+            # The copy was already done above
+        self.data -= X_mean
          
     # Function to store training set
          
-    def fit( self, X_train, Y_train ) :
+    def fit( self, X_train, Y_train ) : # gaan indices meegeven
          
         self.X_train = X_train
          
         self.Y_train = Y_train
+
+        self.r = np.array([np.where(X_train == x)[0][0] for x in self.r])
          
-        # no_of_training_examples, no_of_features
-         
-        self.m, self.n = X_train.shape
      
     # Function for prediction
          
     def predict( self, X_test ) :
          
         self.X_test = X_test
-         
-        # no_of_test_examples, no_of_features
-         
-        self.m_test, self.n = X_test.shape
+        
          
         # initialize Y_predict
          
-        Y_predict = np.zeros( self.m_test )
+        Y_predict = np.zeros( len(X_test))
          
-        for i in range( self.m_test ) :
+        for i in range( len(X_test) ) :
              
             x = self.X_test[i]
              
@@ -66,10 +66,10 @@ class Radius_Nearest_Neighbors_Classifier() :
          
         # list to store training examples which will fall in the circle
 
-        distances = np.linalg.norm(self.X_train - x, axis=1)
-
+        distances = np.linalg.norm(self.data[self.X_train] - self.data[x], axis=1) # over de gehele dataset
+        selection = np.less_equal(distances, distances[r])
                  
-        return self.Y_train[np.less_equal(distances, r + 1e-15)]
+        return self.Y_train[selection]
      
     # Function to calculate euclidean distance
              
