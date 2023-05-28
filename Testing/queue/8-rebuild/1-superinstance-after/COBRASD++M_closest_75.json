@@ -1,5 +1,4 @@
 {   
-    "reuse": "8-rebuild/1-options-75/COBRASD++M_vote",
 
     "plotName": "COBRAS Extra 75",
     
@@ -8,7 +7,7 @@
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "LMNN_wrapper",
+        "metricLearner" : "KLMNN_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",

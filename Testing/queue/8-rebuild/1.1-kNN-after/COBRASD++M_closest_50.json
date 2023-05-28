@@ -6,7 +6,7 @@
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "LMNN_wrapper",
+        "metricLearner" : "KLMNN_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
