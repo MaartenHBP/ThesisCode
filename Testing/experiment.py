@@ -780,9 +780,9 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    # runAll(doAll = True) # vanaf nu dit oproepen
+    runAll(doAll = True) # vanaf nu dit oproepen
 
-    test()
+    # test()
 
     ################
     # Create plots #
