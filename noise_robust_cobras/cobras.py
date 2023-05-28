@@ -129,6 +129,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         rebuildMetric = False,
         rebuilderKeepTransformed = False,
+        rebuildCluster = False,
 
         #########
         # After #
@@ -214,6 +215,8 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         self.rebuildMetric = rebuildMetric
         self.rebuilderKeepTransformed = rebuilderKeepTransformed
+
+        self.rebuildCluster = rebuildCluster
         
 
         #########
@@ -1120,16 +1123,18 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         for level in levels: 
 
+            distances = []
             indices = []
             repres = []
 
             for superinstance in level:
                 for idx in superinstance.indices:
                     indices.append(idx)
+                    distances.append(superinstance.representative_idx)
                     if idx in labelled:
                         repres.append(idx)
 
-            labels_repres = rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)]) 
+            labels_repres = rebuilder.rebuild(repres, indices, data, represLabels=np.array(clust)[np.array(repres)], r = distances) 
 
             # bouw de superinstances en voeg aan de juiste cluster toe
             for i in range(len(indices)):
@@ -1148,6 +1153,25 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         else:
             self.rebuildPhase = False # moet maar een keer uitgvoerd worden
         self.clustering.clusters = clusters
+
+        if self.rebuildCluster: # gooi alle zelf gelabelde dingen in een cluster zodat later splits meer invloed hebben
+            
+            clusterNow = self.clustering.construct_cluster_labeling()
+            resulting = [Cluster([]) for i in np.unique(clust)]
+            for i in np.unique(clusterNow):
+                points = np.arange(len(data))[clusterNow == i]
+                superinstance = self.superinstance_builder.makeSuperInstance(
+                        self.data, points.tolist(), self.train_indices, None
+                    )
+                centroid = np.mean(data[points, :], axis=0)
+                superinstance.representative_idx = min(
+                    np.intersect1d(points, labelled),
+                    key=lambda x: np.linalg.norm(self.data[x, :] - centroid),
+                )
+                resulting[clust[superinstance.representative_idx]].super_instances.append(superinstance)
+            self.clustering.clusters = resulting
+                
+
 
 
     #########

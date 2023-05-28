@@ -3,16 +3,17 @@ import abc
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.neighbors import KNeighborsClassifier
+from noise_robust_cobras.dynamicRadiuskNN import Radius_Nearest_Neighbors_Classifier
 
 # returns a list of labels, the labels are the indices of the repres it needs to belong to
 
 class Rebuilder:
     @abc.abstractmethod 
-    def rebuild(self, repres, indices, data, represLabels):  # indi_super zijn de punten in de indices die een representatieve voorstellen
+    def rebuild(self, repres, indices, data, represLabels, r = None):  # indi_super zijn de punten in de indices die een representatieve voorstellen
         pass
 
 class ClosestRebuild(Rebuilder):
-    def rebuild(self, repres, indices, data, represLabels): # werken via kNN, indices bevatten ook de represkes, doen momenteel niks met closest
+    def rebuild(self, repres, indices, data, represLabels, r = None): # werken via kNN, indices bevatten ook de represkes, doen momenteel niks met closest
         # if len(labelled) == 0:
         nbrs = NearestNeighbors(n_neighbors=1).fit(data[np.array(repres)])
         _, labels = nbrs.kneighbors(data[indices])
@@ -46,35 +47,35 @@ class ClosestVote(Rebuilder): # ga naar closest met zelfde label, momenteel late
     """
     Dit idee is echt geinspireerd door de resultaten van LMNN-kNN (zie after)
     """
-    def rebuild(self, repres, indices, data, represLabels): # represlabels enkel hier belangrijk
-        k = 3
-        if len(repres) < k:
-            k = len(repres)
-        model = KNeighborsClassifier(n_neighbors=k, weights='distance') # distance weight werken het beste
-        model.fit(data[np.array(repres)], represLabels)
+    def rebuild(self, repres, indices, data, represLabels , r = None): # represlabels enkel hier belangrijk
+        # k = 3
+        # if len(repres) < k:
+        #     k = len(repres)
+        model = Radius_Nearest_Neighbors_Classifier(r = r, data = data, weights='uniform') # distance weight werken het beste
+        model.fit(np.array(repres), np.array(represLabels))
 
-        predicted_label = model.predict(data[np.array(indices)])
+        predicted_label = model.predict(np.array(indices))
 
-        # Find the indices of the k nearest neighbors for the test sample
-        _, n_indices = model.kneighbors(data[np.array(indices)])
+        # # Find the indices of the k nearest neighbors for the test sample
+        # _, n_indices = model.kneighbors(data[np.array(indices)])
 
-        # Retrieve the labels of the neighbors
-        neighbor_labels = np.array(represLabels)[n_indices]
+        # # Retrieve the labels of the neighbors
+        # neighbor_labels = np.array(represLabels)[n_indices]
 
-        selection = neighbor_labels == predicted_label[..., None]
-        # selection[:,1:] *=(np.diff(selection,axis=1)!=0)
-        selection = selection.cumsum(axis=1).cumsum(axis=1) == 1 
+        # selection = neighbor_labels == predicted_label[..., None]
+        # # selection[:,1:] *=(np.diff(selection,axis=1)!=0)
+        # selection = selection.cumsum(axis=1).cumsum(axis=1) == 1 
 
-        labels = n_indices[selection]
-
+        # labels = n_indices[selection]
+        labels = model.closestPerPoint
         for i in range(len(repres)): # repres wel nog altijd hun eigen nemen, zeker in kNN setting belangrijk
             labels[np.array(indices) == repres[i]] = i
 
-        return labels
+        return labels # wordt rechtstreek bijgehouden
     
 
 class SemiCluster(Rebuilder):
-    def rebuild(self, repres, indices, data, represLabels): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
+    def rebuild(self, repres, indices, data, represLabels, r = None): # hier gaan we represselection voor nu negeren, REKENING MEEHOUDEN IN COBRAS
         # the inital centers
         centers = data[np.copy(repres)]
 

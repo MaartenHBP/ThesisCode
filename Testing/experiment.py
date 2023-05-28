@@ -178,14 +178,14 @@ def count(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "ecoli"
+    dataset = "hepatitis"
 
     args = {   
         
         "splitlevel_strategy": None,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "ITML_wrapper",
+        "metricLearner" : "KLMNN_wrapper",
         "metricLearer_arguments" : {},
         "changeToMedoids": False,
         "cluster_algo": "KMeansClusterAlgorithm", 
@@ -201,20 +201,21 @@ def test():
         "initialSupervised" : 0.5, 
         "initialRandom" : True, 
 
-        "rebuildPhase" : False,
+        "rebuildPhase" : True,
         "rebuildAmountQueriesAsked" : 75,
         "rebuildInterval" : 0,
         "rebuildLevel" : "all", 
         "rebuildSuperInstanceLevel" : 0,
-        "rebuilder" : "ClosestRebuild",
+        "rebuilder" : "ClosestVote",
         "rebuildMetric" : False,
         "rebuilderKeepTransformed" : False,
+        "rebuildCluster": True,
 
-        "after" : True,
+        "after" : False,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
         "after_weights" : "distance",
-        "afterMetric" : True, 
+        "afterMetric" : False, 
         "afterKeepTransformed" : False, 
         "afterLevel" : "all", 
         "afterSuperInstanceLevel" : 3,
@@ -231,17 +232,16 @@ def test():
     # plt.show()    
     # plt.plot(runCOBRAS(9, dataset, args), label = "kNN")
     # print("next")
-    args["afterRadius"] = True
+    # args["afterRadius"] = True
     # plt.plot(runCOBRAS(10, dataset, args), label = "ITML")
     # print("next")
-    args["metricLearner"] = "ITML_wrapper"
-    plt.plot(runCOBRAS(10, dataset, args), label = "ITML")
+    plt.plot(runCOBRAS(17, dataset, args), label = "distance")
     print("next")
-    args["afterMetric"] = False
-    plt.plot(runCOBRAS(10, dataset, args), label = "nometric")
+    args["rebuildCluster"] = False
+    plt.plot(runCOBRAS(17, dataset, args), label = "baseline")
     print("next")
-    args["after"] = False
-    plt.plot(runCOBRAS(10, dataset, args), label = "COBRAS")
+    args["rebuildPhase"] = False
+    plt.plot(runCOBRAS(17, dataset, args), label = "COBRAS")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
@@ -393,71 +393,70 @@ def run(args, path):
 # Plot makers #
 ###############
 
-def makeARI(path, name_algo = ""): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
-    test = loadDict(path, "total")
-    cobras = loadDict("experimenten/thesis/posterevent/kNN_3", "total")
-    
+def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
+    test = loadDict(path[0], "total")
+    test1 = loadDict(path[1], "total")
+    cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
     cobraspd = pd.DataFrame()
-    testpd = pd.DataFrame()
 
-    if not name_algo:
-        name_algo = path
+    
 
 
     for key, item in test.items():
 
-        testpd[key] = np.array(item)[:200]
-        cobraspd[key] = np.array(cobras[key])[:200]
         
-        plt.plot(cobraspd[key], label = "COBRAS")
-        plt.plot(testpd[key], label = name_algo)
+        plt.plot(np.array(cobras[key]), label = "COBRAS")
+        plt.plot(np.array(item), label = name_algo[0])
+        plt.plot(np.array(test1[key]), label = name_algo[1])
 
         plt.title(key)
-        plt.xlabel("#queries")
+        plt.xlabel("#vragen")
         plt.ylabel("ARI")
-        plt.ylim((0,1))
         plt.legend()
-        plt.savefig(f"{path}/plots/{key}.png")
+        plt.savefig(f"{path[0]}/plots/{key}.png", dpi = 600)
         plt.clf()
 
-    all_results = pd.DataFrame()
-    all_results["COBRAS"] = cobraspd.mean(axis=1)
-    all_results[name_algo] = testpd.mean(axis=1)
+    # all_results = pd.DataFrame()
+    # all_results["COBRAS"] = cobraspd.mean(axis=1)
+    # all_results[name_algo] = testpd.mean(axis=1)
 
-    all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
-    # plt.show()
-    plt.savefig(f"{path}/plots/total.png")
+    # all_results.plot(xlabel="#queries", ylabel="ARI", ylim = (0.4,0.85))
+    # # plt.show()
+    # plt.savefig(f"{path}/plots/total.png")
 
-    plt.clf()
+    # plt.clf()
 
-def makeDifferencePlot(path, name_algo = ""):
-    test = loadDict(path, "total")
-    cobras = loadDict("experimenten/thesis/posterevent/kNN_3", "total")
-    
-    total = np.zeros(200)
+def makeDifferencePlot(paths, name_algos = ""):
 
-    if not name_algo:
-        name_algo = path
-
-
-    for key, item in test.items():
-
-        test_item = np.array(item)[:200]
-        cobras_item = np.array(cobras[key])[:200]
+    for i in range(len(paths)):
+        path = paths[i]
+        name_algo = name_algos[i]
+        test = loadDict(path, "total")
+        cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
         
-        bools = test_item > cobras_item
+        total = np.zeros(200)
 
-        total += bools
+        if not name_algo:
+            name_algo = path
 
-    
-    plt.plot(total, label = name_algo)
 
-    plt.title("Better per dataset")
-    plt.xlabel("#queries")
-    plt.ylabel("#better")
-    plt.ylim((0, 16))
+        for key, item in test.items():
+
+            test_item = np.array(item)[:200]
+            cobras_item = np.array(cobras[key])[:200]
+            
+            bools = test_item > cobras_item
+
+            total += bools
+
+        
+        plt.plot(total, label = name_algo)
+
+    plt.xlabel("#vragen")
+    plt.ylabel("#ARI>COBRAS")
+    plt.ylim((0, 15))
     plt.legend()
-    plt.savefig(f"{path}/plots/better.png")
+    plt.savefig(f"experimenten/thesis/7-kNN/better/all.png", dpi=600)
 
     plt.clf()
 
@@ -678,10 +677,10 @@ def runAll(doAll = False):
                 
                 all_paths.append(results_location)
 
-                # test =  Path(os.path.join(results_location, "total.json")).absolute()
-                # if test.is_file():
-                #     found += 1
-                #     continue
+                test =  Path(os.path.join(results_location, "total.json")).absolute()
+                if test.is_file():
+                    found += 1
+                    continue
 
                 run(experiment_file["settings"], results_location)
 
@@ -781,13 +780,30 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    # runAll(doAll = True) # vanaf nu dit oproepen
+
+    test()
+
+    ################
+    # Create plots #
+    ################
+
+    lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
+           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
+    
+    names = ["rNN", "rNN-KLMNN"]
+
+    # makeDifferencePlot(lis, name_algos = names)
+
+    # for i in range(len(lis)):
+    # makeARI(lis, names)
+
+    # makeARI("experimenten/thesis/6-transformaties/NCA/COBRASD++M_metric_075")
 
     # labelledCount()
 
     # kNNTest(10, "ecoli", ITML_wrapper)
 
-    # test()
 
     # moonPlot()
 
