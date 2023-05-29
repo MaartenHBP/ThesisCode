@@ -1,12 +1,14 @@
 {   
-    "plotName": "COBRAS Extra 25",
+    "reuse": "7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
+
+    "plotName": "COBRAS",
     
     "settings" : {   
         
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
         
-        "metricLearner" : "KLMNN_wrapper",
+        "metricLearner" : "LMNN_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
@@ -20,25 +22,23 @@
         "initialSupervised" : 0, 
         "initialRandom" : true, 
 
-        "rebuildPhase" : true,
-        "rebuildAmountQueriesAsked" : 25,
+        "rebuildPhase" : false,
+        "rebuildAmountQueriesAsked" : 75,
         "rebuildInterval" : 0,
-        "rebuildLevel" : "superinstance", 
+        "rebuildLevel" : "all", 
         "rebuildSuperInstanceLevel" : 0,
         "rebuilder" : "ClosestRebuild",
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
-        "rebuildCluster": true,
 
-        "after" : true,
+        "after" : false,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "distance",
+        "after_weights" : "uniform",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
         "afterLevel" : "all", 
         "afterSuperInstanceLevel" : 0,
-        "afterRadius": true,
 
         "useNewConstraintIndex" : true,
         "mergeBlobs" : true, 

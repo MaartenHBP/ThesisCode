@@ -1,44 +1,44 @@
 {   
-    "plotName": "COBRAS Extra 100",
+
+    "plotName": "COBRAS split",
     
     "settings" : {   
         
         "splitlevel_strategy": null,
         "splitlevelInt" : 4,
+        "new_split": true,
         
-        "metricLearner" : "KLMNN_wrapper",
+        "metricLearner" : "LMNN_wrapper",
         "metricLearer_arguments" : {},
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
 
         "learnAMetric" : false,
-        "metricAmountQueriesAsked" : 100,
+        "metricAmountQueriesAsked" : 50,
         "metricInterval" : 0,
 
         "initial" : false,
         "initialSupervised" : 0, 
         "initialRandom" : true, 
 
-        "rebuildPhase" : true,
-        "rebuildAmountQueriesAsked" : 100,
+        "rebuildPhase" : false,
+        "rebuildAmountQueriesAsked" : 75,
         "rebuildInterval" : 0,
         "rebuildLevel" : "all", 
         "rebuildSuperInstanceLevel" : 0,
-        "rebuilder" : "ClosestVote",
+        "rebuilder" : "ClosestRebuild",
         "rebuildMetric" : false,
         "rebuilderKeepTransformed" : false,
-        "rebuildCluster": true,
 
-        "after" : true,
+        "after" : false,
         "afterAmountQueriesAsked" : 1,
         "after_k" : 3,
-        "after_weights" : "distance",
+        "after_weights" : "uniform",
         "afterMetric" : false, 
         "afterKeepTransformed" : false, 
         "afterLevel" : "all", 
         "afterSuperInstanceLevel" : 0,
-        "afterRadius": true,
 
         "useNewConstraintIndex" : true,
         "mergeBlobs" : true, 

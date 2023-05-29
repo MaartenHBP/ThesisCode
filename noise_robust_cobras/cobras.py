@@ -94,6 +94,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
+        new_split = False,
         metricLearner = "LMNN_wrapper",
         metricLearer_arguments = {},
 
@@ -178,6 +179,7 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         ###################
         # METRIC LEARNING #
         ###################
+        self.new_split = new_split
         self.metricLearner = eval(metricLearner) # wordt als string meegegeven 
         self.metricLearer_arguments = metricLearer_arguments
         self.metricLevel = metricLevel
@@ -452,6 +454,10 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
 
         if to_split is None:
             return SplitResult.NO_SPLIT_POSSIBLE
+        
+        labelled = None
+        if self.new_split:
+            labelled, clust, finished = self.constraint_index_advanced.cluster(self)
 
         # remove to_split from the clustering
         # if self.keepSupervised:
@@ -472,6 +478,17 @@ class COBRAS: # set seeds!!!!!!!!; als je clustert een seed setten door een rand
         self._log.info(
             f"Splitted super-instance {to_split.representative_idx} in {split_level} new super-instances {list(si.representative_idx for si in new_super_instances)}"
         )
+
+        if self.new_split:
+            for superinstance in new_super_instances:
+                dis = np.array(list(set(labelled).intersection(superinstance.indices)))
+                if len(dis) > 0:
+                    centroid = np.mean(self.data[superinstance.indices, :], axis=0)
+                    superinstance.representative_idx = min(
+                        dis,
+                        key=lambda x: np.linalg.norm(self.data[x, :] - centroid),
+                    )
+
 
         new_clusters = self.add_new_clusters_from_split(new_super_instances)
 

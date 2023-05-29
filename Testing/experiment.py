@@ -178,7 +178,7 @@ def count(seed, dataName, arguments):
 ###############
                 
 def test():
-    dataset = "hepatitis"
+    dataset = "breast-cancer-wisconsin"
 
     args = {   
         
@@ -189,6 +189,7 @@ def test():
         "metricLearer_arguments" : {},
         "changeToMedoids": False,
         "cluster_algo": "KMeansClusterAlgorithm", 
+        "new_split": True,
 
         "metricLevel" : "all",
         "metricSuperInstanceLevel" : 0,
@@ -201,7 +202,7 @@ def test():
         "initialSupervised" : 0.5, 
         "initialRandom" : True, 
 
-        "rebuildPhase" : True,
+        "rebuildPhase" : False,
         "rebuildAmountQueriesAsked" : 75,
         "rebuildInterval" : 0,
         "rebuildLevel" : "all", 
@@ -235,13 +236,13 @@ def test():
     # args["afterRadius"] = True
     # plt.plot(runCOBRAS(10, dataset, args), label = "ITML")
     # print("next")
-    plt.plot(runCOBRAS(17, dataset, args), label = "distance")
-    print("next")
-    args["rebuildCluster"] = False
-    plt.plot(runCOBRAS(17, dataset, args), label = "baseline")
-    print("next")
-    args["rebuildPhase"] = False
-    plt.plot(runCOBRAS(17, dataset, args), label = "COBRAS")
+    plt.plot(runCOBRAS(4, dataset, args), label = "distance")
+    # print("next")
+    # args["rebuildCluster"] = False
+    # plt.plot(runCOBRAS(17, dataset, args), label = "baseline")
+    # print("next")
+    # args["rebuildPhase"] = False
+    # plt.plot(runCOBRAS(17, dataset, args), label = "COBRAS")
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
     # # args["rebuildMetric"] = True
     # # plt.plot(runCOBRAS(16, dataset, args), label = "test_metric")
@@ -396,8 +397,8 @@ def run(args, path):
 def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
     test = loadDict(path[0], "total")
     test1 = loadDict(path[1], "total")
-    cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
-    cobraspd = pd.DataFrame()
+    # cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
+    # cobraspd = pd.DataFrame()
 
     
 
@@ -405,7 +406,7 @@ def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook n
     for key, item in test.items():
 
         
-        plt.plot(np.array(cobras[key]), label = "COBRAS")
+        # plt.plot(np.array(cobras[key]), label = "COBRAS")
         plt.plot(np.array(item), label = name_algo[0])
         plt.plot(np.array(test1[key]), label = name_algo[1])
 
@@ -413,6 +414,7 @@ def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook n
         plt.xlabel("#vragen")
         plt.ylabel("ARI")
         plt.legend()
+        print("hier")
         plt.savefig(f"{path[0]}/plots/{key}.png", dpi = 600)
         plt.clf()
 
@@ -780,7 +782,7 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = True) # vanaf nu dit oproepen
+    runAll(doAll = False) # vanaf nu dit oproepen
 
     # test()
 
@@ -788,12 +790,17 @@ if __name__ == "__main__":
     # Create plots #
     ################
 
-    lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
-           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
+    # lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
+    #        "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
     
-    names = ["rNN", "rNN-KLMNN"]
+    # names = ["rNN", "rNN-KLMNN"]
 
-    # makeDifferencePlot(lis, name_algos = names)
+    lis = ["experimenten/thesis/8-rebuild/2-split-after/COBRASD++M _split",
+           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius"]
+    
+    names = ["split", "COBRAS"]
+
+    makeARI(lis, name_algo = names)
 
     # for i in range(len(lis)):
     # makeARI(lis, names)
