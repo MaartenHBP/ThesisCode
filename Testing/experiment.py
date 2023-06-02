@@ -397,7 +397,7 @@ def run(args, path):
 def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook nog enkel absolute: TODO
     test = loadDict(path[0], "total")
     test1 = loadDict(path[1], "total")
-    # cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
+    cobras = loadDict("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M", "total")
     # cobraspd = pd.DataFrame()
 
     
@@ -406,14 +406,14 @@ def makeARI(path, name_algo): # momenteel enkel vergelijken met COBRAS, en ook n
     for key, item in test.items():
 
         
-        # plt.plot(np.array(cobras[key]), label = "COBRAS")
+        plt.plot(np.array(cobras[key]), label = "COBRAS")
         plt.plot(np.array(item), label = name_algo[0])
         plt.plot(np.array(test1[key]), label = name_algo[1])
 
         plt.title(key)
         plt.xlabel("#vragen")
         plt.ylabel("ARI")
-        plt.legend()
+        # plt.legend()
         print("hier")
         plt.savefig(f"{path[0]}/plots/{key}.png", dpi = 600)
         plt.clf()
@@ -790,17 +790,17 @@ if __name__ == "__main__":
     # Create plots #
     ################
 
-    # lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
-    #        "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
+    lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
+           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
     
-    # names = ["rNN", "rNN-KLMNN"]
+    names = ["rNN", "rNN-KLMNN"]
 
-    lis = ["experimenten/thesis/8-rebuild/2-split-after/COBRASD++M _split",
-           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius"]
+    # lis = ["experimenten/thesis/8-rebuild/2-split-after/COBRASD++M _split",
+    #        "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius"]
     
-    names = ["split", "COBRAS"]
+    # names = ["split", "COBRAS"]
 
-    makeARI(lis, name_algo = names)
+    # makeARI(lis, name_algo = names)
 
     # for i in range(len(lis)):
     # makeARI(lis, names)
