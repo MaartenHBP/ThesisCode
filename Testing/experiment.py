@@ -772,6 +772,27 @@ def labelledCount():
     # plt.show()
     plt.savefig(f"experimenten/thesis/count.png", dpi = 600)
 
+def last(path, name_algo):
+    test = []
+
+    ARI = pd.DataFrame()
+
+    for i in path:
+        test.append(loadDict(i, "total"))
+    # cobraspd = pd.DataFrame()
+
+    
+
+    for t in range(len(test)):
+        testpd = pd.DataFrame()
+        for key, item in test[t].items():
+            testpd[key] = np.array(item)
+        ARI[name_algo[t]] = testpd.mean(axis=1)
+
+    ARI.plot(xlabel="#vragen", ylabel="ARI", legend=False, ylim=(0,0.83))
+    plt.savefig(f"{name_algo[-1]}.png", dpi = 600)
+    plt.clf()
+
             
 
 if __name__ == "__main__":
@@ -782,7 +803,7 @@ if __name__ == "__main__":
 
     ignore_warnings() 
 
-    runAll(doAll = False) # vanaf nu dit oproepen
+    # runAll(doAll = False) # vanaf nu dit oproepen
 
     # test()
 
@@ -790,10 +811,37 @@ if __name__ == "__main__":
     # Create plots #
     ################
 
-    lis = ["experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius",
-           "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN"]
+    lis = ["experimenten/thesis/4-COBRAS/splittest/COBRAS"]
+
+    names = ["COBRAS"]
+
+    last(lis, names)
+
+    lis.append("experimenten/thesis/5-Labels/label_blobs_test/COBRASD++M")
+
+    names.append("Correctie")
+
+    last(lis, names)
+
+    lis.append("experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius")
+
+    names.append("rNN")
+
+    last(lis, names)
+
+    lis.append("experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius_KLMNN")
+
+    names.append("rNN + KLMNN")
+
+    last(lis, names)
+
+
     
-    names = ["rNN", "rNN-KLMNN"]
+
+    
+
+
+
 
     # lis = ["experimenten/thesis/8-rebuild/2-split-after/COBRASD++M _split",
     #        "experimenten/thesis/7-kNN/radius_KLMNN/COBRASD++M_kNN_radius"]
